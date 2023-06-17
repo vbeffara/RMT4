@@ -12,7 +12,6 @@ noncomputable def cindex (z₀ : ℂ) (r : ℝ) (f : ℂ → ℂ) : ℂ :=
 
 section basic
 
-universe u
 variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
   {p : FormalMultilinearSeries ℂ ℂ E}
 
@@ -29,9 +28,7 @@ end basic
 
 section circle_integral
 
-universe u
 variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f g : ℂ → E}
---   {c : ℂ} {r : ℝ} {f g : ℂ → E} {U : set ℂ} {v : E}
 
 lemma ContinuousOn.interval_integrable' (hf : ContinuousOn f (sphere c r)) (hr : 0 ≤ r) :
     IntervalIntegrable (λ x => (circleMap 0 r x * I) • f (circleMap c r x)) MeasureSpace.volume 0 (2 * π) := by
@@ -62,9 +59,7 @@ end circle_integral
 
 section dslope
 
-universe u
 variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f : ℂ → E}
---   {f : ℂ → E} {U : set ℂ} {c z₀ : ℂ} {n : ℕ}
   {p : FormalMultilinearSeries ℂ ℂ E}
 
 lemma DifferentiableOn.iterate_dslope (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) (hc : c ∈ U) :

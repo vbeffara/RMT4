@@ -9,6 +9,6 @@ require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git"
 
 @[default_target]
-lean_lib «RMT4» {
+lean_lib RMT4 {
   -- add any library configuration options here
 }

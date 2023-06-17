@@ -104,8 +104,6 @@ end UniformSpace
 
 open UniformSpace
 
--- variables {F : ι → α → β} {f : α → β} {p : filter ι} [uniform_space β]
-
 lemma lemma0 [UniformSpace α] : Tendsto Prod.snd (𝓤 α ⊓ comap Prod.fst (𝓟 s)) (𝓝ᵘ s) := by
   simp_rw [comap_principal, uniform_nhds_set, tendsto_lift', eventually_inf_principal]
   exact λ U hU => mem_of_superset hU (λ ⟨x, y⟩ hxy hx => mem_biUnion hx hxy)
