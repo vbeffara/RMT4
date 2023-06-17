@@ -4,9 +4,6 @@ import Mathlib.MeasureTheory.Integral.CircleIntegral
 
 open Real Complex Function TopologicalSpace Filter Topology Metric MeasureTheory Nat
 
--- open complex set function metric interval_integral
--- open_locale real topological_space
-
 noncomputable def cindex (z₀ : ℂ) (r : ℝ) (f : ℂ → ℂ) : ℂ :=
   (2 * π * I)⁻¹ * ∮ z in C(z₀, r), deriv f z / f z
 
@@ -106,7 +103,7 @@ lemma eventually_deriv_div_self_eq (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 
   have lh3 := eventually_eventually_nhds.mpr hp.eq_pow_order_mul_iterate_dslope
   filter_upwards [lh1, lh2, lh3] with z using deriv_div_self_eq_div_add_deriv_div_self
 
-lemma differentiable_on.cont_diff_on (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) :
+lemma DifferentiableOn.contDiffOn (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) :
     ContDiffOn ℂ ⊤ f U :=
   (hf.analyticOn hU).contDiffOn
 
@@ -126,67 +123,68 @@ lemma cindex_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
 
 -- TODO: off-center using `integral_sub_inv_of_mem_ball`
 
--- lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r ⊆ U)
---   (h1 : differentiable_on ℂ g U) (h2 : ∀ z ∈ closedBall z₀ r, g z ≠ 0)
---   (h3 : ∀ {z}, z ∈ sphere z₀ r → deriv f z / f z = c / (z - z₀) + deriv g z / g z) :
---   cindex z₀ r f = c :=
--- begin
---   have e1 : closedBall z₀ r ⊆ U := h0,
---   have e2 : sphere z₀ r ⊆ U := sphere_subset_closedBall.trans e1,
---   have e4 : ∮ z in C(z₀,r), deriv f z / f z = ∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z,
---   { refine circle_integral.integral_congr hr.le (λ z hz, _),
---     exact h3 hz },
---   have e5 : ∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z =
---     (∮ z in C(z₀, r), c / (z - z₀)) + (∮ z in C(z₀, r), deriv g z / g z),
---   { refine circle_integral.add hr.le _ _,
---     { refine continuous_on.div continuous_on_const (continuous_on_id.sub continuous_on_const) _,
---       exact λ z hz, sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm) },
---     { refine continuous_on.div _ (h1.continuous_on.mono e2) (λ z hz, h2 _ (sphere_subset_closedBall hz)),
---       have := (h1.cont_diff_on hU).continuous_on_deriv_of_open hU le_top,
---       exact this.mono e2 } },
---   have e6 : ∮ z in C(z₀, r), deriv g z / g z = 0,
---   { have := cindex_eq_zero hU hr e1 h1 h2,
---     simpa [cindex, real.pi_ne_zero, I_ne_zero] using this },
---   have e7 : ∮ z in C(z₀, r), c / (z - z₀) = 2 * π * I * c,
---   { have := @circle_integral_sub_center_inv_smul ℂ _ _ _ _ _ _ hr,
---     simpa [div_eq_mul_inv, mul_comm _ _⁻¹] using this },
---   field_simp [cindex, e4, e5, e6, e7, real.pi_ne_zero, I_ne_zero, two_ne_zero]; ring
--- end
+lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r ⊆ U)
+    (h1 : DifferentiableOn ℂ g U) (h2 : ∀ z ∈ closedBall z₀ r, g z ≠ 0)
+    (h3 : ∀ {z}, z ∈ sphere z₀ r → deriv f z / f z = c / (z - z₀) + deriv g z / g z) :
+    cindex z₀ r f = c := by
+  have e2 : sphere z₀ r ⊆ U := sphere_subset_closedBall.trans h0
+  have e4 : (∮ z in C(z₀,r), deriv f z / f z) = ∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z :=
+    circleIntegral.integral_congr hr.le (λ z hz => h3 hz)
+  have e5 : (∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z) =
+      (∮ z in C(z₀, r), c / (z - z₀)) + (∮ z in C(z₀, r), deriv g z / g z) := by
+    refine circleIntegral.add hr.le ?_ ?_
+    { refine ContinuousOn.div continuousOn_const (continuousOn_id.sub continuousOn_const) ?_
+      exact λ z hz => sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm) }
+    { refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
+      have := (h1.contDiffOn hU).continuousOn_deriv_of_open hU le_top
+      exact this.mono e2 }
+  have e6 : (∮ z in C(z₀, r), deriv g z / g z) = 0 := by
+    have := cindex_eq_zero hU hr h0 h1 h2
+    simpa [cindex, Real.pi_ne_zero, I_ne_zero] using this
+  have e7 : (∮ z in C(z₀, r), c / (z - z₀)) = 2 * π * I * c := by
+    simpa [div_eq_mul_inv, mul_comm _ _⁻¹] using circle_integral_sub_center_inv_smul hr
+  field_simp [cindex, e4, e5, e6, e7, Real.pi_ne_zero, I_ne_zero, two_ne_zero]
+  ring
 
--- lemma exists_cindex_eq_order' (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 0) :
---   ∃ R > (0 : ℝ), ∀ r ∈ Ioo 0 R, cindex z₀ r f = p.order :=
--- begin
---   let g : ℂ → ℂ := (swap dslope z₀^[p.order]) f,
---   have lh1 : ∀ᶠ z in 𝓝 z₀, g z ≠ 0 := hp.dslope_order_eventually_ne_zero h,
---   have lh2 : ∀ᶠ z in 𝓝 z₀, z ≠ z₀ → deriv f z / f z = p.order / (z - z₀) + deriv g z / g z,
---     from eventually_deriv_div_self_eq hp h,
---   have lh3 : ∀ᶠ z in 𝓝 z₀, differentiable_at ℂ g z,
---     from (hp.has_fpower_series_iterate_dslope_fslope p.order).eventually_differentiable_at,
---   obtain ⟨R, hR₁, hh⟩ := metric.mem_nhds_iff.mp (lh1.and (lh2.and lh3)),
---   refine ⟨R, hR₁, λ r hr, _⟩,
---   refine cindex_eq_order_aux IsOpen_ball hr.1 (closedBall_subset_ball hr.2)
---     (λ z hz, (hh hz).2.2.differentiable_within_at)
---     (λ z hz, (hh (closedBall_subset_ball hr.2 hz)).1) (λ z hz, _),
---   refine (hh (sphere_subset_closedBall.trans (closedBall_subset_ball hr.2) hz)).2.1 _,
---   exact ne_of_mem_sphere hz hr.1.ne.symm,
--- end
+lemma exists_cindex_eq_order' (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 0) :
+    ∃ R > (0 : ℝ), ∀ r ∈ Set.Ioo 0 R, cindex z₀ r f = p.order := by
+  set g : ℂ → ℂ := iterate (swap dslope z₀) p.order f
+  have lh1 : ∀ᶠ z in 𝓝 z₀, g z ≠ 0 := hp.dslope_order_eventually_ne_zero h
+  have lh2 : ∀ᶠ z in 𝓝 z₀, z ≠ z₀ → deriv f z / f z = p.order / (z - z₀) + deriv g z / g z :=
+    eventually_deriv_div_self_eq hp h
+  have lh3 : ∀ᶠ z in 𝓝 z₀, DifferentiableAt ℂ g z :=
+    (hp.has_fpower_series_iterate_dslope_fslope p.order).eventually_differentiable_at
+  obtain ⟨R, hR₁, hh⟩ := Metric.mem_nhds_iff.mp (lh1.and (lh2.and lh3))
+  refine ⟨R, hR₁, λ r hr => ?_⟩
+  refine cindex_eq_order_aux isOpen_ball hr.1 (closedBall_subset_ball hr.2)
+    (λ z hz => (hh hz).2.2.differentiableWithinAt)
+    (λ z hz => (hh (closedBall_subset_ball hr.2 hz)).1)
+    (λ hz => ?_)
+  refine (hh (sphere_subset_closedBall.trans (closedBall_subset_ball hr.2) hz)).2.1 ?_
+  exact ne_of_mem_sphere hz hr.1.ne.symm
 
--- lemma exists_cindex_eq_order (hp : HasFPowerSeriesAt f p z₀) :
---   ∃ R > (0 : ℝ), ∀ r ∈ Ioo 0 R, cindex z₀ r f = p.order :=
--- begin
---   by_cases p = 0, swap, exact exists_cindex_eq_order' hp h,
---   subst_vars,
---   obtain ⟨R, hR, hf⟩ := metric.eventually_nhds_iff.mp (hp.locally_zero_iff.mpr rfl),
---   refine ⟨R, hR, λ r hr, _⟩,
---   have : eq_on (λ z, deriv f z / f z) 0 (sphere z₀ r),
---     from λ z hz, by simp [hf (show dist z z₀ < R, from hz.symm ▸hr.2)],
---   simp [cindex, circle_integral, circle_integral.integral_congr hr.1.le this]
--- end
+lemma exists_cindex_eq_order (hp : HasFPowerSeriesAt f p z₀) :
+    ∃ R > (0 : ℝ), ∀ r ∈ Set.Ioo 0 R, cindex z₀ r f = p.order := by
+  by_cases p = 0
+  case neg => exact exists_cindex_eq_order' hp h
+  case pos =>
+    subst_vars
+    obtain ⟨R, hR, hf⟩ := Metric.eventually_nhds_iff.mp (hp.locally_zero_iff.mpr rfl)
+    refine ⟨R, hR, λ r hr => ?_⟩
+    have : Set.EqOn (λ z => deriv f z / f z) 0 (sphere z₀ r) := by
+      intro z hz
+      simp
+      right
+      apply hf
+      rw [hz.symm.symm]
+      exact hr.2
+    simp [cindex, Real.pi_ne_zero, Complex.I_ne_zero]
+    rw [@circleIntegral.integral_congr ℂ _ _ _ (λ z => deriv f z / f z) 0 z₀ r hr.1.le this]
+    simp [circleIntegral]
+    exact intervalIntegral.integral_zero
 
--- lemma cindex_eventually_eq_order (hp : HasFPowerSeriesAt f p z₀) :
---   ∀ᶠ r in 𝓝[>] 0, cindex z₀ r f = p.order :=
--- begin
---   rw [eventually_nhds_within_iff, metric.eventually_nhds_iff],
---   obtain ⟨R, hR, hf⟩ := exists_cindex_eq_order hp,
---   exact ⟨R, hR, λ r hr1 hr2, hf r ⟨hr2, by simpa using lt_of_abs_lt hr1⟩⟩
--- end
+lemma cindex_eventually_eq_order (hp : HasFPowerSeriesAt f p z₀) :
+    ∀ᶠ r in 𝓝[>] 0, cindex z₀ r f = p.order := by
+  rw [eventually_nhdsWithin_iff, Metric.eventually_nhds_iff]
+  obtain ⟨R, hR, hf⟩ := exists_cindex_eq_order hp
+  exact ⟨R, hR, λ r hr1 hr2 => hf r ⟨hr2, by simpa using lt_of_abs_lt hr1⟩⟩
