@@ -80,16 +80,24 @@ lemma HasFPowerSeriesAt.dslope_order_eventually_ne_zero (hp : HasFPowerSeriesAt 
 
 end dslope
 
--- variables {f g : ℂ → ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ} {c z z₀ : ℂ} {n : ℕ} {U : set ℂ}
---   {r R : ℝ}
+variable {f g : ℂ → ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ}
 
--- lemma deriv_div_self_eq_div_add_deriv_div_self (hg : differentiable_at ℂ g z) (hgz : g z ≠ 0)
---   (hfg : f =ᶠ[𝓝 z] λ w, (w - z₀) ^ n * g w) (hz : z ≠ z₀) :
---   deriv f z / f z = n / (z - z₀) + deriv g z / g z :=
+lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (hgz : g z ≠ 0)
+    (hfg : f =ᶠ[𝓝 z] λ w => HPow.hPow (w - z₀) n * g w) (hz : z ≠ z₀) :
+    deriv f z / f z = n / (z - z₀) + deriv g z / g z := by
+  have h1 : DifferentiableAt ℂ (λ y => HPow.hPow (y - z₀) n) z :=
+    ((differentiable_id'.sub_const z₀).pow n).differentiableAt
+  have h4 : DifferentiableAt ℂ (λ y => y - z₀) z := (differentiable_id'.sub_const z₀).differentiableAt
+  have h5 : deriv (fun y => y - z₀) z = 1 := by
+    simp only [deriv_sub_const, deriv_id'']
+  simp [hfg.deriv_eq, hfg.self_of_nhds, deriv_mul h1 hg, _root_.add_div, deriv_pow'' n h4, deriv_sub_const, h5]
+  cases n
+  case zero => simp
+  case succ n =>
+    field_simp [_root_.pow_succ, sub_ne_zero.mpr hz]
+    ring
+
 -- begin
---   have h1 : differentiable_at ℂ (λ y, (y - z₀) ^ n) z := by simp,
---   have h2 : z - z₀ ≠ 0 := sub_ne_zero.mpr hz,
---   have h3 : (z - z₀) ^ n ≠ 0 := pow_ne_zero n h2,
 --   rw [hfg.deriv_eq, hfg.self_of_nhds, deriv_mul h1 hg, add_div, mul_div_mul_right _ _ hgz,
 --     mul_div_mul_left _ _ h3, add_left_inj],
 --   simp only [deriv_pow'', differentiable_at_sub_const_iff, differentiable_at_id', deriv_sub,
