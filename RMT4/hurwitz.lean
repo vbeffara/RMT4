@@ -5,6 +5,7 @@
 -- import topology.uniform_space.uniform_convergence
 -- import analysis.complex.locally_uniform_limit
 
+import Mathlib.Analysis.Complex.LocallyUniformLimit
 import RMT4.uniform
 import RMT4.cindex
 
@@ -169,109 +170,96 @@ lemma TendstoUniformlyOn.div_of_compact [NeBot p]
 
 end unifops
 
--- variables {ι : Type*} {F : ι → ℂ → ℂ} {f : ℂ → ℂ} {z₀ : ℂ} {p : filter ι} [ne_bot p]
+variable {F : ι → ℂ → ℂ} {f : ℂ → ℂ}
 --   {U s : set ℂ} {r : ℝ}
 
--- lemma filter.eventually.exists' {P : ℝ → Prop} {t₀} (h : ∀ᶠ t in 𝓝[>] t₀, P t) :
---   ∃ t > t₀, P t :=
--- by simpa [and_comm, exists_prop] using (frequently_nhds_within_iff.mp h.frequently).exists
+lemma Filter.eventually.exists' {P : ℝ → Prop} {t₀} (h : ∀ᶠ t in 𝓝[>] t₀, P t) :
+    ∃ t > t₀, P t := by
+  simpa [and_comm, exists_prop] using (frequently_nhdsWithin_iff.mp h.frequently).exists
 
--- lemma order_eq_zero_iff {p : formal_multilinear_series ℂ ℂ ℂ}
---   (hp : has_fpower_series_at f p z₀) (hz₀ : f z₀ = 0) :
---   p.order = 0 ↔ ∀ᶠ z in 𝓝 z₀, f z = 0 :=
--- begin
---   rw [hp.locally_zero_iff],
---   by_cases p = 0, { subst p, simp },
---   simp [formal_multilinear_series.order_eq_zero_iff h, h],
---   ext1,
---   simp [hp.coeff_zero, hz₀],
--- end
+lemma order_eq_zero_iff {p : FormalMultilinearSeries ℂ ℂ ℂ}
+    (hp : HasFPowerSeriesAt f p z₀) (hz₀ : f z₀ = 0) :
+    p.order = 0 ↔ ∀ᶠ z in 𝓝 z₀, f z = 0 := by
+  rw [hp.locally_zero_iff]
+  by_cases p = 0
+  case pos => simp [h]
+  case neg =>
+    simp [FormalMultilinearSeries.order_eq_zero_iff h, h]
+    ext1
+    rw [hp.coeff_zero, hz₀]; rfl
 
--- lemma order_pos_iff {p : formal_multilinear_series ℂ ℂ ℂ}
---   (hp : has_fpower_series_at f p z₀) (hz₀ : f z₀ = 0) :
---   0 < p.order ↔ ∃ᶠ z in 𝓝 z₀, f z ≠ 0 :=
--- by simp [pos_iff_ne_zero, (order_eq_zero_iff hp hz₀).not]
+lemma order_pos_iff {p : FormalMultilinearSeries ℂ ℂ ℂ}
+    (hp : HasFPowerSeriesAt f p z₀) (hz₀ : f z₀ = 0) :
+    0 < p.order ↔ ∃ᶠ z in 𝓝 z₀, f z ≠ 0 := by
+  simp [pos_iff_ne_zero, (order_eq_zero_iff hp hz₀).not]
 
--- lemma cindex_pos (h1 : analytic_at ℂ f z₀) (h2 : f z₀ = 0) (h3 : ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0) :
---   ∀ᶠ r in 𝓝[>] 0, cindex z₀ r f ≠ 0 :=
--- begin
---   rcases h1 with ⟨p, hp⟩,
---   filter_upwards [cindex_eventually_eq_order hp] with r h,
---   simpa [cindex, h, real.pi_ne_zero, I_ne_zero, order_eq_zero_iff hp h2] using
---     h3.frequently.filter_mono nhds_within_le_nhds
--- end
+lemma cindex_pos (h1 : AnalyticAt ℂ f z₀) (h2 : f z₀ = 0) (h3 : ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0) :
+    ∀ᶠ r in 𝓝[>] 0, cindex z₀ r f ≠ 0 := by
+  obtain ⟨p, hp⟩ := h1
+  filter_upwards [cindex_eventually_eq_order hp] with r h4
+  simpa [h4, order_eq_zero_iff hp h2] using h3.frequently.filter_mono nhdsWithin_le_nhds
 
--- -- TODO: this can be generalized a lot
--- lemma hurwitz2_1 {K : set ℂ} (hK : IsCompact K) (F_conv : TendstoUniformlyOn F f p K)
---   (hf1 : ContinuousOn f K) (hf2 : ∀ z ∈ K, f z ≠ 0) :
---   ∀ᶠ n in p, ∀ z ∈ K, F n z ≠ 0 :=
--- begin
---   by_cases (K = ∅),
---   { simp [h] },
---   { obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ K, ∀ z ∈ K, ‖f z₀‖ ≤ ‖f z‖,
---       from hK.exists_forall_le (nonempty_iff_ne_empty.2 h) (continuous_Norm.comp_ContinuousOn hf1),
---     have h3 := TendstoUniformlyOn_iff.1 F_conv (‖f z₀‖) (norm_pos_iff.2 (hf2 _ h1)),
---     filter_upwards [h3] with n hn z hz h,
---     specialize hn z hz,
---     specialize h2 z hz,
---     simp only [h, norm_eq_abs, dist_zero_right] at hn h2,
---     linarith },
--- end
+-- TODO: this can be generalized a lot
+lemma hurwitz2_1 {K : Set ℂ} (hK : IsCompact K) (F_conv : TendstoUniformlyOn F f p K)
+    (hf1 : ContinuousOn f K) (hf2 : ∀ z ∈ K, f z ≠ 0) :
+    ∀ᶠ n in p, ∀ z ∈ K, F n z ≠ 0 := by
+  by_cases K = ∅
+  case pos => simp [h]
+  case neg =>
+    obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ K, ∀ z ∈ K, ‖f z₀‖ ≤ ‖f z‖ :=
+      hK.exists_forall_le (nonempty_iff_ne_empty.2 h) (continuous_norm.comp_continuousOn hf1)
+    have h3 := tendstoUniformlyOn_iff.1 F_conv (‖f z₀‖) (norm_pos_iff.2 (hf2 _ h1))
+    filter_upwards [h3] with n hn z hz h
+    specialize hn z hz
+    specialize h2 z hz
+    simp [h] at hn h2
+    linarith
 
--- lemma TendstoUniformlyOn.tendsto_circle_integral
---   [p.ne_bot]
---   (hr : 0 < r)
---   (F_cont : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r))
---   (F_conv : TendstoUniformlyOn F f p (sphere z₀ r))
---   :
---   filter.tendsto (λ i, ∮ z in C(z₀, r), F i z) p (𝓝 ∮ z in C(z₀, r), f z)
---   :=
--- begin
---   have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.ContinuousOn F_cont,
---   rw [Metric.tendsto_nhds],
---   rintro ε hε,
---   have twopir_ne_zero : 2 * real.pi * r ≠ 0 := by simp [real.pi_ne_zero, hr.ne.symm],
---   have : (2 * real.pi * r)⁻¹ * ε > 0,
---     from mul_pos (inv_pos.mpr (mul_pos (mul_pos two_pos real.pi_pos) hr)) hε.lt,
---   filter_upwards [TendstoUniformlyOn_iff.mp F_conv ((2 * real.pi * r)⁻¹ * ε) this, F_cont] with n h h',
---   simp_rw [dist_comm (f _) _, complex.dist_eq, ← norm_eq_abs] at h,
---   rw [complex.dist_eq, ← circle_integral.sub hr.le h' f_cont, ← norm_eq_abs],
---   have : ∃ (x ∈ sphere z₀ r), ‖F n x - f x‖ < (2 * real.pi * r)⁻¹ * ε := by {
---     have : z₀ + r ∈ sphere z₀ r := by simp [hr.le, real.norm_eq_abs],
---     exact ⟨z₀ + r, this, h _ this⟩ },
---   convert circle_integral.norm_integral_lt_of_norm_le_const_of_lt hr
---     (h'.sub f_cont) (λ z hz, (h z hz).le) this,
---   field_simp [hr.ne, real.pi_ne_zero, two_ne_zero]; ring
--- end
+lemma TendstoUniformlyOn.tendsto_circle_integral [NeBot p] (hr : 0 < r)
+    (F_cont : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r))
+    (F_conv : TendstoUniformlyOn F f p (sphere z₀ r)) :
+    Filter.Tendsto (λ i => ∮ z in C(z₀, r), F i z) p (𝓝 (∮ z in C(z₀, r), f z))
+  := by
+  have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.continuousOn F_cont
+  rw [Metric.tendsto_nhds]
+  intro ε hε
+  have twopir_ne_zero : 2 * Real.pi * r ≠ 0 := by simp [Real.pi_ne_zero, hr.ne.symm]
+  have : (2 * Real.pi * r)⁻¹ * ε > 0 :=
+    mul_pos (inv_pos.mpr (mul_pos (mul_pos two_pos Real.pi_pos) hr)) hε.lt
+  filter_upwards [tendstoUniformlyOn_iff.mp F_conv ((2 * Real.pi * r)⁻¹ * ε) this, F_cont] with n h h'
+  simp_rw [dist_comm (f _) _, Complex.dist_eq, ← Complex.norm_eq_abs] at h
+  rw [Complex.dist_eq, ← circleIntegral.sub hr.le h' f_cont, ← Complex.norm_eq_abs]
+  have : ∃ x ∈ sphere z₀ r, ‖F n x - f x‖ < (2 * Real.pi * r)⁻¹ * ε := by
+    have : z₀ + r ∈ sphere z₀ r := by simp [hr.le, Real.norm_eq_abs]
+    exact ⟨z₀ + r, this, h _ this⟩
+  convert circleIntegral.norm_integral_lt_of_norm_le_const_of_lt hr (h'.sub f_cont) (λ z hz => (h z hz).le) this
+  field_simp [hr.ne, Real.pi_ne_zero, two_ne_zero]; ring
 
--- lemma hurwitz2_2 [p.ne_bot] (hU : is_open U) (hF : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
---   (hf : tendsto_locally_uniformly_on F f p U) (hr1 : 0 < r) (hr2 : sphere z₀ r ⊆ U)
---   (hf1 : ∀ (z : ℂ), z ∈ sphere z₀ r → f z ≠ 0) :
---   tendsto (cindex z₀ r ∘ F) p (𝓝 (cindex z₀ r f)) :=
--- begin
---   have H1 : IsCompact (sphere z₀ r) := IsCompact_sphere z₀ r,
---   have H2 : TendstoUniformlyOn F f p (sphere z₀ r),
---     from (tendsto_locally_uniformly_on_iff_forall_IsCompact hU).1 hf _ hr2 H1,
---   have H3 : differentiable_on ℂ f U := hf.differentiable_on hF hU,
---   have H4 : ContinuousOn (λ (z : ℂ), f z) (sphere z₀ r) := H3.ContinuousOn.mono hr2,
---   have H5 : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r),
---   { filter_upwards [hF] with n h using h.ContinuousOn.mono hr2 },
---   have H6 : ∀ᶠ n in p, ContinuousOn (deriv (F n)) (sphere z₀ r),
---   { filter_upwards [hF] with n h using (h.deriv hU).ContinuousOn.mono hr2 },
---   have H7 : TendstoUniformlyOn (deriv ∘ F) (deriv f) p (sphere z₀ r),
---     from (tendsto_locally_uniformly_on_iff_forall_IsCompact hU).1 (hf.deriv hF hU) _ hr2 H1,
---   have H8 : ContinuousOn (λ (z : ℂ), deriv f z) (sphere z₀ r),
---     from (H3.deriv hU).ContinuousOn.mono hr2,
---   change tendsto (λ n, cindex z₀ r (F n)) p (𝓝 (cindex z₀ r f)),
---   refine tendsto.const_mul _ (TendstoUniformlyOn.tendsto_circle_integral hr1 _ _),
---   { filter_upwards [hurwitz2_1 H1 H2 H4 hf1, H6, H5] with n hn H6 H5 using ContinuousOn.div H6 H5 hn },
---   { exact TendstoUniformlyOn.div_of_compact H7 H2 H8 H4 hf1 H1 }
--- end
+lemma hurwitz2_2 [NeBot p] (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (hf : TendstoLocallyUniformlyOn F f p U) (hr1 : 0 < r) (hr2 : sphere z₀ r ⊆ U)
+    (hf1 : ∀ (z : ℂ), z ∈ sphere z₀ r → f z ≠ 0) :
+    Tendsto (cindex z₀ r ∘ F) p (𝓝 (cindex z₀ r f)) := by
+  have H1 : IsCompact (sphere z₀ r) := isCompact_sphere z₀ r
+  have H2 : TendstoUniformlyOn F f p (sphere z₀ r) :=
+    (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 hf _ hr2 H1
+  have H3 : DifferentiableOn ℂ f U := hf.differentiableOn hF hU
+  have H4 : ContinuousOn f (sphere z₀ r) := H3.continuousOn.mono hr2
+  have H5 : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r) := by
+    filter_upwards [hF] with n h using h.continuousOn.mono hr2
+  have H6 : ∀ᶠ n in p, ContinuousOn (deriv (F n)) (sphere z₀ r) := by
+    filter_upwards [hF] with n h using (h.deriv hU).continuousOn.mono hr2
+  have H7 : TendstoUniformlyOn (deriv ∘ F) (deriv f) p (sphere z₀ r) :=
+    (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 (hf.deriv hF hU) _ hr2 H1
+  have H8 : ContinuousOn (deriv f) (sphere z₀ r) :=
+    (H3.deriv hU).continuousOn.mono hr2
+  refine Tendsto.const_mul _ (TendstoUniformlyOn.tendsto_circle_integral hr1 ?_ ?_)
+  { filter_upwards [hurwitz2_1 H1 H2 H4 hf1, H6, H5] with n hn H6 H5 using ContinuousOn.div H6 H5 hn }
+  { exact TendstoUniformlyOn.div_of_compact H7 H2 H8 H4 hf1 H1 }
 
 -- lemma hurwitz2
---   (hU : is_open U)
---   (hF : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
---   (hf : tendsto_locally_uniformly_on F f p U)
+--   (hU : IsOpen U)
+--   (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+--   (hf : TendstoLocallyUniformlyOn F f p U)
 --   (hr1 : 0 < r)
 --   (hr2 : closed_ball z₀ r ⊆ U)
 --   (hf1 : ∀ z ∈ sphere z₀ r, f z ≠ 0)
@@ -284,9 +272,9 @@ end unifops
 --   have H1 : IsCompact (sphere z₀ r) := IsCompact_sphere z₀ r,
 --   have H2 : sphere z₀ r ⊆ U := sphere_subset_closed_ball.trans hr2,
 --   have H3 : TendstoUniformlyOn F f p (sphere z₀ r),
---     from (tendsto_locally_uniformly_on_iff_forall_IsCompact hU).1 hf _ H2 H1,
+--     from (TendstoLocallyUniformlyOn_iff_forall_IsCompact hU).1 hf _ H2 H1,
 --   have H4 : ContinuousOn (λ (z : ℂ), f z) (sphere z₀ r),
---     from (hf.differentiable_on hF hU).ContinuousOn.mono H2,
+--     from (hf.DifferentiableOn hF hU).continuousOn.mono H2,
 --   have H5 : ∀ᶠ n in p, ∀ z ∈ sphere z₀ r, F n z ≠ 0 := hurwitz2_1 H1 H3 H4 hf1,
 --   filter_upwards [(hurwitz2_2 hU hF hf hr1 H2 hf1).eventually_ne hf2, H5, hF] with n h h' hF,
 --   contrapose! h,
@@ -295,9 +283,9 @@ end unifops
 -- end
 
 -- lemma hurwitz3
---   (hU : is_open U)
---   (hF : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
---   (hf : tendsto_locally_uniformly_on F f p U)
+--   (hU : IsOpen U)
+--   (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+--   (hf : TendstoLocallyUniformlyOn F f p U)
 --   (hz₀ : z₀ ∈ U)
 --   (h1 : f z₀ = 0)
 --   (h2 : ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0)
@@ -306,7 +294,7 @@ end unifops
 --   ∀ᶠ n in p, ∃ z ∈ s, F n z = 0
 --   :=
 -- begin
---   have H1 := (hf.differentiable_on hF hU).analytic_at (hU.mem_nhds hz₀),
+--   have H1 := (hf.DifferentiableOn hF hU).analytic_at (hU.mem_nhds hz₀),
 --   have H5 := cindex_pos H1 h1 h2,
 --   rw [eventually_nhds_within_iff] at h2,
 --   have h3 := eventually_nhds_iff_eventually_closed_ball.1 h2,
@@ -325,16 +313,16 @@ end unifops
 -- ------------------
 
 -- theorem local_hurwitz
---   (hU : is_open U)
---   (F_holo : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
+--   (hU : IsOpen U)
+--   (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
 --   (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
---   (F_conv : tendsto_locally_uniformly_on F f p U)
+--   (F_conv : TendstoLocallyUniformlyOn F f p U)
 --   (hz₀ : z₀ ∈ U)
 --   (hfz₀ : f z₀ = 0)
 --   :
 --   ∀ᶠ z in 𝓝 z₀, f z = 0 :=
 -- begin
---   have H1 := (F_conv.differentiable_on F_holo hU).analytic_at (hU.mem_nhds hz₀),
+--   have H1 := (F_conv.DifferentiableOn F_holo hU).analytic_at (hU.mem_nhds hz₀),
 --   cases H1.eventually_eq_zero_or_eventually_ne_zero, assumption,
 --   obtain ⟨pf, hp⟩ : analytic_at ℂ f z₀ := H1,
 --   by_contra' hh, simp at hh,
@@ -354,28 +342,28 @@ end unifops
 -- end
 
 -- theorem hurwitz
---   (hU : is_open U)
+--   (hU : IsOpen U)
 --   (hU' : is_preconnected U)
---   (F_holo : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
+--   (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
 --   (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
---   (F_conv : tendsto_locally_uniformly_on F f p U)
+--   (F_conv : TendstoLocallyUniformlyOn F f p U)
 --   (hz₀ : z₀ ∈ U)
 --   (hfz₀ : f z₀ = 0)
 --   :
 --   ∀ z ∈ U, f z = 0 :=
 -- begin
 --   have := local_hurwitz hU F_holo F_noz F_conv hz₀ hfz₀,
---   have h1 : differentiable_on ℂ f U := F_conv.differentiable_on F_holo hU,
+--   have h1 : DifferentiableOn ℂ f U := F_conv.DifferentiableOn F_holo hU,
 --   have h2 := h1.analytic_on hU,
 --   exact h2.eq_on_zero_of_preconnected_of_eventually_eq_zero hU' hz₀ this,
 -- end
 
 -- theorem hurwitz'
---   (hU : is_open U)
+--   (hU : IsOpen U)
 --   (hU' : is_preconnected U)
---   (F_holo : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
+--   (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
 --   (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
---   (F_conv : tendsto_locally_uniformly_on F f p U)
+--   (F_conv : TendstoLocallyUniformlyOn F f p U)
 --   :
 --   (∀ z ∈ U, f z ≠ 0) ∨ (∀ z ∈ U, f z = 0) :=
 -- begin
@@ -385,7 +373,7 @@ end unifops
 --   exact hurwitz hU hU' F_holo F_noz F_conv h1 h2
 -- end
 
--- lemma hurwitz_1 (hU : is_open U) (hU' : is_preconnected U) (hf : differentiable_on ℂ f U) :
+-- lemma hurwitz_1 (hU : IsOpen U) (hU' : is_preconnected U) (hf : DifferentiableOn ℂ f U) :
 --   (eq_on f 0 U) ∨ (∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0) :=
 -- begin
 --   refine or_iff_not_imp_right.2 (λ h, _),
@@ -395,15 +383,15 @@ end unifops
 
 -- lemma hurwitz4 {ι α β γ : Type*} [TopologicalSpace α] [uniform_space β] [uniform_space γ]
 --   {F : ι → α → β} {f : α → β} {p : filter ι} {φ : β → γ} {U : set α}
---   (hf : tendsto_locally_uniformly_on F f p U) (hφ : uniform_continuous φ) :
---   tendsto_locally_uniformly_on (λ n, φ ∘ (F n)) (φ ∘ f) p U :=
+--   (hf : TendstoLocallyUniformlyOn F f p U) (hφ : uniform_continuous φ) :
+--   TendstoLocallyUniformlyOn (λ n, φ ∘ (F n)) (φ ∘ f) p U :=
 -- λ u hu z hz, hf _ (mem_map.1 (hφ hu)) z hz
 
 -- theorem hurwitz_inj
---   (hU : is_open U)
+--   (hU : IsOpen U)
 --   (hU' : is_preconnected U)
---   (hF : ∀ᶠ n in p, differentiable_on ℂ (F n) U)
---   (hf : tendsto_locally_uniformly_on F f p U)
+--   (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+--   (hf : TendstoLocallyUniformlyOn F f p U)
 --   (hi : ∃ᶠ n in p, inj_on (F n) U)
 --   :
 --   (∃ w, ∀ z ∈ U, f z = w) ∨ (inj_on f U)
@@ -416,9 +404,9 @@ end unifops
 --   set g : ℂ → ℂ := λ z, f z - f x,
 --   set G : ι → ℂ → ℂ := λ n z, F n z - f x,
 --   have key : ∀ {n a b}, G n a = G n b → F n a = F n b := by simp [G],
---   have hG : ∀ᶠ n in p, differentiable_on ℂ (G n) U,
---     by filter_upwards [hF] with n hF using hF.sub (differentiable_on_const _),
---   have hg : tendsto_locally_uniformly_on G g p U,
+--   have hG : ∀ᶠ n in p, DifferentiableOn ℂ (G n) U,
+--     by filter_upwards [hF] with n hF using hF.sub (DifferentiableOn_const _),
+--   have hg : TendstoLocallyUniformlyOn G g p U,
 --     from hurwitz4 hf (uniform_continuous_id.sub uniform_continuous_const),
 --   have hgi : ∃ᶠ n in p, inj_on (G n) U := hi.mono (λ n h a ha b hb h', h ha hb (key h')),
 --   have hgx : g x = 0 := sub_self _,
@@ -427,7 +415,7 @@ end unifops
 --     from ⟨f x, λ z hz, sub_eq_zero.mp (this z hz)⟩,
 --   --
 --   contrapose hi; simp only [not_frequently, inj_on, not_forall],
---   have h1 : differentiable_on ℂ g U := hg.differentiable_on hG hU,
+--   have h1 : DifferentiableOn ℂ g U := hg.DifferentiableOn hG hU,
 --   have h2 : ∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, g z ≠ 0 := (hurwitz_1 hU hU' h1).resolve_left hi,
 --   obtain ⟨u, v, hu, hv, huv⟩ := t2_separation_nhds hxy,
 --   have h3 := hurwitz3 hU hG hg hx hgx (h2 x hx) (inter_mem hu (hU.mem_nhds hx)),
