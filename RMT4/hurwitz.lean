@@ -1,10 +1,3 @@
--- import analysis.analytic.isolated_zeros
--- import analysis.complex.cauchy_integral
--- import analysis.complex.removable_singularity
--- import measure_theory.integral.circle_integral
--- import topology.uniform_space.uniform_convergence
--- import analysis.complex.locally_uniform_limit
-
 import Mathlib.Analysis.Complex.LocallyUniformLimit
 import RMT4.uniform
 import RMT4.cindex
@@ -322,116 +315,110 @@ lemma hurwitz3
 
 ----------------
 
--- theorem local_hurwitz
---   (hU : IsOpen U)
---   (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
---   (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
---   (F_conv : TendstoLocallyUniformlyOn F f p U)
---   (hz₀ : z₀ ∈ U)
---   (hfz₀ : f z₀ = 0)
---   :
---   ∀ᶠ z in 𝓝 z₀, f z = 0 :=
--- begin
---   have H1 := (F_conv.DifferentiableOn F_holo hU).analytic_at (hU.mem_nhds hz₀),
---   cases H1.eventually_eq_zero_or_eventually_ne_zero, assumption,
---   obtain ⟨pf, hp⟩ : analytic_at ℂ f z₀ := H1,
---   by_contra' hh, simp at hh,
---   have h1 := (order_pos_iff hp hfz₀).2 hh,
---   obtain ⟨r, h1, h2, h3, h4⟩ : ∃ r > 0, (closed_ball z₀ r ⊆ U) ∧ (∀ z ∈ sphere z₀ r, f z ≠ 0) ∧
---     (cindex z₀ r f ≠ 0),
---   { rw [eventually_nhds_within_iff, eventually_nhds_iff_eventually_closed_ball] at h,
---     have h4 := cindex_eventually_eq_order hp,
---     have h5 : ∀ᶠ r in 𝓝[>] 0, closedBall z₀ r ⊆ U :=
---       (eventually_closed_ball_subset (hU.mem_nhds hz₀)).filter_mono nhds_within_le_nhds,
---     obtain ⟨r, h6, h7, h8, h9⟩ := (h.and (h4.and h5)).exists',
---     refine ⟨r, h6, h9, _, _⟩,
---     { exact λ z hz, h7 z (sphere_subset_closed_ball hz) (ne_of_mem_sphere hz h6.lt.ne.symm) },
---     { simp [h8, h1.ne.symm] } },
---   obtain ⟨n, z, h5, h6⟩ := (hurwitz2 hU F_holo F_conv h1 h2 h3 h4).exists,
---   cases F_noz n z (h2 (ball_subset_closed_ball (mem_ball.mpr h5))) h6
--- end
+theorem local_hurwitz [NeBot p]
+    (hU : IsOpen U)
+    (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
+    (F_conv : TendstoLocallyUniformlyOn F f p U)
+    (hz₀ : z₀ ∈ U)
+    (hfz₀ : f z₀ = 0)
+    :
+    ∀ᶠ z in 𝓝 z₀, f z = 0 := by
+  have H1 := (F_conv.differentiableOn F_holo hU).analyticAt (hU.mem_nhds hz₀)
+  cases H1.eventually_eq_zero_or_eventually_ne_zero
+  case inl => assumption
+  case inr h =>
+    obtain ⟨pf, hp⟩ := H1
+    by_contra' hh
+    rw [Filter.not_eventually] at hh
+    have h1 := (order_pos_iff hp hfz₀).2 hh
+    obtain ⟨r, h1, h2, h3, h4⟩ :
+        ∃ r > 0, (closedBall z₀ r ⊆ U) ∧ (∀ z ∈ sphere z₀ r, f z ≠ 0) ∧ (cindex z₀ r f ≠ 0) := by
+      rw [eventually_nhdsWithin_iff, eventually_nhds_iff_eventually_closed_ball] at h
+      have h4 := cindex_eventually_eq_order hp
+      have h5 : ∀ᶠ r in 𝓝[>] 0, closedBall z₀ r ⊆ U :=
+        (eventually_closedBall_subset (hU.mem_nhds hz₀)).filter_mono nhdsWithin_le_nhds
+      obtain ⟨r, h6, h7, h8, h9⟩ := (h.and (h4.and h5)).exists'
+      refine ⟨r, h6, h9, ?_, ?_⟩
+      { exact λ z hz => h7 z (sphere_subset_closedBall hz) (ne_of_mem_sphere hz h6.lt.ne.symm) }
+      { simp [h8, h1.ne.symm] }
+    obtain ⟨n, z, h5, h6⟩ := (hurwitz2 hU F_holo F_conv h1 h2 h3 h4).exists
+    cases F_noz n z (h2 (ball_subset_closedBall (mem_ball.mpr h5))) h6
 
--- theorem hurwitz
---   (hU : IsOpen U)
---   (hU' : is_preconnected U)
---   (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
---   (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
---   (F_conv : TendstoLocallyUniformlyOn F f p U)
---   (hz₀ : z₀ ∈ U)
---   (hfz₀ : f z₀ = 0)
---   :
---   ∀ z ∈ U, f z = 0 :=
--- begin
---   have := local_hurwitz hU F_holo F_noz F_conv hz₀ hfz₀,
---   have h1 : DifferentiableOn ℂ f U := F_conv.DifferentiableOn F_holo hU,
---   have h2 := h1.analytic_on hU,
---   exact h2.eq_on_zero_of_preconnected_of_eventually_eq_zero hU' hz₀ this,
--- end
+theorem hurwitz [NeBot p]
+    (hU : IsOpen U)
+    (hU' : IsPreconnected U)
+    (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
+    (F_conv : TendstoLocallyUniformlyOn F f p U)
+    (hz₀ : z₀ ∈ U)
+    (hfz₀ : f z₀ = 0)
+    :
+    ∀ z ∈ U, f z = 0 := by
+  have := local_hurwitz hU F_holo F_noz F_conv hz₀ hfz₀
+  have h1 : DifferentiableOn ℂ f U := F_conv.differentiableOn F_holo hU
+  have h2 := h1.analyticOn hU
+  exact h2.eqOn_zero_of_preconnected_of_eventuallyEq_zero hU' hz₀ this
 
--- theorem hurwitz'
---   (hU : IsOpen U)
---   (hU' : is_preconnected U)
---   (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
---   (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
---   (F_conv : TendstoLocallyUniformlyOn F f p U)
---   :
---   (∀ z ∈ U, f z ≠ 0) ∨ (∀ z ∈ U, f z = 0) :=
--- begin
---   refine or_iff_not_imp_left.mpr (λ h, _),
---   push_neg at h,
---   obtain ⟨z₀, h1, h2⟩ := h,
---   exact hurwitz hU hU' F_holo F_noz F_conv h1 h2
--- end
+theorem hurwitz' [NeBot p]
+    (hU : IsOpen U)
+    (hU' : IsPreconnected U)
+    (F_holo : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (F_noz : ∀ n, ∀ z ∈ U, F n z ≠ 0)
+    (F_conv : TendstoLocallyUniformlyOn F f p U)
+    :
+    (∀ z ∈ U, f z ≠ 0) ∨ (∀ z ∈ U, f z = 0) := by
+  refine or_iff_not_imp_left.mpr (λ h => ?_)
+  push_neg at h
+  obtain ⟨z₀, h1, h2⟩ := h
+  exact hurwitz hU hU' F_holo F_noz F_conv h1 h2
 
--- lemma hurwitz_1 (hU : IsOpen U) (hU' : is_preconnected U) (hf : DifferentiableOn ℂ f U) :
---   (eq_on f 0 U) ∨ (∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0) :=
--- begin
---   refine or_iff_not_imp_right.2 (λ h, _),
---   obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ U, ∃ᶠ z in 𝓝[≠] z₀, f z = 0 := by simpa only [not_forall] using h,
---   exact (hf.analytic_on hU).eq_on_zero_of_preconnected_of_frequently_eq_zero hU' h1 h2,
--- end
+lemma hurwitz_1 (hU : IsOpen U) (hU' : IsPreconnected U) (hf : DifferentiableOn ℂ f U) :
+    (EqOn f 0 U) ∨ (∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0) := by
+  refine or_iff_not_imp_right.2 (λ h => ?_)
+  obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ U, ∃ᶠ z in 𝓝[≠] z₀, f z = 0 := by simpa [not_forall] using h
+  exact (hf.analyticOn hU).eqOn_zero_of_preconnected_of_frequently_eq_zero hU' h1 h2
 
--- lemma hurwitz4 {ι α β γ : Type*} [TopologicalSpace α] [uniform_space β] [uniform_space γ]
---   {F : ι → α → β} {f : α → β} {p : filter ι} {φ : β → γ} {U : set α}
---   (hf : TendstoLocallyUniformlyOn F f p U) (hφ : uniform_continuous φ) :
---   TendstoLocallyUniformlyOn (λ n, φ ∘ (F n)) (φ ∘ f) p U :=
--- λ u hu z hz, hf _ (mem_map.1 (hφ hu)) z hz
+lemma hurwitz4 [TopologicalSpace α] [UniformSpace β] [UniformSpace γ]
+    {F : ι → α → β} {f : α → β} {φ : β → γ}
+    (hf : TendstoLocallyUniformlyOn F f p U) (hφ : UniformContinuous φ) :
+    TendstoLocallyUniformlyOn (λ n => φ ∘ F n) (φ ∘ f) p U :=
+  λ _ hu z hz => hf _ (mem_map.1 (hφ hu)) z hz
 
--- theorem hurwitz_inj
---   (hU : IsOpen U)
---   (hU' : is_preconnected U)
---   (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
---   (hf : TendstoLocallyUniformlyOn F f p U)
---   (hi : ∃ᶠ n in p, inj_on (F n) U)
---   :
---   (∃ w, ∀ z ∈ U, f z = w) ∨ (inj_on f U)
---   :=
--- begin
---   refine or_iff_not_imp_right.2 (λ h, _),
---   obtain ⟨x, hx, y, hy, hfxy, hxy⟩ : ∃ x ∈ U, ∃ y ∈ U, f x = f y ∧ x ≠ y,
---     by rw [inj_on] at h; simpa using h,
---   --
---   set g : ℂ → ℂ := λ z, f z - f x,
---   set G : ι → ℂ → ℂ := λ n z, F n z - f x,
---   have key : ∀ {n a b}, G n a = G n b → F n a = F n b := by simp [G],
---   have hG : ∀ᶠ n in p, DifferentiableOn ℂ (G n) U,
---     by filter_upwards [hF] with n hF using hF.sub (DifferentiableOn_const _),
---   have hg : TendstoLocallyUniformlyOn G g p U,
---     from hurwitz4 hf (uniform_continuous_id.sub uniform_continuous_const),
---   have hgi : ∃ᶠ n in p, inj_on (G n) U := hi.mono (λ n h a ha b hb h', h ha hb (key h')),
---   have hgx : g x = 0 := sub_self _,
---   have hgy : g y = 0 := by simp only [g, hfxy, sub_self],
---   suffices : ∀ z ∈ U, g z = 0,
---     from ⟨f x, λ z hz, sub_eq_zero.mp (this z hz)⟩,
---   --
---   contrapose hi; simp only [not_frequently, inj_on, not_forall],
---   have h1 : DifferentiableOn ℂ g U := hg.DifferentiableOn hG hU,
---   have h2 : ∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, g z ≠ 0 := (hurwitz_1 hU hU' h1).resolve_left hi,
---   obtain ⟨u, v, hu, hv, huv⟩ := t2_separation_nhds hxy,
---   have h3 := hurwitz3 hU hG hg hx hgx (h2 x hx) (inter_mem hu (hU.mem_nhds hx)),
---   have h4 := hurwitz3 hU hG hg hy hgy (h2 y hy) (inter_mem hv (hU.mem_nhds hy)),
---   filter_upwards [h3.and h4] with n hn,
---   obtain ⟨⟨xn, hxn, hGxn⟩, ⟨yn, hyn, hGyn⟩⟩ := hn,
---   refine ⟨xn, hxn.2, yn, hyn.2, _, huv.ne_of_mem hxn.1 hyn.1⟩,
---   simpa [G] using hGxn.trans hGyn.symm
--- end
+theorem hurwitz_inj [NeBot p]
+    (hU : IsOpen U)
+    (hU' : IsPreconnected U)
+    (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (hf : TendstoLocallyUniformlyOn F f p U)
+    (hi : ∃ᶠ n in p, InjOn (F n) U)
+    :
+    (∃ w, ∀ z ∈ U, f z = w) ∨ (InjOn f U)
+    := by
+  refine or_iff_not_imp_right.2 (λ h => ?_)
+  obtain ⟨x, hx, y, hy, hfxy, hxy⟩ : ∃ x ∈ U, ∃ y ∈ U, f x = f y ∧ x ≠ y := by
+    simp [InjOn] at h
+    obtain ⟨x, h1, y, h2, h3, h4⟩ := h
+    refine ⟨x, h1, y, h3, h2, h4⟩
+  --
+  set g : ℂ → ℂ := λ z => f z - f x
+  set G : ι → ℂ → ℂ := λ n z => F n z - f x
+  have hG : ∀ᶠ n in p, DifferentiableOn ℂ (G n) U := by
+    filter_upwards [hF] with n hF using hF.sub (differentiableOn_const _)
+  have hg : TendstoLocallyUniformlyOn G g p U :=
+    hurwitz4 hf (uniformContinuous_id.sub uniformContinuous_const)
+  have hgx : g x = 0 := sub_self _
+  have hgy : g y = 0 := by simp [hfxy]
+  suffices : ∀ z ∈ U, g z = 0
+  { exact ⟨f x, by simpa [sub_eq_zero] using this⟩ }
+  --
+  contrapose hi; simp only [not_frequently, InjOn, not_forall]
+  have h1 : DifferentiableOn ℂ g U := hg.differentiableOn hG hU
+  have h2 : ∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, g z ≠ 0 := (hurwitz_1 hU hU' h1).resolve_left hi
+  obtain ⟨u, v, hu, hv, huv⟩ := t2_separation_nhds hxy
+  have h3 := hurwitz3 hU hG hg hx hgx (h2 x hx) (inter_mem hu (hU.mem_nhds hx))
+  have h4 := hurwitz3 hU hG hg hy hgy (h2 y hy) (inter_mem hv (hU.mem_nhds hy))
+  filter_upwards [h3.and h4] with n hn
+  obtain ⟨⟨xn, hxn, hGxn⟩, ⟨yn, hyn, hGyn⟩⟩ := hn
+  refine ⟨xn, hxn.2, yn, hyn.2, ?_, huv.ne_of_mem hxn.1 hyn.1⟩
+  rw [sub_eq_zero] at hGxn hGyn
+  rw [hGxn, hGyn]
