@@ -88,8 +88,7 @@ lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (
   have h1 : DifferentiableAt ℂ (λ y => HPow.hPow (y - z₀) n) z :=
     ((differentiable_id'.sub_const z₀).pow n).differentiableAt
   have h4 : DifferentiableAt ℂ (λ y => y - z₀) z := (differentiable_id'.sub_const z₀).differentiableAt
-  have h5 : deriv (fun y => y - z₀) z = 1 := by
-    simp only [deriv_sub_const, deriv_id'']
+  have h5 : deriv (fun y => y - z₀) z = 1 := by simp only [deriv_sub_const, deriv_id'']
   simp [hfg.deriv_eq, hfg.self_of_nhds, deriv_mul h1 hg, _root_.add_div, deriv_pow'' n h4, deriv_sub_const, h5]
   cases n
   case zero => simp
@@ -97,58 +96,43 @@ lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (
     field_simp [_root_.pow_succ, sub_ne_zero.mpr hz]
     ring
 
--- begin
---   rw [hfg.deriv_eq, hfg.self_of_nhds, deriv_mul h1 hg, add_div, mul_div_mul_right _ _ hgz,
---     mul_div_mul_left _ _ h3, add_left_inj],
---   simp only [deriv_pow'', differentiable_at_sub_const_iff, differentiable_at_id', deriv_sub,
---     differentiable_at_const, deriv_id'', deriv_const', sub_zero, mul_one],
---   cases n,
---   { simp only [algebra_map.coe_zero, zero_mul, zero_div] },
---   { field_simp [pow_succ]; ring }
--- end
+lemma eventually_deriv_div_self_eq (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 0) :
+    let g := (iterate (swap dslope z₀) p.order) f
+    ∀ᶠ z in 𝓝 z₀, z ≠ z₀ → deriv f z / f z = p.order / (z - z₀) + deriv g z / g z := by
+  intro g
+  obtain ⟨r, h2⟩ := hp.has_fpower_series_iterate_dslope_fslope p.order
+  have lh1 := h2.differentiableOn.eventually_differentiableAt (EMetric.ball_mem_nhds _ h2.r_pos)
+  have lh2 := hp.dslope_order_eventually_ne_zero h
+  have lh3 := eventually_eventually_nhds.mpr hp.eq_pow_order_mul_iterate_dslope
+  filter_upwards [lh1, lh2, lh3] with z using deriv_div_self_eq_div_add_deriv_div_self
 
--- lemma eventually_deriv_div_self_eq (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 0) :
---   let g := (swap dslope z₀^[p.order]) f in
---   ∀ᶠ z in 𝓝 z₀, z ≠ z₀ → deriv f z / f z = p.order / (z - z₀) + deriv g z / g z :=
--- begin
---   intro g,
---   obtain ⟨r, hp'⟩ := id hp,
---   have lh1 := (hp.has_fpower_series_iterate_dslope_fslope p.order).eventually_differentiable_at,
---   have lh2 := hp.dslope_order_eventually_ne_zero h,
---   have lh3 := eventually_eventually_nhds.mpr hp.eq_pow_order_mul_iterate_dslope,
---   filter_upwards [lh1, lh2, lh3] using λ z, deriv_div_self_eq_div_add_deriv_div_self
--- end
+lemma differentiable_on.cont_diff_on (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) :
+    ContDiffOn ℂ ⊤ f U :=
+  (hf.analyticOn hU).contDiffOn
 
--- lemma differentiable_on.cont_diff_on {U : set ℂ} (hf : differentiable_on ℂ f U) (hU : IsOpen U) :
---   cont_diff_on ℂ ⊤ f U :=
--- (hf.analytic_on hU).cont_diff_on
+lemma cindex_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
+    (f_hol : DifferentiableOn ℂ f U) (hf : ∀ z ∈ closedBall c r, f z ≠ 0) :
+    cindex c r f = 0 := by
+  obtain ⟨V, h1, h2, h3, h4⟩ : ∃ V, V ⊆ U ∧ IsOpen V ∧ closedBall c r ⊆ V ∧ ∀ z ∈ V, f z ≠ 0 := by
+    set s : Set ℂ := { z ∈ U | f z ≠ 0 }
+    have e1 : IsCompact (closedBall c r) := isCompact_closedBall _ _
+    have e2 : IsOpen s := f_hol.continuousOn.preimage_open_of_open hU isOpen_compl_singleton
+    have e3 : closedBall c r ⊆ s := λ z hz => ⟨hcr hz, hf z hz⟩
+    obtain ⟨δ, e4, e5⟩ := e1.exists_thickening_subset_open e2 e3
+    refine ⟨thickening δ (closedBall c r), ?_, isOpen_thickening, self_subset_thickening e4 _, ?_⟩
+    { exact (e5.trans $ Set.sep_subset _ _) }
+    { exact λ z hz => (e5 hz).2 }
+  simp [cindex, circle_integral_eq_zero h2 hr h3 (((f_hol.mono h1).deriv h2).div (f_hol.mono h1) h4)]
 
--- lemma cindex_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closed_ball c r ⊆ U)
---   (f_hol : differentiable_on ℂ f U) (hf : ∀ z ∈ closed_ball c r, f z ≠ 0) :
---   cindex c r f = 0 :=
--- begin
---   obtain ⟨V, h1, h2, h3, h4⟩ : ∃ V ⊆ U, IsOpen V ∧ closed_ball c r ⊆ V ∧ ∀ z ∈ V, f z ≠ 0,
---   { set s := {z ∈ U | f z ≠ 0},
---     have e1 : is_compact (closed_ball c r) := is_compact_closed_ball _ _,
---     have e2 : IsOpen s,
---       by convert f_hol.continuous_on.preimage_open_of_open hU IsOpen_compl_singleton,
---     have e3 : closed_ball c r ⊆ s := λ z hz, ⟨hcr hz, hf z hz⟩,
---     obtain ⟨δ, e4, e5⟩ := e1.exists_thickening_subset_open e2 e3,
---     refine ⟨thickening δ (closed_ball c r), _, IsOpen_thickening, self_subset_thickening e4 _, _⟩,
---     { exact (e5.trans $ sep_subset _ _) },
---     { exact λ z hz, (e5 hz).2 } },
---   simp [cindex, circle_integral_eq_zero h2 hr h3 (((f_hol.mono h1).deriv h2).div (f_hol.mono h1) h4)]
--- end
+-- TODO: off-center using `integral_sub_inv_of_mem_ball`
 
--- -- TODO: off-center using `integral_sub_inv_of_mem_ball`
-
--- lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closed_ball z₀ r ⊆ U)
---   (h1 : differentiable_on ℂ g U) (h2 : ∀ z ∈ closed_ball z₀ r, g z ≠ 0)
+-- lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r ⊆ U)
+--   (h1 : differentiable_on ℂ g U) (h2 : ∀ z ∈ closedBall z₀ r, g z ≠ 0)
 --   (h3 : ∀ {z}, z ∈ sphere z₀ r → deriv f z / f z = c / (z - z₀) + deriv g z / g z) :
 --   cindex z₀ r f = c :=
 -- begin
---   have e1 : closed_ball z₀ r ⊆ U := h0,
---   have e2 : sphere z₀ r ⊆ U := sphere_subset_closed_ball.trans e1,
+--   have e1 : closedBall z₀ r ⊆ U := h0,
+--   have e2 : sphere z₀ r ⊆ U := sphere_subset_closedBall.trans e1,
 --   have e4 : ∮ z in C(z₀,r), deriv f z / f z = ∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z,
 --   { refine circle_integral.integral_congr hr.le (λ z hz, _),
 --     exact h3 hz },
@@ -157,7 +141,7 @@ lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (
 --   { refine circle_integral.add hr.le _ _,
 --     { refine continuous_on.div continuous_on_const (continuous_on_id.sub continuous_on_const) _,
 --       exact λ z hz, sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm) },
---     { refine continuous_on.div _ (h1.continuous_on.mono e2) (λ z hz, h2 _ (sphere_subset_closed_ball hz)),
+--     { refine continuous_on.div _ (h1.continuous_on.mono e2) (λ z hz, h2 _ (sphere_subset_closedBall hz)),
 --       have := (h1.cont_diff_on hU).continuous_on_deriv_of_open hU le_top,
 --       exact this.mono e2 } },
 --   have e6 : ∮ z in C(z₀, r), deriv g z / g z = 0,
@@ -180,10 +164,10 @@ lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (
 --     from (hp.has_fpower_series_iterate_dslope_fslope p.order).eventually_differentiable_at,
 --   obtain ⟨R, hR₁, hh⟩ := metric.mem_nhds_iff.mp (lh1.and (lh2.and lh3)),
 --   refine ⟨R, hR₁, λ r hr, _⟩,
---   refine cindex_eq_order_aux IsOpen_ball hr.1 (closed_ball_subset_ball hr.2)
+--   refine cindex_eq_order_aux IsOpen_ball hr.1 (closedBall_subset_ball hr.2)
 --     (λ z hz, (hh hz).2.2.differentiable_within_at)
---     (λ z hz, (hh (closed_ball_subset_ball hr.2 hz)).1) (λ z hz, _),
---   refine (hh (sphere_subset_closed_ball.trans (closed_ball_subset_ball hr.2) hz)).2.1 _,
+--     (λ z hz, (hh (closedBall_subset_ball hr.2 hz)).1) (λ z hz, _),
+--   refine (hh (sphere_subset_closedBall.trans (closedBall_subset_ball hr.2) hz)).2.1 _,
 --   exact ne_of_mem_sphere hz hr.1.ne.symm,
 -- end
 
