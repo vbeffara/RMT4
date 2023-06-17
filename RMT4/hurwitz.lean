@@ -85,43 +85,46 @@ lemma TendstoUniformlyOn.inv (hF : TendstoUniformlyOn F f p s) (hf : 𝓟 (f '' 
 
 lemma lxyab {x y a b : 𝕜} : x * a - y * b = (x - y) * a + y * (a - b) := by ring
 
-lemma TendstoUniformlyOn.mul_of_le [NeBot p]
+lemma TendstoUniformlyOn.mul_of_le
     (hF : TendstoUniformlyOn F f p s) (hG : TendstoUniformlyOn G g p s)
     (hf : ∀ᶠ i in p, ∀ x ∈ s, ‖F i x‖ ≤ mf) (hg : ∀ᶠ i in p, ∀ x ∈ s, ‖G i x‖ ≤ mg) :
     TendstoUniformlyOn (F * G) (f * g) p s := by
-  set Mf := |mf| + 1
-  set Mg := |mg| + 1
-  have hMf : 0 < Mf := by positivity
-  have hMg : 0 < Mg := by positivity
-  replace hf : ∀ᶠ i in p, ∀ x ∈ s, ‖F i x‖ ≤ Mf := by
-    filter_upwards [hf] with i hF x hx using (hF x hx).trans ((le_abs_self mf).trans (lt_add_one _).le)
-  replace hg : ∀ᶠ i in p, ∀ x ∈ s, ‖G i x‖ ≤ Mg := by
-    filter_upwards [hg] with i hG x hx using (hG x hx).trans ((le_abs_self mg).trans (lt_add_one _).le)
-  have h1 : ∀ x ∈ s, ‖g x‖ ≤ Mg := by
-    intro x hx
-    refine le_of_tendsto ((continuous_norm.tendsto (g x)).comp (hG.tendsto_at hx)) ?_
-    filter_upwards [hg] with i hg using hg x hx
-  simp_rw [Metric.tendstoUniformlyOn_iff, dist_eq_norm] at hF hG ⊢
-  intro ε hε
-  filter_upwards [hf, hF (ε / (2 * Mg)) (by positivity), hG (ε / (2 * Mf)) (by positivity)] with i hf hF hG x hx
-  have h2 : ‖(f x - F i x) * g x‖ < ε / 2 := by
-    rw [norm_mul]
-    by_cases g x = 0
-    case pos => simp [h, half_pos hε]
-    case neg =>
-      convert mul_lt_mul (hF x hx) (h1 x hx) (norm_pos_iff.mpr h) (by positivity) using 1
-      simp only [div_mul, mul_div_cancel, hMg.ne.symm, Ne.def, not_false_iff]
-  have h3 : ‖F i x * (g x - G i x)‖ < ε / 2 := by
-    rw [norm_mul]
-    by_cases F i x = 0
-    case pos => simp [h, half_pos hε]
-    case neg =>
-      convert mul_lt_mul' (hf x hx) (hG x hx) (norm_nonneg _) hMf using 1
-      field_simp [hMf.ne.symm]; ring
-  simp_rw [Pi.mul_apply, lxyab]
-  exact (norm_add_le _ _).trans_lt (add_halves' ε ▸ add_lt_add h2 h3)
+  by_cases NeBot p
+  case neg => simp at h; simp [h, TendstoUniformlyOn]
+  case pos =>
+    set Mf := |mf| + 1
+    set Mg := |mg| + 1
+    have hMf : 0 < Mf := by positivity
+    have hMg : 0 < Mg := by positivity
+    replace hf : ∀ᶠ i in p, ∀ x ∈ s, ‖F i x‖ ≤ Mf := by
+      filter_upwards [hf] with i hF x hx using (hF x hx).trans ((le_abs_self mf).trans (lt_add_one _).le)
+    replace hg : ∀ᶠ i in p, ∀ x ∈ s, ‖G i x‖ ≤ Mg := by
+      filter_upwards [hg] with i hG x hx using (hG x hx).trans ((le_abs_self mg).trans (lt_add_one _).le)
+    have h1 : ∀ x ∈ s, ‖g x‖ ≤ Mg := by
+      intro x hx
+      refine le_of_tendsto ((continuous_norm.tendsto (g x)).comp (hG.tendsto_at hx)) ?_
+      filter_upwards [hg] with i hg using hg x hx
+    simp_rw [Metric.tendstoUniformlyOn_iff, dist_eq_norm] at hF hG ⊢
+    intro ε hε
+    filter_upwards [hf, hF (ε / (2 * Mg)) (by positivity), hG (ε / (2 * Mf)) (by positivity)] with i hf hF hG x hx
+    have h2 : ‖(f x - F i x) * g x‖ < ε / 2 := by
+      rw [norm_mul]
+      by_cases g x = 0
+      case pos => simp [h, half_pos hε]
+      case neg =>
+        convert mul_lt_mul (hF x hx) (h1 x hx) (norm_pos_iff.mpr h) (by positivity) using 1
+        simp only [div_mul, mul_div_cancel, hMg.ne.symm, Ne.def, not_false_iff]
+    have h3 : ‖F i x * (g x - G i x)‖ < ε / 2 := by
+      rw [norm_mul]
+      by_cases F i x = 0
+      case pos => simp [h, half_pos hε]
+      case neg =>
+        convert mul_lt_mul' (hf x hx) (hG x hx) (norm_nonneg _) hMf using 1
+        field_simp [hMf.ne.symm]; ring
+    simp_rw [Pi.mul_apply, lxyab]
+    exact (norm_add_le _ _).trans_lt (add_halves' ε ▸ add_lt_add h2 h3)
 
-lemma TendstoUniformlyOn.mul_of_bound [NeBot p]
+lemma TendstoUniformlyOn.mul_of_bound
     (hF : TendstoUniformlyOn F f p s) (hG : TendstoUniformlyOn G g p s)
     (hf : ∀ x ∈ s, ‖f x‖ ≤ mf) (hg : ∀ x ∈ s, ‖g x‖ ≤ mg) :
     TendstoUniformlyOn (F * G) (f * g) p s := by
@@ -148,7 +151,7 @@ lemma TendstoUniformlyOn.inv_of_compact (hF : TendstoUniformlyOn F f p K)
   rw [inf_comm, inf_principal_eq_bot]
   exact (hK.image_of_continuousOn hf).isClosed.compl_mem_nhds (λ ⟨z, h1, h2⟩ => hfz z h1 h2)
 
-lemma TendstoUniformlyOn.mul_of_compact [NeBot p]
+lemma TendstoUniformlyOn.mul_of_compact
     (hF : TendstoUniformlyOn F f p K) (hG : TendstoUniformlyOn G g p K)
     (hf : ContinuousOn f K) (hg : ContinuousOn g K) (hK : IsCompact K) :
     TendstoUniformlyOn (F * G) (f * g) p K := by
@@ -162,7 +165,7 @@ lemma TendstoUniformlyOn.mul_of_compact [NeBot p]
     obtain ⟨xg, _, h5⟩ : ∃ x ∈ K, ∀ y ∈ K, ‖g y‖ ≤ ‖g x‖ := hK.exists_forall_ge h h3
     exact hF.mul_of_bound hG h4 h5
 
-lemma TendstoUniformlyOn.div_of_compact [NeBot p]
+lemma TendstoUniformlyOn.div_of_compact
     (hF : TendstoUniformlyOn F f p K) (hG : TendstoUniformlyOn G g p K)
     (hf : ContinuousOn f K) (hg : ContinuousOn g K) (hgK : ∀ z ∈ K, g z ≠ 0) (hK : IsCompact K) :
     TendstoUniformlyOn (F / G) (f / g) p K := by
@@ -173,7 +176,7 @@ end unifops
 variable {F : ι → ℂ → ℂ} {f : ℂ → ℂ}
 --   {U s : set ℂ} {r : ℝ}
 
-lemma Filter.eventually.exists' {P : ℝ → Prop} {t₀} (h : ∀ᶠ t in 𝓝[>] t₀, P t) :
+lemma Filter.Eventually.exists' {P : ℝ → Prop} {t₀} (h : ∀ᶠ t in 𝓝[>] t₀, P t) :
     ∃ t > t₀, P t := by
   simpa [and_comm, exists_prop] using (frequently_nhdsWithin_iff.mp h.frequently).exists
 
@@ -215,102 +218,109 @@ lemma hurwitz2_1 {K : Set ℂ} (hK : IsCompact K) (F_conv : TendstoUniformlyOn F
     simp [h] at hn h2
     linarith
 
-lemma TendstoUniformlyOn.tendsto_circle_integral [NeBot p] (hr : 0 < r)
+lemma TendstoUniformlyOn.tendsto_circle_integral (hr : 0 < r)
     (F_cont : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r))
     (F_conv : TendstoUniformlyOn F f p (sphere z₀ r)) :
     Filter.Tendsto (λ i => ∮ z in C(z₀, r), F i z) p (𝓝 (∮ z in C(z₀, r), f z))
-  := by
-  have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.continuousOn F_cont
-  rw [Metric.tendsto_nhds]
-  intro ε hε
-  have twopir_ne_zero : 2 * Real.pi * r ≠ 0 := by simp [Real.pi_ne_zero, hr.ne.symm]
-  have : (2 * Real.pi * r)⁻¹ * ε > 0 :=
-    mul_pos (inv_pos.mpr (mul_pos (mul_pos two_pos Real.pi_pos) hr)) hε.lt
-  filter_upwards [tendstoUniformlyOn_iff.mp F_conv ((2 * Real.pi * r)⁻¹ * ε) this, F_cont] with n h h'
-  simp_rw [dist_comm (f _) _, Complex.dist_eq, ← Complex.norm_eq_abs] at h
-  rw [Complex.dist_eq, ← circleIntegral.sub hr.le h' f_cont, ← Complex.norm_eq_abs]
-  have : ∃ x ∈ sphere z₀ r, ‖F n x - f x‖ < (2 * Real.pi * r)⁻¹ * ε := by
-    have : z₀ + r ∈ sphere z₀ r := by simp [hr.le, Real.norm_eq_abs]
-    exact ⟨z₀ + r, this, h _ this⟩
-  convert circleIntegral.norm_integral_lt_of_norm_le_const_of_lt hr (h'.sub f_cont) (λ z hz => (h z hz).le) this
-  field_simp [hr.ne, Real.pi_ne_zero, two_ne_zero]; ring
+    := by
+  by_cases NeBot p
+  case neg => simp at h; simp [h]
+  case pos =>
+    have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.continuousOn F_cont
+    rw [Metric.tendsto_nhds]
+    intro ε hε
+    have twopir_ne_zero : 2 * Real.pi * r ≠ 0 := by simp [Real.pi_ne_zero, hr.ne.symm]
+    have : (2 * Real.pi * r)⁻¹ * ε > 0 :=
+      mul_pos (inv_pos.mpr (mul_pos (mul_pos two_pos Real.pi_pos) hr)) hε.lt
+    filter_upwards [tendstoUniformlyOn_iff.mp F_conv ((2 * Real.pi * r)⁻¹ * ε) this, F_cont] with n h h'
+    simp_rw [dist_comm (f _) _, Complex.dist_eq, ← Complex.norm_eq_abs] at h
+    rw [Complex.dist_eq, ← circleIntegral.sub hr.le h' f_cont, ← Complex.norm_eq_abs]
+    have : ∃ x ∈ sphere z₀ r, ‖F n x - f x‖ < (2 * Real.pi * r)⁻¹ * ε := by
+      have : z₀ + r ∈ sphere z₀ r := by simp [hr.le, Real.norm_eq_abs]
+      exact ⟨z₀ + r, this, h _ this⟩
+    convert circleIntegral.norm_integral_lt_of_norm_le_const_of_lt hr (h'.sub f_cont) (λ z hz => (h z hz).le) this
+    field_simp [hr.ne, Real.pi_ne_zero, two_ne_zero]; ring
 
-lemma hurwitz2_2 [NeBot p] (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+lemma hurwitz2_2 (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
     (hf : TendstoLocallyUniformlyOn F f p U) (hr1 : 0 < r) (hr2 : sphere z₀ r ⊆ U)
     (hf1 : ∀ (z : ℂ), z ∈ sphere z₀ r → f z ≠ 0) :
     Tendsto (cindex z₀ r ∘ F) p (𝓝 (cindex z₀ r f)) := by
-  have H1 : IsCompact (sphere z₀ r) := isCompact_sphere z₀ r
-  have H2 : TendstoUniformlyOn F f p (sphere z₀ r) :=
-    (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 hf _ hr2 H1
-  have H3 : DifferentiableOn ℂ f U := hf.differentiableOn hF hU
-  have H4 : ContinuousOn f (sphere z₀ r) := H3.continuousOn.mono hr2
-  have H5 : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r) := by
-    filter_upwards [hF] with n h using h.continuousOn.mono hr2
-  have H6 : ∀ᶠ n in p, ContinuousOn (deriv (F n)) (sphere z₀ r) := by
-    filter_upwards [hF] with n h using (h.deriv hU).continuousOn.mono hr2
-  have H7 : TendstoUniformlyOn (deriv ∘ F) (deriv f) p (sphere z₀ r) :=
-    (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 (hf.deriv hF hU) _ hr2 H1
-  have H8 : ContinuousOn (deriv f) (sphere z₀ r) :=
-    (H3.deriv hU).continuousOn.mono hr2
-  refine Tendsto.const_mul _ (TendstoUniformlyOn.tendsto_circle_integral hr1 ?_ ?_)
-  { filter_upwards [hurwitz2_1 H1 H2 H4 hf1, H6, H5] with n hn H6 H5 using ContinuousOn.div H6 H5 hn }
-  { exact TendstoUniformlyOn.div_of_compact H7 H2 H8 H4 hf1 H1 }
+  by_cases NeBot p
+  case neg => simp at h; simp [h]
+  case pos =>
+    have H1 : IsCompact (sphere z₀ r) := isCompact_sphere z₀ r
+    have H2 : TendstoUniformlyOn F f p (sphere z₀ r) :=
+      (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 hf _ hr2 H1
+    have H3 : DifferentiableOn ℂ f U := hf.differentiableOn hF hU
+    have H4 : ContinuousOn f (sphere z₀ r) := H3.continuousOn.mono hr2
+    have H5 : ∀ᶠ n in p, ContinuousOn (F n) (sphere z₀ r) := by
+      filter_upwards [hF] with n h using h.continuousOn.mono hr2
+    have H6 : ∀ᶠ n in p, ContinuousOn (deriv (F n)) (sphere z₀ r) := by
+      filter_upwards [hF] with n h using (h.deriv hU).continuousOn.mono hr2
+    have H7 : TendstoUniformlyOn (deriv ∘ F) (deriv f) p (sphere z₀ r) :=
+      (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 (hf.deriv hF hU) _ hr2 H1
+    have H8 : ContinuousOn (deriv f) (sphere z₀ r) :=
+      (H3.deriv hU).continuousOn.mono hr2
+    refine Tendsto.const_mul _ (TendstoUniformlyOn.tendsto_circle_integral hr1 ?_ ?_)
+    { filter_upwards [hurwitz2_1 H1 H2 H4 hf1, H6, H5] with n hn H6 H5 using ContinuousOn.div H6 H5 hn }
+    { exact TendstoUniformlyOn.div_of_compact H7 H2 H8 H4 hf1 H1 }
 
--- lemma hurwitz2
---   (hU : IsOpen U)
---   (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
---   (hf : TendstoLocallyUniformlyOn F f p U)
---   (hr1 : 0 < r)
---   (hr2 : closed_ball z₀ r ⊆ U)
---   (hf1 : ∀ z ∈ sphere z₀ r, f z ≠ 0)
---   (hf2 : cindex z₀ r f ≠ 0)
---   :
---   ∀ᶠ n in p, ∃ z ∈ ball z₀ r, F n z = 0
---   :=
--- begin
---   by_cases p.ne_bot, swap, { simp at h, simp [h] }, haveI : p.ne_bot := h,
---   have H1 : IsCompact (sphere z₀ r) := IsCompact_sphere z₀ r,
---   have H2 : sphere z₀ r ⊆ U := sphere_subset_closed_ball.trans hr2,
---   have H3 : TendstoUniformlyOn F f p (sphere z₀ r),
---     from (TendstoLocallyUniformlyOn_iff_forall_IsCompact hU).1 hf _ H2 H1,
---   have H4 : ContinuousOn (λ (z : ℂ), f z) (sphere z₀ r),
---     from (hf.DifferentiableOn hF hU).continuousOn.mono H2,
---   have H5 : ∀ᶠ n in p, ∀ z ∈ sphere z₀ r, F n z ≠ 0 := hurwitz2_1 H1 H3 H4 hf1,
---   filter_upwards [(hurwitz2_2 hU hF hf hr1 H2 hf1).eventually_ne hf2, H5, hF] with n h h' hF,
---   contrapose! h,
---   have : ∀ (z : ℂ), z ∈ ball z₀ r ∪ sphere z₀ r → F n z ≠ 0 := λ z hz, hz.cases_on (h z) (h' z),
---   refine cindex_eq_zero hU hr1 hr2 hF (by rwa [← ball_union_sphere])
--- end
+lemma hurwitz2
+    (hU : IsOpen U)
+    (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (hf : TendstoLocallyUniformlyOn F f p U)
+    (hr1 : 0 < r)
+    (hr2 : closedBall z₀ r ⊆ U)
+    (hf1 : ∀ z ∈ sphere z₀ r, f z ≠ 0)
+    (hf2 : cindex z₀ r f ≠ 0)
+    :
+    ∀ᶠ n in p, ∃ z ∈ ball z₀ r, F n z = 0
+    := by
+  by_cases NeBot p
+  case neg => simp at h; simp [h]
+  case pos =>
+    have H1 : IsCompact (sphere z₀ r) := isCompact_sphere z₀ r
+    have H2 : sphere z₀ r ⊆ U := sphere_subset_closedBall.trans hr2
+    have H3 : TendstoUniformlyOn F f p (sphere z₀ r) :=
+      (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).1 hf _ H2 H1
+    have H4 : ContinuousOn f (sphere z₀ r) :=
+      (hf.differentiableOn hF hU).continuousOn.mono H2
+    have H5 : ∀ᶠ n in p, ∀ z ∈ sphere z₀ r, F n z ≠ 0 := hurwitz2_1 H1 H3 H4 hf1
+    filter_upwards [(hurwitz2_2 hU hF hf hr1 H2 hf1).eventually_ne hf2, H5, hF] with n h h' hF
+    contrapose! h
+    have : ∀ (z : ℂ), z ∈ ball z₀ r ∪ sphere z₀ r → F n z ≠ 0 := λ z hz => hz.casesOn (h z) (h' z)
+    refine cindex_eq_zero hU hr1 hr2 hF (by rwa [← ball_union_sphere])
 
--- lemma hurwitz3
---   (hU : IsOpen U)
---   (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
---   (hf : TendstoLocallyUniformlyOn F f p U)
---   (hz₀ : z₀ ∈ U)
---   (h1 : f z₀ = 0)
---   (h2 : ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0)
---   (hs : s ∈ 𝓝 z₀)
---   :
---   ∀ᶠ n in p, ∃ z ∈ s, F n z = 0
---   :=
--- begin
---   have H1 := (hf.DifferentiableOn hF hU).analytic_at (hU.mem_nhds hz₀),
---   have H5 := cindex_pos H1 h1 h2,
---   rw [eventually_nhds_within_iff] at h2,
---   have h3 := eventually_nhds_iff_eventually_closed_ball.1 h2,
---   have h4 : ∀ᶠ r in 𝓝[>] 0, closed_ball z₀ r ⊆ U :=
---     (eventually_closed_ball_subset (hU.mem_nhds hz₀)).filter_mono nhds_within_le_nhds,
---   have h4' : ∀ᶠ r in 𝓝[>] 0, closed_ball z₀ r ⊆ s :=
---     (eventually_closed_ball_subset hs).filter_mono nhds_within_le_nhds,
---   obtain ⟨r, hr, h5, h6, h7, h9⟩ := (h3.and (h4.and (H5.and h4'))).exists',
---   have h8 : ∀ z ∈ sphere z₀ r, f z ≠ 0,
---   { exact λ z hz, h5 z (sphere_subset_closed_ball hz) (ne_of_mem_sphere hz hr.lt.ne.symm) },
---   refine (hurwitz2 hU hF hf hr h6 h8 h7).mono _,
---   rintro n ⟨z, hz, hFnz⟩,
---   refine ⟨z, h9 (ball_subset_closed_ball hz), hFnz⟩,
--- end
+lemma hurwitz3
+    (hU : IsOpen U)
+    (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
+    (hf : TendstoLocallyUniformlyOn F f p U)
+    (hz₀ : z₀ ∈ U)
+    (h1 : f z₀ = 0)
+    (h2 : ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0)
+    (hs : s ∈ 𝓝 z₀)
+    :
+    ∀ᶠ n in p, ∃ z ∈ s, F n z = 0
+    := by
+  by_cases NeBot p
+  case neg => simp at h; simp [h]
+  case pos =>
+    have H1 := (hf.differentiableOn hF hU).analyticAt (hU.mem_nhds hz₀)
+    have H5 := cindex_pos H1 h1 h2
+    rw [eventually_nhdsWithin_iff] at h2
+    have h3 := eventually_nhds_iff_eventually_closed_ball.1 h2
+    have h4 : ∀ᶠ r in 𝓝[>] 0, closedBall z₀ r ⊆ U :=
+      (eventually_closedBall_subset (hU.mem_nhds hz₀)).filter_mono nhdsWithin_le_nhds
+    have h4' : ∀ᶠ r in 𝓝[>] 0, closedBall z₀ r ⊆ s :=
+      (eventually_closedBall_subset hs).filter_mono nhdsWithin_le_nhds
+    obtain ⟨r, hr, h5, h6, h7, h9⟩ := (h3.and (h4.and (H5.and h4'))).exists'
+    have h8 : ∀ z ∈ sphere z₀ r, f z ≠ 0 := by
+      exact λ z hz => h5 z (sphere_subset_closedBall hz) (ne_of_mem_sphere hz hr.lt.ne.symm)
+    refine (hurwitz2 hU hF hf hr h6 h8 h7).mono ?_
+    rintro n ⟨z, hz, hFnz⟩
+    refine ⟨z, h9 (ball_subset_closedBall hz), hFnz⟩
 
--- ------------------
+----------------
 
 -- theorem local_hurwitz
 --   (hU : IsOpen U)
@@ -331,7 +341,7 @@ lemma hurwitz2_2 [NeBot p] (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn
 --     (cindex z₀ r f ≠ 0),
 --   { rw [eventually_nhds_within_iff, eventually_nhds_iff_eventually_closed_ball] at h,
 --     have h4 := cindex_eventually_eq_order hp,
---     have h5 : ∀ᶠ r in 𝓝[>] 0, closed_ball z₀ r ⊆ U :=
+--     have h5 : ∀ᶠ r in 𝓝[>] 0, closedBall z₀ r ⊆ U :=
 --       (eventually_closed_ball_subset (hU.mem_nhds hz₀)).filter_mono nhds_within_le_nhds,
 --     obtain ⟨r, h6, h7, h8, h9⟩ := (h.and (h4.and h5)).exists',
 --     refine ⟨r, h6, h9, _, _⟩,
