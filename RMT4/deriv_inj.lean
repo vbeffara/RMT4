@@ -4,10 +4,10 @@ open Complex Metric circleIntegral Topology Filter
 
 variable {U : Set ℂ}
 
--- open filter set metric complex circle_integral
+-- open filter set Metric complex circle_integral
 -- open_locale topological_space
 
--- variables {f g : ℂ → ℂ} {z z₀ c : ℂ} {r : ℝ} {U : set ℂ} {p : formal_multilinear_series ℂ ℂ ℂ}
+-- variables {f g : ℂ → ℂ} {z z₀ c : ℂ} {r : ℝ} {U : set ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ}
 
 -- -- TODO: mix with local_index_theorem with the order of the zero
 
@@ -57,50 +57,47 @@ lemma tendsto_uniformly_on_const {f : α → β} [UniformSpace β] {p : Filter �
   TendstoUniformlyOn (λ _ => f) f p s :=
 UniformOnFun.tendsto_iff_tendstoUniformlyOn.1 tendsto_const_nhds s (Set.mem_singleton _)
 
--- lemma bla (hf : analytic_at ℂ f z₀)
---   (hf' : has_fpower_series_at (deriv f) (0 : formal_multilinear_series ℂ ℂ ℂ) z₀) :
---   ∀ᶠ z in 𝓝 z₀, f z = f z₀ :=
--- begin
---   have h1 : ∀ᶠ z in 𝓝 z₀, analytic_at ℂ f z := (IsOpen_analytic_at ℂ f).mem_nhds hf,
---   obtain ⟨ε, hε, h⟩ := metric.mem_nhds_iff.1 (h1.and hf'.eventually_eq_zero),
---   refine metric.mem_nhds_iff.2 ⟨ε, hε, λ z hz, _⟩,
---   have h3 : ∀ z ∈ Ball z₀ ε, fderiv_within ℂ f (ball z₀ ε) z = 0,
---   { rintro z hz,
---     rw fderiv_within_eq_fderiv (IsOpen_ball.unique_diff_within_at hz) ((h hz).1.DifferentiableAt),
---     ext1,
---     simpa [fderiv_deriv] using (h hz).2 },
---   have h4 : DifferentiableOn ℂ f (ball z₀ ε) := λ z hz, (h hz).1.differentiable_within_at,
---   exact convex.is_const_of_fderiv_within_eq_zero (convex_ball z₀ ε) h4 h3 hz (mem_ball_self hε)
--- end
+lemma bla (hf : AnalyticAt ℂ f z₀)
+    (hf' : HasFPowerSeriesAt (deriv f) (0 : FormalMultilinearSeries ℂ ℂ ℂ) z₀) :
+    ∀ᶠ z in 𝓝 z₀, f z = f z₀ := by
+  have h1 : ∀ᶠ z in 𝓝 z₀, AnalyticAt ℂ f z := (isOpen_analyticAt ℂ f).mem_nhds hf
+  obtain ⟨ε, hε, h⟩ := Metric.mem_nhds_iff.1 (h1.and hf'.eventually_eq_zero)
+  refine Metric.mem_nhds_iff.2 ⟨ε, hε, λ z hz => ?_⟩
+  have h3 : ∀ z ∈ ball z₀ ε, fderivWithin ℂ f (ball z₀ ε) z = 0 := by
+    rintro z hz
+    rw [fderivWithin_eq_fderiv (isOpen_ball.uniqueDiffWithinAt hz) ((h hz).1.differentiableAt)]
+    ext1
+    simpa [fderiv_deriv] using (h hz).2
+  have h4 : DifferentiableOn ℂ f (ball z₀ ε) := λ z hz => (h hz).1.differentiableWithinAt
+  exact Convex.is_const_of_fderivWithin_eq_zero (convex_ball z₀ ε) h4 h3 hz (mem_ball_self hε)
 
--- lemma two_le_order_of_deriv_eq_zero (hgp : has_fpower_series_at g p z₀) (hp : p ≠ 0)
---   (hg : g z₀ = 0) (hg' : deriv g z₀ = 0) :
---   2 ≤ p.order :=
--- begin
---   classical,
---   have h1 : p.coeff 1 = 0 := by simpa only [hg'] using hgp.deriv.symm,
---   have h2 : p 0 = 0 := by ext1; simpa only [hg] using hgp.coeff_zero x,
---   have h3 : p 1 = 0 := by { ext1; simp [h1] },
---   rw [formal_multilinear_series.order_eq_find' hp, nat.le_find_iff],
---   rintro n hn,
---   cases n, { simp only [h2, pi.zero_apply, ne.def, eq_self_iff_true, not_true, not_false_iff] },
---   cases n, { simp only [h3, pi.zero_apply, ne.def, eq_self_iff_true, not_true, not_false_iff] },
---   cases not_le.2 hn (nat.succ_le_succ (nat.succ_le_succ (nat.zero_le n)))
--- end
+lemma two_le_order_of_deriv_eq_zero {g : ℂ →ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ}
+    (hgp : HasFPowerSeriesAt g p z₀) (hp : p ≠ 0) (hg : g z₀ = 0) (hg' : deriv g z₀ = 0) :
+    2 ≤ p.order := by
+  classical
+  have h1 : p.coeff 1 = 0 := by simpa only [hg'] using hgp.deriv.symm
+  have h2 : p 0 = 0 := by ext1 x; simpa only [hg] using hgp.coeff_zero x
+  have h3 : p 1 = 0 := by ext1; simp [h1]
+  rw [FormalMultilinearSeries.order_eq_find' hp, Nat.le_find_iff]
+  intro n hn
+  cases n
+  case zero => simp [h2]
+  case succ n =>
+    cases n
+    case zero => simpa using h3
+    case succ => linarith
 
--- lemma tendsto_uniformly_on_add_const :
---   tendsto_uniformly_on (λ (ε z : ℂ), g z + ε) g (𝓝[≠] 0) U :=
--- begin
---   have : tendsto id (𝓝[≠] (0 : ℂ)) (𝓝 0) := nhds_within_le_nhds,
---   have : tendsto_uniformly_on (λ (ε z : ℂ), ε) 0 (𝓝[≠] 0) U := this.tendsto_uniformly_on_const U,
---   simpa using tendsto_uniformly_on_const.add this
--- end
+lemma tendsto_uniformly_on_add_const :
+    TendstoUniformlyOn (λ (ε z : ℂ) => g z + ε) g (𝓝[≠] 0) U := by
+  have : Tendsto id (𝓝[≠] (0 : ℂ)) (𝓝 0) := nhdsWithin_le_nhds
+  have : TendstoUniformlyOn (λ (ε _ : ℂ) => ε) 0 (𝓝[≠] 0) U := this.tendstoUniformlyOn_const U
+  simpa using tendsto_uniformly_on_const.add this
 
 -- lemma deriv_ne_zero_of_inj_aux (hU : IsOpen U) (hg : DifferentiableOn ℂ g U) (hi : inj_on g U)
 --   (hz₀ : z₀ ∈ U) (hgz₀ : g z₀ = 0) :
 --   deriv g z₀ ≠ 0 :=
 -- begin
---   obtain ⟨p, hp⟩ : analytic_at ℂ g z₀ := hg.analytic_at (hU.mem_nhds hz₀),
+--   obtain ⟨p, hp⟩ : AnalyticAt ℂ g z₀ := hg.AnalyticAt (hU.mem_nhds hz₀),
 --   have h25 : ∀ᶠ z in 𝓝[≠] z₀, g z ≠ 0,
 --   { simp only [eventually_nhds_within_iff],
 --     filter_upwards [hU.eventually_mem hz₀] with z hz hzz₀,
@@ -114,7 +111,7 @@ UniformOnFun.tendsto_iff_tendstoUniformlyOn.1 tendsto_const_nhds s (Set.mem_sing
 --     (∀ z ∈ ClosedBall z₀ r, z ≠ z₀ → deriv g z ≠ 0) ∧
 --     (∀ z ∈ ClosedBall z₀ r, z ≠ z₀ → g z ≠ 0) ∧
 --     ClosedBall z₀ r ⊆ U,
---   { obtain ⟨q, hq⟩ : analytic_at ℂ (deriv g) z₀ := (hg.deriv hU).analytic_at (hU.mem_nhds hz₀),
+--   { obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).AnalyticAt (hU.mem_nhds hz₀),
 --     have h26 : q ≠ 0,
 --     { rintro rfl,
 --       simpa [hgz₀] using ((bla ⟨p, hp⟩ hq).filter_mono nhds_within_le_nhds).and h25 },
