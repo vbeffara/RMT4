@@ -1,15 +1,8 @@
 import RMT4.hurwitz
 
-open Complex Metric circleIntegral Topology Filter
+open Complex Metric circleIntegral Topology Filter Set
 
 variable {U : Set ℂ}
-
--- open filter set Metric complex circle_integral
--- open_locale topological_space
-
--- variables {f g : ℂ → ℂ} {z z₀ c : ℂ} {r : ℝ} {U : set ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ}
-
--- -- TODO: mix with local_index_theorem with the order of the zero
 
 lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ ball c r) (hf : DifferentiableOn ℂ f U)
     (hfz₀ : f z₀ = 0) (hf'z₀ : deriv f z₀ ≠ 0) (hfz : ∀ z ∈ closedBall c r, z ≠ z₀ → f z ≠ 0) :
@@ -93,61 +86,57 @@ lemma tendsto_uniformly_on_add_const :
   have : TendstoUniformlyOn (λ (ε _ : ℂ) => ε) 0 (𝓝[≠] 0) U := this.tendstoUniformlyOn_const U
   simpa using tendsto_uniformly_on_const.add this
 
--- lemma deriv_ne_zero_of_inj_aux (hU : IsOpen U) (hg : DifferentiableOn ℂ g U) (hi : inj_on g U)
---   (hz₀ : z₀ ∈ U) (hgz₀ : g z₀ = 0) :
---   deriv g z₀ ≠ 0 :=
--- begin
---   obtain ⟨p, hp⟩ : AnalyticAt ℂ g z₀ := hg.AnalyticAt (hU.mem_nhds hz₀),
---   have h25 : ∀ᶠ z in 𝓝[≠] z₀, g z ≠ 0,
---   { simp only [eventually_nhds_within_iff],
---     filter_upwards [hU.eventually_mem hz₀] with z hz hzz₀,
---     simpa only [hgz₀] using hi.ne hz hz₀ hzz₀ },
---   have h17 : p ≠ 0,
---     by simpa [← hp.locally_zero_iff.not] using h25.frequently.filter_mono nhds_within_le_nhds,
---   by_contra,
---   have h6 : 2 ≤ p.order := two_le_order_of_deriv_eq_zero hp h17 hgz₀ h,
---   obtain ⟨r, h7, h8, h14, h21, h20⟩ : ∃ r > 0,
---     cindex z₀ r g = p.order ∧
---     (∀ z ∈ ClosedBall z₀ r, z ≠ z₀ → deriv g z ≠ 0) ∧
---     (∀ z ∈ ClosedBall z₀ r, z ≠ z₀ → g z ≠ 0) ∧
---     ClosedBall z₀ r ⊆ U,
---   { obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).AnalyticAt (hU.mem_nhds hz₀),
---     have h26 : q ≠ 0,
---     { rintro rfl,
---       simpa [hgz₀] using ((bla ⟨p, hp⟩ hq).filter_mono nhds_within_le_nhds).and h25 },
---     have e1 := cindex_eventually_eq_order hp,
---     have e2 := hp.locally_ne_zero h17,
---     have e3 := hq.locally_ne_zero h26,
---     have e4 := hU.eventually_mem hz₀,
---     simp only [eventually_nhds_within_iff, mem_compl_singleton_iff] at e2 e3,
---     simp only [eventually_nhds_iff_eventually_ClosedBall] at e2 e3 e4,
---     exact (e1.and (e3.and (e2.and e4))).exists' },
---   have h22 : ∀ z ∈ sphere z₀ r, g z ≠ 0,
---     from λ z hz, h21 z (sphere_subset_ClosedBall hz) (ne_of_mem_sphere hz h7.lt.ne.symm),
---   have h18 : ∀ ε, DifferentiableOn ℂ (λ z, g z + ε) U := λ ε, hg.add_const ε,
---   have h19 : tendsto_locally_uniformly_on (λ ε z, g z + ε) g (𝓝[≠] 0) U,
---     from tendsto_uniformly_on_add_const.tendsto_locally_uniformly_on,
---   have h9 : ∀ᶠ ε in 𝓝[≠] 0, cindex z₀ r (λ z, g z + ε) = 1,
---   { have h24 : p.order ≠ 0 := by linarith,
---     have := hurwitz2 hU (eventually_of_forall h18) h19 h7 h20 h22 (by simp [h8, h24]),
---     simp only [eventually_nhds_within_iff] at this ⊢,
---     filter_upwards [this] with ε h hε,
---     obtain ⟨z, hz, hgz⟩ := h hε,
---     have e1 : z ≠ z₀ := by { rintro rfl; rw [hgz₀, zero_add] at hgz; exact hε hgz },
---     have e2 : deriv (λ z, g z + ε) z ≠ 0 := by simpa using h14 z (ball_subset_ClosedBall hz) e1,
---     refine crucial hU h20 hz (h18 ε) hgz e2 (λ w hw hwz, _),
---     contrapose! hwz,
---     exact hi (h20 hw) ((ball_subset_ClosedBall.trans h20) hz) (add_right_cancel (hwz.trans hgz.symm)) },
---   have h10 : tendsto (λ ε, cindex z₀ r (λ z, g z + ε)) (𝓝[≠] 0) (𝓝 (cindex z₀ r g)),
---     from hurwitz2_2 hU (eventually_of_forall h18) h19 h7 (sphere_subset_ClosedBall.trans h20) h22,
---   rw [tendsto_nhds_unique (tendsto.congr' h9 h10) tendsto_const_nhds] at h8,
---   norm_cast at h8; linarith
--- end
+lemma deriv_ne_zero_of_inj_aux {g : ℂ → ℂ} (hU : IsOpen U) (hg : DifferentiableOn ℂ g U) (hi : InjOn g U)
+    (hz₀ : z₀ ∈ U) (hgz₀ : g z₀ = 0) :
+    deriv g z₀ ≠ 0 := by
+  obtain ⟨p, hp⟩ : AnalyticAt ℂ g z₀ := hg.analyticAt (hU.mem_nhds hz₀)
+  have h25 : ∀ᶠ z in 𝓝[≠] z₀, g z ≠ 0 := by
+    simp only [eventually_nhdsWithin_iff]
+    filter_upwards [hU.eventually_mem hz₀] with z hz hzz₀
+    simpa only [hgz₀] using hi.ne hz hz₀ hzz₀
+  have h17 : p ≠ 0 := by
+    simpa [← hp.locally_zero_iff.not] using h25.frequently.filter_mono nhdsWithin_le_nhds
+  by_contra h
+  have h6 : 2 ≤ p.order := two_le_order_of_deriv_eq_zero hp h17 hgz₀ h
+  obtain ⟨r, h7, h8, h14, h21, h20⟩ : ∃ r > 0,
+      cindex z₀ r g = p.order ∧
+      (∀ z ∈ closedBall z₀ r, z ≠ z₀ → deriv g z ≠ 0) ∧
+      (∀ z ∈ closedBall z₀ r, z ≠ z₀ → g z ≠ 0) ∧
+      closedBall z₀ r ⊆ U
+  { obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).analyticAt (hU.mem_nhds hz₀)
+    have h26 : q ≠ 0 := by
+      rintro rfl
+      simpa [hgz₀] using (((bla ⟨p, hp⟩ hq).filter_mono nhdsWithin_le_nhds).and h25).exists
+    have e1 := cindex_eventually_eq_order hp
+    have e2 := hp.locally_ne_zero h17
+    have e3 := hq.locally_ne_zero h26
+    have e4 := hU.eventually_mem hz₀
+    simp only [eventually_nhdsWithin_iff, mem_compl_singleton_iff] at e2 e3
+    simp only [eventually_nhds_iff_eventually_closed_ball] at e2 e3 e4
+    exact (e1.and (e3.and (e2.and e4))).exists' }
+  have h22 : ∀ z ∈ sphere z₀ r, g z ≠ 0 :=
+    λ z hz => h21 z (sphere_subset_closedBall hz) (ne_of_mem_sphere hz h7.lt.ne.symm)
+  have h18 : ∀ ε, DifferentiableOn ℂ (λ z => g z + ε) U := λ ε => hg.add_const ε
+  have h19 : TendstoLocallyUniformlyOn (λ ε z => g z + ε) g (𝓝[≠] 0) U :=
+    tendsto_uniformly_on_add_const.tendstoLocallyUniformlyOn
+  have h9 : ∀ᶠ ε in 𝓝[≠] 0, cindex z₀ r (λ z => g z + ε) = 1 := by
+    have h24 : p.order ≠ 0 := by linarith
+    have := hurwitz2 hU (eventually_of_forall h18) h19 h7 h20 h22 (by simp [h8, h24])
+    simp only [eventually_nhdsWithin_iff] at this ⊢
+    filter_upwards [this] with ε h hε
+    obtain ⟨z, hz, hgz⟩ := h hε
+    have e1 : z ≠ z₀ := by rintro rfl; rw [hgz₀, zero_add] at hgz; exact hε hgz
+    have e2 : deriv (λ z => g z + ε) z ≠ 0 := by simpa using h14 z (ball_subset_closedBall hz) e1
+    refine crucial hU h20 hz (h18 ε) hgz e2 (λ w hw hwz => ?_)
+    contrapose! hwz
+    exact hi (h20 hw) ((ball_subset_closedBall.trans h20) hz) (add_right_cancel (hwz.trans hgz.symm))
+  have h10 : Tendsto (λ ε => cindex z₀ r (λ z => g z + ε)) (𝓝[≠] 0) (𝓝 (cindex z₀ r g)) :=
+    hurwitz2_2 hU (eventually_of_forall h18) h19 h7 (sphere_subset_closedBall.trans h20) h22
+  rw [tendsto_nhds_unique (Tendsto.congr' h9 h10) tendsto_const_nhds] at h8
+  norm_cast at h8; linarith
 
--- lemma deriv_ne_zero_of_inj (hU : IsOpen U) (hf : DifferentiableOn ℂ f U) (hi : inj_on f U)
---   (hz₀ : z₀ ∈ U) :
---   deriv f z₀ ≠ 0 :=
--- begin
---   have : inj_on (λ z, f z - f z₀) U := λ z₁ hz₁ z₂ hz₂ h, hi hz₁ hz₂ (sub_left_inj.1 h),
---   simpa [deriv_sub_const] using deriv_ne_zero_of_inj_aux hU (hf.sub_const _) this hz₀ (sub_self _)
--- end
+lemma deriv_ne_zero_of_inj {f : ℂ → ℂ} (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
+    (hi : InjOn f U) (hz₀ : z₀ ∈ U) :
+    deriv f z₀ ≠ 0 := by
+  have : InjOn (λ z => f z - f z₀) U := λ z₁ hz₁ z₂ hz₂ h => hi hz₁ hz₂ (sub_left_inj.1 h)
+  simpa [deriv_sub_const] using deriv_ne_zero_of_inj_aux hU (hf.sub_const _) this hz₀ (sub_self _)
