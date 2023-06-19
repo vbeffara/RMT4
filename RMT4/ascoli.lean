@@ -6,10 +6,10 @@ Authors: Anatole Dedecker
 
 import Mathlib.Topology.UniformSpace.Equicontinuity
 
-open Set Filter Uniformity Function
+open Set Filter Uniformity Function UniformConvergence
 
--- open Set filter UniformSpace function
--- open_locale filter TopologicalSpace uniform_convergence uniformity
+-- open Set Filter UniformSpace function
+-- open_locale Filter TopologicalSpace uniform_convergence uniformity
 
 lemma supr_sUnion [CompleteLattice β] {S : Set (Set α)} {p : α → β} :
     (⨆ x ∈ ⋃₀ S, p x) = ⨆ (s ∈ S) (x ∈ s), p x := by
@@ -23,9 +23,9 @@ lemma forall_sUnion {S : Set (Set α)} {p : α → Prop} :
     (∀ x ∈ ⋃₀ S, p x) ↔ ∀ s ∈ S, ∀ x ∈ s, p x := by
   simp_rw [← iInf_Prop_eq, infi_sUnion]
 
--- lemma totally_bounded_pi {ι : Type*} {α : ι → Type*} [Π i, UniformSpace (α i)]
---   {t : Set ι} {s : Π i, Set (α i)} (hs : ∀ i ∈ t, totally_bounded (s i)) :
---   totally_bounded (t.pi s) :=
+-- lemma TotallyBounded_pi {ι : Type*} {α : ι → Type*} [Π i, UniformSpace (α i)]
+--   {t : Set ι} {s : Π i, Set (α i)} (hs : ∀ i ∈ t, TotallyBounded (s i)) :
+--   TotallyBounded (t.pi s) :=
 -- sorry
 
 lemma cauchy_of_ne_bot [UniformSpace α] {l : Filter α} [hl : NeBot l] :
@@ -68,35 +68,29 @@ lemma theorem1' {𝔖 : Set (Set X)} (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
   rw [← UniformSpace.comap_comap]
   exact congr_fun (congr_arg _ rfl) _
 
--- lemma theorem1'' {𝔖 : Set (set X)} (hcover : ⋃₀ 𝔖 = univ) (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
---   (hF : ∀ K ∈ 𝔖, Equicontinuous ((K.restrict : (X → α) → (K → α)) ∘ F)) :
--U   (unOoF_on_fun.UniformSpace X α 𝔖).comap F = (Pi.UniformSpace (λ _, α)).comap F :=
--- by simp_rw [theorem1' h𝔖 hF, Pi.UniformSpace, of_core_eq_to_core, ←infi_sUnion, hcover, infi_true]
+lemma theorem1'' {𝔖 : Set (Set X)} (hcover : ⋃₀ 𝔖 = univ) (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
+    (hF : ∀ K ∈ 𝔖, Equicontinuous ((K.restrict : (X → α) → (K → α)) ∘ F)) :
+    (UniformOnFun.uniformSpace X α 𝔖).comap F = (Pi.uniformSpace (λ _ => α)).comap F := by
+  simp [theorem1' h𝔖 hF, Pi.uniformSpace, UniformSpace.ofCoreEq_toCore, ←infi_sUnion, hcover]
 
--- lemma ascoli₀ {𝔖 : Set (set X)} {F : ι → X →ᵤ[𝔖] α} {l : filter ι} [l.ne_bot]
---   (h1 : ∀ A ∈ 𝔖, IsCompact A)
---   (h2 : ∀ A ∈ 𝔖, Equicontinuous (λ i, Set.restrict A (F i)))
---   (h3 : ∀ x ∈ ⋃₀ 𝔖, cauchy (map (eval x ∘ F) l)) :
---   cauchy (map F l) :=
--- begin
---   have : @@cauchy (⨅ K ∈ 𝔖, ⨅ x ∈ K, ‹UniformSpace α›.comap (eval x)) (map F l),
---   { simp_rw [cauchy_infi, ← cauchy_map_iff_comap, ← forall_sUnion],
---     exact h3 },
---   rw [cauchy_of_ne_bot, prod_map_map_eq, map_le_iff_le_comap] at ⊢ this,
---   exact this.trans (theorem1' h1 h2).ge
--- end
+lemma ascoli₀ {𝔖 : Set (Set X)} {F : ι → X →ᵤ[𝔖] α} {l : Filter ι} [NeBot l]
+    (h1 : ∀ A ∈ 𝔖, IsCompact A)
+    (h2 : ∀ A ∈ 𝔖, Equicontinuous (λ i => Set.restrict A (F i)))
+    (h3 : ∀ x ∈ ⋃₀ 𝔖, Cauchy (map (eval x ∘ F) l)) :
+    Cauchy (map F l) := by
+  sorry
 
--- lemma ascoli {𝔖 : Set (set X)} {F : ι → X →ᵤ[𝔖] α}
---   (h1 : ∀ A ∈ 𝔖, IsCompact A)
---   (h2 : ∀ A ∈ 𝔖, Equicontinuous (λ i, Set.restrict A (F i)))
---   (h3 : ∀ x ∈ ⋃₀ 𝔖, totally_bounded (range (λ i, F i x))) :
---   totally_bounded (range F) :=
--- begin
---   simp_rw totally_bounded_iff_ultrafilter at ⊢ h3,
---   intros f hf,
---   have : F '' univ ∈ f,
---   { rwa [image_univ, ← ultrafilter.mem_coe, ← le_principal_iff] },
---   rw ← ultrafilter.of_comap_inf_principal_eq_of_map this,
---   Set g := ultrafilter.of_comap_inf_principal this,
---   refine ascoli₀ h1 h2 (λ x hx, h3 x hx (g.map (eval x ∘ F)) $ le_principal_iff.mpr $ range_mem_map)
--- end
+lemma ascoli {𝔖 : Set (Set X)} {F : ι → X →ᵤ[𝔖] α}
+    (h1 : ∀ A ∈ 𝔖, IsCompact A)
+    (h2 : ∀ A ∈ 𝔖, Equicontinuous (λ i => Set.restrict A (F i)))
+    (h3 : ∀ x ∈ ⋃₀ 𝔖, TotallyBounded (range (λ i => F i x))) :
+    TotallyBounded (range F) := by
+  simp_rw [totallyBounded_iff_ultrafilter] at h3 ⊢
+  intro f hf
+  have : F '' univ ∈ f := by rwa [image_univ, ← Ultrafilter.mem_coe, ← le_principal_iff]
+  rw [← Ultrafilter.ofComapInfPrincipal_eq_of_map this]
+  set g := Ultrafilter.ofComapInfPrincipal this
+  apply ascoli₀ h1 h2
+  intro x hx
+  apply h3 x hx (g.map (eval x ∘ F))
+  exact (le_principal_iff.mpr range_mem_map)
