@@ -112,35 +112,35 @@ lemma 𝓘_nonempty [good_domain U] : (𝓘 U).Nonempty := by
   refine ⟨ggg.to_fun, ⟨ggg.is_diff, ?_⟩, ggg.is_inj⟩
   exact λ z hz => ball_subset_closedBall (ggg.maps_to hz)
 
--- -- `𝓙 U` : the closure of `𝓘 U`, injections and constants
+-- `𝓙 U` : the closure of `𝓘 U`, injections and constants
 
--- abbreviation 𝓙 (U : set ℂ) := {f ∈ 𝓜 U | InjOn f U ∨ ∃ w : ℂ, eq_on f (λ z, w) U}
+def 𝓙 (U : Set ℂ) := {f ∈ 𝓜 U | InjOn f U ∨ ∃ w : ℂ, EqOn f (λ _ => w) U}
 
--- lemma 𝓘_subset_𝓙 : 𝓘 U ⊆ 𝓙 U := λ f hf, ⟨hf.1, or.inl hf.2⟩
+lemma 𝓘_subset_𝓙 : 𝓘 U ⊆ 𝓙 U := λ _ hf => ⟨hf.1, Or.inl hf.2⟩
 
--- lemma IsCompact_𝓙 [good_domain U] : IsCompact (𝓙 U) :=
--- begin
---   have hU : IsOpen U := good_domain.IsOpen,
---   refine IsCompact_of_IsClosed_subset (IsCompact_𝓜 hU) _ (λ _ hf, hf.1),
---   refine IsClosed_iff_cluster_pt.2 (λ f hf, _),
---   set l := 𝓝 f ⊓ 𝓟 (𝓙 U),
---   haveI : l.ne_bot := hf,
---   obtain ⟨h1, h2⟩ := Tendsto_inf.1 (@Tendsto_id _ l),
---   rw [Tendsto_principal] at h2,
---   refine ⟨(IsClosed_𝓜 hU).mem_of_Tendsto h1 (h2.mono (λ _ h, h.1)), _⟩,
---   by_cases ∃ᶠ f in l, InjOn f U,
---   { refine (hurwitz_inj hU good_domain.is_preconnected _ ((Tendsto_iff hU).1 h1) h).symm,
---     filter_upwards [h2] with g hg using hg.1.1 },
---   { obtain ⟨z₀, hz₀⟩ : U.nonempty := good_domain.is_nonempty,
---     have : ∀ z ∈ U, Tendsto (eval z) l (𝓝 (f z)),
---     { refine λ z hz, (filter.map_mono (show l ≤ 𝓝 f, from inf_le_left)).trans _,
---       exact ((UniformOnFun.uniform_continuous_eval_of_mem ℂ (compacts U)
---         (mem_singleton z) ⟨singleton_subset_iff.2 hz, IsCompact_singleton⟩).continuous).Tendsto f },
---     refine or.inr ⟨f z₀, λ z hz, Tendsto_nhds_unique ((this z hz).congr' _) (this z₀ hz₀)⟩,
---     filter_upwards [not_frequently.1 h, h2] with f hf1 hf2,
---     obtain ⟨w, hw⟩ := hf2.2.resolve_left hf1,
---     exact (hw hz).trans (hw hz₀).symm }
--- end
+lemma IsCompact_𝓙 [good_domain U] : IsCompact (𝓙 U) := by
+  have hU : IsOpen U := good_domain.is_open
+  refine isCompact_of_isClosed_subset (IsCompact_𝓜 hU) ?_ (λ _ hf => hf.1)
+  refine isClosed_iff_clusterPt.2 (λ f hf => ?_)
+  set l := 𝓝 f ⊓ 𝓟 (𝓙 U)
+  haveI : l.NeBot := hf
+  obtain ⟨h1, h2⟩ := tendsto_inf.1 (@tendsto_id _ l)
+  rw [tendsto_principal] at h2
+  refine ⟨(IsClosed_𝓜 hU).mem_of_tendsto h1 (h2.mono (λ _ h => h.1)), ?_⟩
+  by_cases ∃ᶠ f in l, InjOn f U
+  case pos =>
+    refine (hurwitz_inj hU good_domain.is_preconnected ?_ ((tendsto_iff hU).1 h1) h).symm
+    filter_upwards [h2] with g hg using hg.1.1
+  case neg =>
+    obtain ⟨z₀, hz₀⟩ : U.Nonempty := good_domain.is_nonempty
+    have : ∀ z ∈ U, Tendsto (eval z) l (𝓝 (f z)) := by
+      refine λ z hz => (map_mono inf_le_left).trans ?_
+      exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)
+        (mem_singleton z) ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩).continuous).tendsto f
+    refine Or.inr ⟨f z₀, λ z hz => tendsto_nhds_unique ((this z hz).congr' ?_) (this z₀ hz₀)⟩
+    filter_upwards [not_frequently.1 h, h2] with f hf1 hf2
+    obtain ⟨w, hw⟩ := hf2.2.resolve_left hf1
+    exact (hw hz).trans (hw hz₀).symm
 
 -- -- The proof
 
