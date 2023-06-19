@@ -178,10 +178,10 @@ theorem main [good_domain U] : ∃ f ∈ 𝓘 U, f '' U = ball (0 : ℂ) 1 := by
 
 end RMT
 
--- theorem RMT (h1 : IsOpen U) (h2 : is_connected U) (h3 : U ≠ univ) (h4 : has_primitives U) :
---   ∃ f : ℂ → ℂ, (DifferentiableOn ℂ f U) ∧ (InjOn f U) ∧ (f '' U = ball 0 1) :=
--- begin
---   have := (h4.has_logs h1 h2.is_preconnected).has_sqrt,
---   obtain ⟨f, hf, hfU⟩ := @RMT.main U ⟨h1, h2.1, h2.2, h3, this⟩,
---   exact ⟨f, hf.1.1, hf.2, hfU⟩
--- end
+open RMT
+
+theorem RMT (h1 : IsOpen U) (h2 : IsConnected U) (h3 : U ≠ univ) (h4 : has_primitives U) :
+    ∃ f : ℂ → ℂ, (DifferentiableOn ℂ f U) ∧ (InjOn f U) ∧ (f '' U = ball 0 1) := by
+  have : RMT.good_domain U := ⟨h1, h2.1, h2.2, h3, (h4.has_logs h1 h2.isPreconnected).has_sqrt⟩
+  obtain ⟨f, hf : f ∈ 𝓘 U, hfU⟩ := RMT.main
+  exact ⟨f, hf.1.1, hf.2, hfU⟩
