@@ -4,15 +4,12 @@ import RMT4.hurwitz
 import RMT4.montel
 import RMT4.etape2
 import RMT4.has_sqrt
+import RMT4.complete
 
 open UniformConvergence Topology Filter Set Metric Function
 
--- open filter function metric set topological_space complex RMT
--- open_locale uniform_convergence topological_space filter
-
--- variables {U : set ℂ} {z₀ : ℂ} {r : ℝ}
-
-instance : CompleteSpace (ℂ →ᵤ[compacts U] ℂ) := sorry
+-- Anatole did this for Lean3 at https://github.com/leanprover-community/mathlib/pull/18017
+instance : CompleteSpace (ℂ →ᵤ[compacts U] ℂ) := by sorry
 
 namespace RMT
 

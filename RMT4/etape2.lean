@@ -115,8 +115,6 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
     { linarith }
     { linarith }
 
-#check id
-
 lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) :
     ∃ h : embedding U 𝔻, ‖deriv f z₀‖ < ‖deriv h z₀‖ := by
   obtain ⟨u, u_in_𝔻, u_not_in_f_U⟩ := exists_of_ssubset hf

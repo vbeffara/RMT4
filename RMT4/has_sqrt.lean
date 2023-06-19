@@ -2,11 +2,6 @@ import RMT4.cindex
 
 open Set Complex Metric Topology
 
--- open complex set filter metric
--- open_locale topological_space filter
-
--- variables {U : set ℂ} {x y z₀ : ℂ} {f g : ℂ → ℂ}
-
 def has_sqrt (U : Set ℂ) : Prop :=
   ∀ (f : ℂ → ℂ), (∀ z ∈ U, f z ≠ 0) → DifferentiableOn ℂ f U →
   ∃ g, DifferentiableOn ℂ g U ∧ EqOn f (g ^ 2) U
