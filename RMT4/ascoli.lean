@@ -8,9 +8,6 @@ import Mathlib.Topology.UniformSpace.Equicontinuity
 
 open Set Filter Uniformity Function UniformConvergence
 
--- open Set Filter UniformSpace function
--- open_locale Filter TopologicalSpace uniform_convergence uniformity
-
 lemma supr_sUnion [CompleteLattice β] {S : Set (Set α)} {p : α → β} :
     (⨆ x ∈ ⋃₀ S, p x) = ⨆ (s ∈ S) (x ∈ s), p x := by
   rw [sUnion_eq_iUnion, iSup_iUnion, ← iSup_subtype'']
@@ -28,8 +25,7 @@ lemma forall_sUnion {S : Set (Set α)} {p : α → Prop} :
 --   TotallyBounded (t.pi s) :=
 -- sorry
 
-lemma cauchy_of_ne_bot [UniformSpace α] {l : Filter α} [hl : NeBot l] :
-    Cauchy l ↔ l ×ˢ l ≤ 𝓤 α := by
+lemma cauchy_of_ne_bot [UniformSpace α] [hl : NeBot l] : Cauchy l ↔ l ×ˢ l ≤ 𝓤 α := by
   simp [Cauchy, hl]
 
 lemma cauchy_pi {α : ι → Type u} [∀ i, UniformSpace (α i)] {l : Filter (∀ i, α i)} [NeBot l] :
@@ -47,7 +43,6 @@ lemma cauchy_map_iff_comap {u : UniformSpace β} {f : α → β} {l : Filter α}
   rfl
 
 variable [TopologicalSpace X] [UniformSpace α] {F : ι → X → α}
--- [UniformSpace β] {G : ι → β → α}
 
 lemma theorem1 [CompactSpace X] (hF : Equicontinuous F) :
     (UniformFun.uniformSpace X α).comap F = (Pi.uniformSpace (λ _ => α)).comap F := by
@@ -91,7 +86,13 @@ lemma ascoli₀ {𝔖 : Set (Set X)} {F : ι → X →ᵤ[𝔖] α} {l : Filter 
     (h2 : ∀ A ∈ 𝔖, Equicontinuous (λ i => Set.restrict A (F i)))
     (h3 : ∀ x ∈ ⋃₀ 𝔖, Cauchy (map (eval x ∘ F) l)) :
     Cauchy (map F l) := by
-  sorry
+  have e1 : @Cauchy _ (⨅ K ∈ 𝔖, ⨅ x ∈ K, ‹UniformSpace _›.comap (eval x)) (map F l) := by
+    simp_rw [cauchy_infi, ← cauchy_map_iff_comap, ← forall_sUnion]
+    exact h3
+  rcases e1 with ⟨e2, e3⟩
+  refine ⟨e2, ?_⟩
+  rw [prod_map_map_eq, map_le_iff_le_comap] at e3 ⊢
+  exact e3.trans (theorem1' h1 h2).ge
 
 lemma ascoli {𝔖 : Set (Set X)} {F : ι → X →ᵤ[𝔖] α}
     (h1 : ∀ A ∈ 𝔖, IsCompact A)
