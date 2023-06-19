@@ -51,7 +51,20 @@ variable [TopologicalSpace X] [UniformSpace α] {F : ι → X → α}
 
 lemma theorem1 [CompactSpace X] (hF : Equicontinuous F) :
     (UniformFun.uniformSpace X α).comap F = (Pi.uniformSpace (λ _ => α)).comap F := by
-  sorry
+  refine le_antisymm (UniformSpace.comap_mono (le_iff_uniformContinuous_id.mpr UniformFun.uniformContinuous_toFun)) ?_
+  change comap _ _ ≤ comap _ _
+  simp_rw [Pi.uniformity, Filter.comap_iInf, Filter.comap_comap, Function.comp]
+  refine ((UniformFun.hasBasis_uniformity X α).comap (Prod.map F F)).ge_iff.mpr ?_
+  intro U hU
+  rcases comp_comp_symm_mem_uniformity_sets hU with ⟨V, hV, Vsymm, hVU⟩
+  let Ω : X → Set X := λ x => {y | ∀ i, (F i x, F i y) ∈ V}
+  rcases CompactSpace.elim_nhds_subcover Ω (λ x => hF x V hV) with ⟨S, Scover⟩
+  have : (⋂ s ∈ S, {ij : ι × ι | (F ij.1 s, F ij.2 s) ∈ V}) ⊆ (Prod.map F F) ⁻¹' UniformFun.gen X α U := by
+    rintro ⟨i, j⟩ hij x
+    rw [mem_iInter₂] at hij
+    rcases mem_iUnion₂.mp (Scover.symm.subset $ mem_univ x) with ⟨s, hs, hsx⟩
+    exact hVU (prod_mk_mem_compRel (prod_mk_mem_compRel (Vsymm.mk_mem_comm.mp (hsx i)) (hij s hs)) (hsx j))
+  exact mem_of_superset (S.iInter_mem_sets.mpr $ λ x _ => mem_iInf_of_mem x $ preimage_mem_comap hV) this
 
 -- TODO: this is too long
 lemma theorem1' {𝔖 : Set (Set X)} (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
