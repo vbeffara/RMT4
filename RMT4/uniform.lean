@@ -108,15 +108,15 @@ lemma lemma0 [UniformSpace α] : Tendsto Prod.snd (𝓤 α ⊓ comap Prod.fst (�
   simp_rw [comap_principal, uniform_nhds_set, tendsto_lift', eventually_inf_principal]
   exact λ U hU => mem_of_superset hU (λ ⟨x, y⟩ hxy hx => mem_biUnion hx hxy)
 
-lemma lemma2 {p : Filter ι} {f : α →β} {s : Set α} : Tendsto (f ∘ Prod.snd) (Filter.prod p (𝓟 s)) (𝓟 (f '' s)) :=
+lemma lemma2 {p : Filter ι} {f : α →β} {s : Set α} : Tendsto (f ∘ Prod.snd) (p ×ˢ (𝓟 s)) (𝓟 (f '' s)) :=
   (tendsto_principal_principal.mpr $ λ _ => mem_image_of_mem f).comp tendsto_snd
 
 lemma lemma1 {F : ι → α → β} {f : α → β} [UniformSpace β] (hF : TendstoUniformlyOn F f p s) :
-    Tendsto (λ (q : ι × α) => (f q.2, F q.1 q.2)) (Filter.prod p (𝓟 s)) (Filter.prod (𝓟 (f '' s)) (𝓝ᵘ (f '' s))) := by
+    Tendsto (λ (q : ι × α) => (f q.2, F q.1 q.2)) (p ×ˢ 𝓟 s) ((𝓟 (f '' s)) ×ˢ (𝓝ᵘ (f '' s))) := by
   rw [tendstoUniformlyOn_iff_tendsto] at hF
   refine tendsto_prod_iff'.mpr ⟨lemma2, ?h⟩
   exact lemma0.comp (tendsto_inf.mpr ⟨hF, tendsto_comap_iff.mpr lemma2⟩)
 
 lemma lemma13 {f : α → β} [UniformSpace β] (hF : TendstoUniformlyOn F f p s) :
-    Tendsto (uncurry F) (Filter.prod p (𝓟 s)) (𝓝ᵘ (f '' s)) :=
+    Tendsto (uncurry F) (p ×ˢ 𝓟 s) (𝓝ᵘ (f '' s)) :=
   (tendsto_prod_iff'.mp (lemma1 hF)).2

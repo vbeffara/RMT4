@@ -21,7 +21,7 @@ lemma DifferentiableAt.deriv_eq_deriv_pow_div_pow {n : ℕ} (n_pos : 0 < n) {f g
   rw [(EventuallyEq.deriv hg).self_of_nhds, deriv_pow'' _ g_diff, eq_div_iff h2]
   ring
 
-lemma set.inj_on_of_inj_on_comp (hfg : InjOn (f ∘ g) s) : InjOn g s :=
+lemma Set.injOn_of_injOn_comp (hfg : InjOn (f ∘ g) s) : InjOn g s :=
   λ _ hx _ hy => hfg hx hy ∘ congr_arg f
 
 lemma has_deriv_at_integral_of_continuous_of_lip

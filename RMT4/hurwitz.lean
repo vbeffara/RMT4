@@ -40,7 +40,7 @@ lemma dist_inv_le_dist_div (hη : 0 < η) (hη' : 0 < η')
   exact div_le_div (norm_nonneg _) le_rfl (mul_pos hη hη') (mul_le_mul hx hy hη'.le (norm_nonneg _))
 
 lemma titi {p q : Filter 𝕜} (hp : p ⊓ 𝓝 0 = ⊥) (hq : q ⊓ 𝓝 0 = ⊥) :
-    map (λ x : 𝕜 × 𝕜 => (x.1⁻¹, x.2⁻¹)) (𝓤 𝕜 ⊓ (Filter.prod p q)) ≤ 𝓤 𝕜 := by
+    map (λ x : 𝕜 × 𝕜 => (x.1⁻¹, x.2⁻¹)) (𝓤 𝕜 ⊓ (p ×ˢ q)) ≤ 𝓤 𝕜 := by
   obtain ⟨U, hU, V, hV, hUV⟩ := inf_eq_bot_iff.mp hp
   obtain ⟨U', hU', V', hV', hUV'⟩ := inf_eq_bot_iff.mp hq
   obtain ⟨η, hη, hV⟩ := Metric.mem_nhds_iff.mp hV
