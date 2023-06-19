@@ -2,16 +2,9 @@ import Mathlib.Analysis.Complex.Schwarz
 import RMT4.defs
 import RMT4.to_mathlib
 
--- import analysis.calculus.deriv
--- import data.complex.basic
--- import analysis.complex.schwarz
-
-open Complex ComplexConjugate Set Metric
+open Complex ComplexConjugate Set Metric Topology Filter
 
 namespace RMT
-
--- open complex metric
--- open_locale complex_conjugate topological_space
 
 variable (U : Set ℂ) [good_domain U]
 
@@ -122,62 +115,67 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
     { linarith }
     { linarith }
 
--- lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) :
---   ∃ h : embedding U 𝔻, ‖deriv f z₀‖ < ‖deriv h z₀‖ :=
--- begin
---   obtain ⟨u, u_in_𝔻, u_not_in_f_U⟩ := set.exists_of_ssubset hf,
---   let φᵤ : embedding 𝔻 𝔻 := φ u_in_𝔻,
---   let φᵤf : embedding U 𝔻 := φᵤ.comp f,
---   have φᵤf_ne_zero : ∀ z ∈ U, φᵤf z ≠ 0 := λ z z_in_U hz, by { refine u_not_in_f_U ⟨z, z_in_U, _⟩,
---     apply φᵤ.is_inj (f.maps_to z_in_U) u_in_𝔻,
---     convert hz,
---     simp only [φᵤ, φ, div_eq_zero_iff, sub_self, eq_self_iff_true, true_or] },
---   obtain ⟨g, hg⟩ := φᵤf.sqrt' φᵤf_ne_zero,
---   let v : ℂ := g z₀,
---   have v_in_𝔻 : v ∈ 𝔻 := g.maps_to hz₀,
---   let h : embedding U 𝔻 := (φ v_in_𝔻).comp g,
---   have h_z₀_eq_0 : h z₀ = 0 := by simp [h, φ],
---   let σ : ℂ → ℂ := λ z, z ^ 2,
---   let ψ : ℂ → ℂ := φ (neg_in_𝔻 u_in_𝔻) ∘ σ ∘ φ (neg_in_𝔻 v_in_𝔻),
---   have f_eq_ψ_h : EqOn f (ψ ∘ h) U := λ z hz, by {
---     symmetry,
---     calc ψ (h z) = φ _ (φ _ (φ _ (g z)) ^ 2) : rfl
---              ... = φ _ (g z ^ 2) : by rw [(φ_inv v_in_𝔻 (g.maps_to hz) : φ _ (φ _ (g z)) = g z)]
---              ... = φ _ (φᵤf z) : by simp [hg hz]
---              ... = f z : φ_inv u_in_𝔻 (f.maps_to hz) },
---   have ψ_is_diff : differentiableOn ℂ ψ 𝔻 := by {
---     refine (φ (neg_in_𝔻 u_in_𝔻)).is_diff.comp _ _,
---     { apply differentiableOn.comp,
---       { apply differentiableOn.pow,
---         have := differentiable_id.differentiableOn,
---         exact this },
---       { convert (φ (neg_in_𝔻 v_in_𝔻)).is_diff },
---       { exact (φ (neg_in_𝔻 v_in_𝔻)).maps_to } },
---     { refine set.maps_to.comp _ (φ (neg_in_𝔻 v_in_𝔻)).maps_to,
---       intros z hz,
---       simpa [𝔻] using hz } },
---   have deriv_eq_mul : deriv f z₀ = deriv ψ 0 * deriv h z₀ := by {
---     have e1 : U ∈ 𝓝 z₀ := good_domain.is_open.mem_nhds hz₀,
---     have e2 : 𝔻 ∈ 𝓝 (0 : ℂ) := ball_mem_nhds _ zero_lt_one,
---     have e3 : deriv f z₀ = deriv (ψ ∘ h) z₀ := (filter.eventually_eq_of_mem e1 f_eq_ψ_h).deriv_eq,
---     rw [e3, ← h_z₀_eq_0],
---     refine deriv.comp z₀ _ (h.is_diff.differentiableAt e1),
---     simpa [h_z₀_eq_0] using ψ_is_diff.differentiableAt e2 },
---   rw [deriv_eq_mul, norm_mul],
---   refine ⟨h, mul_lt_of_lt_one_left _ _⟩,
---   { exact norm_pos_iff.2 (embedding.deriv_ne_zero good_domain.is_open hz₀) },
---   { apply non_injective_schwarz ψ_is_diff,
---     { refine λ z hz, (φ (neg_in_𝔻 u_in_𝔻)).maps_to (mem_𝔻_iff.mpr _),
---       simp only [𝔻, complex.abs_pow, sq_lt_one_iff_abs_lt_one, complex.abs_abs, mem_ball_zero_iff],
---       exact mem_𝔻_iff.mp ((φ (neg_in_𝔻 v_in_𝔻)).maps_to hz) },
---     { simp only [InjOn, not_forall, exists_prop],
---       have e1 : (2⁻¹ : ℂ) ∈ 𝔻 := by { simp [𝔻], norm_num },
---       have e2 : (-2⁻¹ : ℂ) ∈ 𝔻 := by { simp [𝔻], norm_num },
---       refine ⟨φ v_in_𝔻 2⁻¹, (φ v_in_𝔻).maps_to e1, φ v_in_𝔻 (-2⁻¹), (φ v_in_𝔻).maps_to e2, _, _⟩,
---       { simp only [ψ, σ, function.comp_app, φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2, neg_sq] },
---       { intro h,
---         have := (φ v_in_𝔻).is_inj e1 e2 h,
---         norm_num at this } } }
--- end
+#check id
+
+lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) :
+    ∃ h : embedding U 𝔻, ‖deriv f z₀‖ < ‖deriv h z₀‖ := by
+  obtain ⟨u, u_in_𝔻, u_not_in_f_U⟩ := exists_of_ssubset hf
+  let φᵤ : embedding 𝔻 𝔻 := φ u_in_𝔻
+  let φᵤf : embedding U 𝔻 := φᵤ.comp f
+  have φᵤf_ne_zero : ∀ z ∈ U, φᵤf z ≠ 0 := λ z z_in_U hz => by
+    refine u_not_in_f_U ⟨z, z_in_U, ?_⟩
+    apply φᵤ.is_inj (f.maps_to z_in_U) u_in_𝔻
+    dsimp at hz
+    rw [hz]
+    simp [φ]
+  obtain ⟨g, hg⟩ := φᵤf.sqrt' φᵤf_ne_zero
+  let v : ℂ := g z₀
+  have v_in_𝔻 : v ∈ 𝔻 := g.maps_to hz₀
+  let h : embedding U 𝔻 := (φ v_in_𝔻).comp g
+  have h_z₀_eq_0 : h z₀ = 0 := by simp [φ]
+  let σ : ℂ → ℂ := λ z => HPow.hPow z 2
+  let ψ : ℂ → ℂ := φ (neg_in_𝔻 u_in_𝔻) ∘ σ ∘ φ (neg_in_𝔻 v_in_𝔻)
+  have f_eq_ψ_h : EqOn f (ψ ∘ h) U := λ z hz => by
+    have e1 := φ_inv v_in_𝔻 (g.maps_to hz)
+    have e2 := hg hz
+    have e3 := φ_inv u_in_𝔻 (f.maps_to hz)
+    dsimp at e2
+    simp [e1, ← e2, e3]
+  have ψ_is_diff : DifferentiableOn ℂ ψ 𝔻 := by
+    refine (φ (neg_in_𝔻 u_in_𝔻)).is_diff.comp ?_ ?_
+    { apply DifferentiableOn.comp
+      case t => exact 𝔻
+      case hg =>
+        apply DifferentiableOn.pow
+        exact differentiable_id.differentiableOn
+      case hf =>
+        exact (φ (neg_in_𝔻 v_in_𝔻)).is_diff
+      case st =>
+        exact (φ (neg_in_𝔻 v_in_𝔻)).maps_to }
+    { refine MapsTo.comp ?_ (φ (neg_in_𝔻 v_in_𝔻)).maps_to
+      intros z hz
+      simpa [𝔻] using hz }
+  have deriv_eq_mul : deriv f z₀ = deriv ψ 0 * deriv h z₀ := by
+    have e1 : U ∈ 𝓝 z₀ := good_domain.is_open.mem_nhds hz₀
+    have e2 : 𝔻 ∈ 𝓝 (0 : ℂ) := ball_mem_nhds _ zero_lt_one
+    have e3 : deriv f z₀ = deriv (ψ ∘ h) z₀ := (eventuallyEq_of_mem e1 f_eq_ψ_h).deriv_eq
+    rw [e3, ← h_z₀_eq_0]
+    refine deriv.comp z₀ ?_ (h.is_diff.differentiableAt e1)
+    rw [h_z₀_eq_0]
+    exact ψ_is_diff.differentiableAt e2
+  rw [deriv_eq_mul, norm_mul]
+  refine ⟨h, mul_lt_of_lt_one_left ?_ ?_⟩
+  { exact norm_pos_iff.2 (embedding.deriv_ne_zero good_domain.is_open hz₀) }
+  { apply non_injective_schwarz ψ_is_diff
+    { refine λ z hz => (φ (neg_in_𝔻 u_in_𝔻)).maps_to (mem_𝔻_iff.mpr ?_)
+      simpa using mem_𝔻_iff.mp ((φ (neg_in_𝔻 v_in_𝔻)).maps_to hz) }
+    { simp only [InjOn, not_forall, exists_prop]
+      have e1 : (2⁻¹ : ℂ) ∈ 𝔻 := by apply mem_𝔻_iff.mpr; norm_num
+      have e2 : (-2⁻¹ : ℂ) ∈ 𝔻 := neg_in_𝔻 e1
+      refine ⟨φ v_in_𝔻 2⁻¹, (φ v_in_𝔻).maps_to e1, φ v_in_𝔻 (-2⁻¹), (φ v_in_𝔻).maps_to e2, ?_, ?_⟩
+      { simp [φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2] }
+      { intro h
+        have := (φ v_in_𝔻).is_inj e1 e2 h
+        norm_num at this } } }
 
 end RMT
