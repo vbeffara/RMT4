@@ -103,10 +103,6 @@ lemma eventually_deriv_div_self_eq (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 
   have lh3 := eventually_eventually_nhds.mpr hp.eq_pow_order_mul_iterate_dslope
   filter_upwards [lh1, lh2, lh3] with z using deriv_div_self_eq_div_add_deriv_div_self
 
-lemma DifferentiableOn.contDiffOn (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) :
-    ContDiffOn ℂ ⊤ f U :=
-  (hf.analyticOn hU).contDiffOn
-
 lemma cindex_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
     (f_hol : DifferentiableOn ℂ f U) (hf : ∀ z ∈ closedBall c r, f z ≠ 0) :
     cindex c r f = 0 := by

@@ -4,7 +4,7 @@ import RMT4.hurwitz
 import RMT4.montel
 import RMT4.etape2
 import RMT4.has_sqrt
-import RMT4.complete
+-- import RMT4.complete
 
 open UniformConvergence Topology Filter Set Metric Function
 
@@ -180,5 +180,5 @@ open RMT
 theorem RMT (h1 : IsOpen U) (h2 : IsConnected U) (h3 : U ≠ univ) (h4 : has_primitives U) :
     ∃ f : ℂ → ℂ, (DifferentiableOn ℂ f U) ∧ (InjOn f U) ∧ (f '' U = ball 0 1) := by
   have : RMT.good_domain U := ⟨h1, h2.1, h2.2, h3, (h4.has_logs h1 h2.isPreconnected).has_sqrt⟩
-  obtain ⟨f, hf : f ∈ 𝓘 U, hfU⟩ := RMT.main
+  obtain ⟨f, hf : f ∈ 𝓘 U, hfU⟩ := @RMT.main U _
   exact ⟨f, hf.1.1, hf.2, hfU⟩
