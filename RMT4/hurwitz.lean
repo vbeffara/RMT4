@@ -227,7 +227,8 @@ lemma TendstoUniformlyOn.tendsto_circle_integral (hr : 0 < r)
       mul_pos (inv_pos.mpr (mul_pos (mul_pos two_pos Real.pi_pos) hr)) hε.lt
     filter_upwards [tendstoUniformlyOn_iff.mp F_conv ((2 * Real.pi * r)⁻¹ * ε) this, F_cont] with n h h'
     simp_rw [dist_comm (f _) _, Complex.dist_eq, ← Complex.norm_eq_abs] at h
-    rw [Complex.dist_eq, ← circleIntegral.sub hr.le h' f_cont, ← Complex.norm_eq_abs]
+    rw [Complex.dist_eq, ← circleIntegral.integral_sub (h'.circleIntegrable hr.le) (f_cont.circleIntegrable hr.le),
+      ← Complex.norm_eq_abs]
     have : ∃ x ∈ sphere z₀ r, ‖F n x - f x‖ < (2 * Real.pi * r)⁻¹ * ε := by
       have : z₀ + r ∈ sphere z₀ r := by simp [hr.le, Real.norm_eq_abs]
       exact ⟨z₀ + r, this, h _ this⟩

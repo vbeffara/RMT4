@@ -3,21 +3,20 @@ import RMT4.cindex
 
 open Metric Topology Filter Set MeasureTheory
 
-lemma is_compact_segment
-  [OrderedRing 𝕜] [TopologicalSpace 𝕜] [TopologicalAddGroup 𝕜] [CompactIccSpace 𝕜]
-  [TopologicalSpace E] [AddCommGroup E] [ContinuousAdd E]
-  [Module 𝕜 E] [ContinuousSMul 𝕜 E] {x y : E} : IsCompact (segment 𝕜 x y) :=
-(segment_eq_image 𝕜 x y).symm ▸ isCompact_Icc.image (by continuity)
+lemma isCompact_segment [OrderedRing 𝕜] [TopologicalSpace 𝕜] [TopologicalAddGroup 𝕜] [CompactIccSpace 𝕜]
+    [TopologicalSpace E] [AddCommGroup E] [ContinuousAdd E] [Module 𝕜 E] [ContinuousSMul 𝕜 E] {x y : E} :
+    IsCompact (segment 𝕜 x y) := by
+  simpa only [segment_eq_image] using isCompact_Icc.image (by continuity)
 
-lemma mem_closed_ball_neg_iff_mem_neg_closed_ball [SeminormedAddCommGroup V]
-    (u v : V) (r : ℝ) : u ∈ closedBall (-v) r ↔ -u ∈ closedBall v r := by
+lemma mem_closed_ball_neg_iff_mem_neg_closed_ball [SeminormedAddCommGroup V] {u v : V} :
+    u ∈ closedBall (-v) r ↔ -u ∈ closedBall v r := by
   rw [← neg_closedBall r v]; rfl
 
-lemma DifferentiableAt.deriv_eq_deriv_pow_div_pow {n : ℕ} (n_pos : 0 < n) {f g : ℂ → ℂ} ⦃z : ℂ⦄
+lemma DifferentiableAt.deriv_eq_deriv_pow_div_pow {n : ℕ} (n_pos : 0 < n) {f g : ℂ → ℂ}
     (hg : ∀ᶠ z in 𝓝 z, f z = HPow.hPow (g z) n) (g_diff : DifferentiableAt ℂ g z) (fz_nonzero : f z ≠ 0) :
     deriv g z = deriv f z / (n * HPow.hPow (g z) (n - 1)) := by
   have h1 : g z ≠ 0 := λ h => fz_nonzero (by simp [Eventually.self_of_nhds hg, h, n_pos])
-  have h2 : ↑n * HPow.hPow (g z) (n - 1) ≠ 0 := by simp [pow_ne_zero, h1, n_pos.ne.symm]
+  have h2 : n * HPow.hPow (g z) (n - 1) ≠ 0 := by simp [pow_ne_zero, h1, n_pos.ne.symm]
   rw [(EventuallyEq.deriv hg).self_of_nhds, deriv_pow'' _ g_diff, eq_div_iff h2]
   ring
 

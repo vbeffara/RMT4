@@ -18,28 +18,25 @@ lemma DifferentiableOn.deriv {f : ℂ → E} (hf : DifferentiableOn ℂ f U) (hU
 
 lemma HasFPowerSeriesAt.eventually_differentiable_at (hp : HasFPowerSeriesAt f p z₀) :
     ∀ᶠ z in 𝓝 z₀, DifferentiableAt ℂ f z := by
-  let ⟨r, hp⟩ := hp
+  obtain ⟨r, hp⟩ := hp
   exact hp.differentiableOn.eventually_differentiableAt (EMetric.ball_mem_nhds _ hp.r_pos)
 
 end basic
 
+namespace circleIntegral
+
+variable [NormedAddCommGroup E] [NormedSpace ℂ E] {f g : ℂ → E}
+
+-- `circleIntegral.integral_sub` already exists in mathlib
+theorem integral_add (hf : CircleIntegrable f c R) (hg : CircleIntegrable g c R) :
+    (∮ z in C(c, R), f z + g z) = (∮ z in C(c, R), f z) + (∮ z in C(c, R), g z) := by
+  simp only [circleIntegral, smul_add, intervalIntegral.integral_add hf.out hg.out]
+
+end circleIntegral
+
 section circle_integral
 
 variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f g : ℂ → E}
-
-lemma ContinuousOn.interval_integrable' (hf : ContinuousOn f (sphere c r)) (hr : 0 ≤ r) :
-    IntervalIntegrable (λ x => (circleMap 0 r x * I) • f (circleMap c r x)) MeasureSpace.volume 0 (2 * π) := by
-  apply Continuous.intervalIntegrable
-  apply ((continuous_circleMap 0 r).mul continuous_const).smul
-  exact hf.comp_continuous (continuous_circleMap c r) (circleMap_mem_sphere _ hr)
-
-lemma circleIntegral.add (hr : 0 ≤ r) (hf : ContinuousOn f (sphere c r)) (hg : ContinuousOn g (sphere c r)) :
-    (∮ z in C(c, r), f z + g z) = (∮ z in C(c, r), f z) + (∮ z in C(c, r), g z) := by
-  simp [circleIntegral, smul_add, integral_add, ContinuousOn.interval_integrable', *]
-
-lemma circleIntegral.sub (hr : 0 ≤ r) (hf : ContinuousOn f (sphere c r)) (hg : ContinuousOn g (sphere c r)) :
-    (∮ z in C(c, r), f z - g z) = (∮ z in C(c, r), f z) - (∮ z in C(c, r), g z) := by
-  simp [circleIntegral, smul_sub, integral_sub, ContinuousOn.interval_integrable', *]
 
 lemma circle_integral_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
       (f_hol : DifferentiableOn ℂ f U) :
@@ -128,12 +125,13 @@ lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r �
     circleIntegral.integral_congr hr.le (λ z hz => h3 hz)
   have e5 : (∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z) =
       (∮ z in C(z₀, r), c / (z - z₀)) + (∮ z in C(z₀, r), deriv g z / g z) := by
-    refine circleIntegral.add hr.le ?_ ?_
-    · refine ContinuousOn.div continuousOn_const (continuousOn_id.sub continuousOn_const) ?_
+    apply circleIntegral.integral_add
+    · apply ContinuousOn.circleIntegrable hr.le
+      apply ContinuousOn.div continuousOn_const (continuousOn_id.sub continuousOn_const)
       exact λ z hz => sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm)
-    · refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
-      have := (h1.contDiffOn hU).continuousOn_deriv_of_open hU le_top
-      exact this.mono e2
+    · apply ContinuousOn.circleIntegrable hr.le
+      refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
+      exact ((h1.contDiffOn hU).continuousOn_deriv_of_open hU le_top).mono e2
   have e6 : (∮ z in C(z₀, r), deriv g z / g z) = 0 := by
     have := cindex_eq_zero hU hr h0 h1 h2
     simpa [cindex, Real.pi_ne_zero, I_ne_zero] using this

@@ -40,11 +40,13 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
     field_simp [h3 z hz', h5, mul_comm, h10 z hz]
   simp only [cindex, integral_congr hr.le h6, ← mul_add]
   congr
-  refine circleIntegral.add hr.le ((continuousOn_id.sub (continuousOn_const)).inv₀ h10) ?_
-  refine ContinuousOn.div ?_ ?_ ?_
-  · exact (h1.deriv hU).continuousOn.mono (sphere_subset_closedBall.trans hcr)
-  · exact h1.continuousOn.mono (sphere_subset_closedBall.trans hcr)
-  · exact λ z hz => h2 z (sphere_subset_closedBall hz)
+  apply circleIntegral.integral_add
+  · rw [circleIntegrable_sub_inv_iff, abs_eq_self.2 hr.le]
+    exact Or.inr (disjoint_right.1 sphere_disjoint_ball hz₀)
+  · refine (ContinuousOn.div ?_ ?_ ?_).circleIntegrable hr.le
+    · exact (h1.deriv hU).continuousOn.mono (sphere_subset_closedBall.trans hcr)
+    · exact h1.continuousOn.mono (sphere_subset_closedBall.trans hcr)
+    · exact λ z hz => h2 z (sphere_subset_closedBall hz)
 
 lemma tendsto_uniformly_on_const {f : α → β} [UniformSpace β] {p : Filter ι} {s : Set α} :
   TendstoUniformlyOn (λ _ => f) f p s :=

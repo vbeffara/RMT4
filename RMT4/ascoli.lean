@@ -8,22 +8,17 @@ import Mathlib.Topology.UniformSpace.Equicontinuity
 
 open Set Filter Uniformity Function UniformConvergence
 
-lemma supr_sUnion [CompleteLattice β] {S : Set (Set α)} {p : α → β} :
+lemma supr_sUnion [CompleteLattice β] {p : α → β} :
     (⨆ x ∈ ⋃₀ S, p x) = ⨆ (s ∈ S) (x ∈ s), p x := by
   rw [sUnion_eq_iUnion, iSup_iUnion, ← iSup_subtype'']
 
-lemma infi_sUnion [CompleteLattice β] {S : Set (Set α)} {p : α → β} :
+lemma infi_sUnion [CompleteLattice β] {p : α → β} :
     (⨅ x ∈ ⋃₀ S, p x) = ⨅ (s ∈ S) (x ∈ s), p x := by
   rw [sUnion_eq_iUnion, iInf_iUnion, ← iInf_subtype'']
 
-lemma forall_sUnion {S : Set (Set α)} {p : α → Prop} :
+lemma forall_sUnion {p : α → Prop} :
     (∀ x ∈ ⋃₀ S, p x) ↔ ∀ s ∈ S, ∀ x ∈ s, p x := by
   simp_rw [← iInf_Prop_eq, infi_sUnion]
-
--- lemma TotallyBounded_pi {ι : Type*} {α : ι → Type*} [Π i, UniformSpace (α i)]
---   {t : Set ι} {s : Π i, Set (α i)} (hs : ∀ i ∈ t, TotallyBounded (s i)) :
---   TotallyBounded (t.pi s) :=
--- sorry
 
 lemma cauchy_of_ne_bot [UniformSpace α] [hl : NeBot l] : Cauchy l ↔ l ×ˢ l ≤ 𝓤 α := by
   simp [Cauchy, hl]
