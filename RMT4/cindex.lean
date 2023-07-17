@@ -113,8 +113,8 @@ lemma cindex_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
     have e3 : closedBall c r ⊆ s := λ z hz => ⟨hcr hz, hf z hz⟩
     obtain ⟨δ, e4, e5⟩ := e1.exists_thickening_subset_open e2 e3
     refine ⟨thickening δ (closedBall c r), ?_, isOpen_thickening, self_subset_thickening e4 _, ?_⟩
-    { exact (e5.trans $ Set.sep_subset _ _) }
-    { exact λ z hz => (e5 hz).2 }
+    · exact (e5.trans $ Set.sep_subset _ _)
+    · exact λ z hz => (e5 hz).2
   simp [cindex, circle_integral_eq_zero h2 hr h3 (((f_hol.mono h1).deriv h2).div (f_hol.mono h1) h4)]
 
 -- TODO: off-center using `integral_sub_inv_of_mem_ball`
@@ -129,11 +129,11 @@ lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r �
   have e5 : (∮ z in C(z₀,r), c / (z - z₀) + deriv g z / g z) =
       (∮ z in C(z₀, r), c / (z - z₀)) + (∮ z in C(z₀, r), deriv g z / g z) := by
     refine circleIntegral.add hr.le ?_ ?_
-    { refine ContinuousOn.div continuousOn_const (continuousOn_id.sub continuousOn_const) ?_
-      exact λ z hz => sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm) }
-    { refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
+    · refine ContinuousOn.div continuousOn_const (continuousOn_id.sub continuousOn_const) ?_
+      exact λ z hz => sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm)
+    · refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
       have := (h1.contDiffOn hU).continuousOn_deriv_of_open hU le_top
-      exact this.mono e2 }
+      exact this.mono e2
   have e6 : (∮ z in C(z₀, r), deriv g z / g z) = 0 := by
     have := cindex_eq_zero hU hr h0 h1 h2
     simpa [cindex, Real.pi_ne_zero, I_ne_zero] using this
@@ -167,6 +167,7 @@ lemma exists_cindex_eq_order (hp : HasFPowerSeriesAt f p z₀) :
     subst_vars
     obtain ⟨R, hR, hf⟩ := Metric.eventually_nhds_iff.mp (hp.locally_zero_iff.mpr rfl)
     refine ⟨R, hR, λ r hr => ?_⟩
+    simp [cindex, Real.pi_ne_zero, Complex.I_ne_zero]
     have : Set.EqOn (λ z => deriv f z / f z) 0 (sphere z₀ r) := by
       intro z hz
       simp
@@ -174,8 +175,7 @@ lemma exists_cindex_eq_order (hp : HasFPowerSeriesAt f p z₀) :
       apply hf
       rw [hz.symm.symm]
       exact hr.2
-    simp [cindex, Real.pi_ne_zero, Complex.I_ne_zero]
-    rw [@circleIntegral.integral_congr ℂ _ _ _ (λ z => deriv f z / f z) 0 z₀ r hr.1.le this]
+    rw [circleIntegral.integral_congr hr.1.le this]
     simp [circleIntegral]
     exact intervalIntegral.integral_zero
 

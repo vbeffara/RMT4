@@ -45,8 +45,8 @@ noncomputable def φ (hu : u ∈ 𝔻) : embedding 𝔻 𝔻 :=
     simp only [norm_eq_abs]
     rw [← normSq_eq_abs, ← normSq_eq_abs, ← sub_lt_zero, normSq_sub_normSq, normSq_eq_abs, normSq_eq_abs]
     apply mul_neg_of_neg_of_pos
-    { simpa [norm_eq_abs] using mem_𝔻_iff.mp hz }
-    { simpa [norm_eq_abs] using mem_𝔻_iff.mp hu }
+    · simpa [norm_eq_abs] using mem_𝔻_iff.mp hz
+    · simpa [norm_eq_abs] using mem_𝔻_iff.mp hu
 }
 
 lemma φ_deriv (hu : u ∈ 𝔻) (hz : z ∈ 𝔻) : deriv (φ hu) z = (1 - u * conj u) / ((1 - z * conj u) ^ 2) := by
@@ -111,9 +111,7 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
     simp at e2 e3 ⊢
     norm_cast
     rw [abs_sub_le_iff]
-    refine ⟨?_, ?_⟩
-    { linarith }
-    { linarith }
+    refine ⟨?_, ?_⟩; repeat linarith
 
 lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) :
     ∃ h : embedding U 𝔻, ‖deriv f z₀‖ < ‖deriv h z₀‖ := by
@@ -141,7 +139,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
     simp [e1, ← e2, e3]
   have ψ_is_diff : DifferentiableOn ℂ ψ 𝔻 := by
     refine (φ (neg_in_𝔻 u_in_𝔻)).is_diff.comp ?_ ?_
-    { apply DifferentiableOn.comp
+    · apply DifferentiableOn.comp
       case t => exact 𝔻
       case hg =>
         apply DifferentiableOn.pow
@@ -149,10 +147,10 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
       case hf =>
         exact (φ (neg_in_𝔻 v_in_𝔻)).is_diff
       case st =>
-        exact (φ (neg_in_𝔻 v_in_𝔻)).maps_to }
-    { refine MapsTo.comp ?_ (φ (neg_in_𝔻 v_in_𝔻)).maps_to
+        exact (φ (neg_in_𝔻 v_in_𝔻)).maps_to
+    · refine MapsTo.comp ?_ (φ (neg_in_𝔻 v_in_𝔻)).maps_to
       intros z hz
-      simpa [𝔻] using hz }
+      simpa [𝔻] using hz
   have deriv_eq_mul : deriv f z₀ = deriv ψ 0 * deriv h z₀ := by
     have e1 : U ∈ 𝓝 z₀ := good_domain.is_open.mem_nhds hz₀
     have e2 : 𝔻 ∈ 𝓝 (0 : ℂ) := ball_mem_nhds _ zero_lt_one
@@ -163,17 +161,17 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
     exact ψ_is_diff.differentiableAt e2
   rw [deriv_eq_mul, norm_mul]
   refine ⟨h, mul_lt_of_lt_one_left ?_ ?_⟩
-  { exact norm_pos_iff.2 (embedding.deriv_ne_zero good_domain.is_open hz₀) }
-  { apply non_injective_schwarz ψ_is_diff
-    { refine λ z hz => (φ (neg_in_𝔻 u_in_𝔻)).maps_to (mem_𝔻_iff.mpr ?_)
-      simpa using mem_𝔻_iff.mp ((φ (neg_in_𝔻 v_in_𝔻)).maps_to hz) }
-    { simp only [InjOn, not_forall, exists_prop]
+  · exact norm_pos_iff.2 (embedding.deriv_ne_zero good_domain.is_open hz₀)
+  · apply non_injective_schwarz ψ_is_diff
+    · refine λ z hz => (φ (neg_in_𝔻 u_in_𝔻)).maps_to (mem_𝔻_iff.mpr ?_)
+      simpa using mem_𝔻_iff.mp ((φ (neg_in_𝔻 v_in_𝔻)).maps_to hz)
+    · simp only [InjOn, not_forall, exists_prop]
       have e1 : (2⁻¹ : ℂ) ∈ 𝔻 := by apply mem_𝔻_iff.mpr; norm_num
       have e2 : (-2⁻¹ : ℂ) ∈ 𝔻 := neg_in_𝔻 e1
       refine ⟨φ v_in_𝔻 2⁻¹, (φ v_in_𝔻).maps_to e1, φ v_in_𝔻 (-2⁻¹), (φ v_in_𝔻).maps_to e2, ?_, ?_⟩
-      { simp [φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2] }
-      { intro h
+      · simp [φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2]
+      · intro h
         have := (φ v_in_𝔻).is_inj e1 e2 h
-        norm_num at this } } }
+        norm_num at this
 
 end RMT

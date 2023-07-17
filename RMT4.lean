@@ -4,7 +4,6 @@ import RMT4.hurwitz
 import RMT4.montel
 import RMT4.etape2
 import RMT4.has_sqrt
--- import RMT4.complete
 
 open UniformConvergence Topology Filter Set Metric Function
 
@@ -27,20 +26,20 @@ noncomputable def uderiv (f : ℂ →ᵤ[compacts U] ℂ) : ℂ →ᵤ[compacts 
 lemma IsClosed_𝓗 (hU : IsOpen U) : IsClosed (𝓗 U) := by
   refine isClosed_iff_clusterPt.2 (λ f hf => ?_)
   refine @TendstoLocallyUniformlyOn.differentiableOn _ _ _ _ _ _ _ id f hf ?_ ?_ hU
-  { simp [← tendsto_iff hU, Tendsto] }
-  { simp [eventually_inf_principal, 𝓗]; exact eventually_of_forall (λ g => id) }
+  · simp [← tendsto_iff hU, Tendsto]
+  · simp [eventually_inf_principal, 𝓗]; exact eventually_of_forall (λ g => id)
 
 lemma ContinuousOn_uderiv (hU : IsOpen U) : ContinuousOn uderiv (𝓗 U) := by
   rintro f hf
   haveI := nhdsWithin_neBot_of_mem hf
   refine (tendsto_iff hU).2 ?_
   refine TendstoLocallyUniformlyOn.deriv ?_ ?_ hU
-  { apply (tendsto_iff hU).1
-    exact nhdsWithin_le_nhds }
-  { rw [eventually_nhdsWithin_iff]
+  · apply (tendsto_iff hU).1
+    exact nhdsWithin_le_nhds
+  · rw [eventually_nhdsWithin_iff]
     apply eventually_of_forall
     intro f hf
-    exact hf }
+    exact hf
 
 -- `𝓜 U` : holomorphic functions to the unit closed ball
 
@@ -48,7 +47,7 @@ def 𝓜 (U : Set ℂ) := {f ∈ 𝓗 U | MapsTo f U (closedBall (0 : ℂ) 1)}
 
 lemma TotallyBounded_𝓜 (hU : IsOpen U) : TotallyBounded (𝓜 U) := by
   suffices : UniformlyBoundedOn ((λ f => f) : 𝓜 U → ℂ →ᵤ[compacts U] ℂ) U
-  { simpa [Subtype.range_coe_subtype] using montel hU this (λ f => f.2.1) }
+  · simpa [Subtype.range_coe_subtype] using montel hU this (λ f => f.2.1)
   rintro K ⟨hK1, _⟩
   refine ⟨1, zero_lt_one, ?_⟩
   rintro z hz x ⟨⟨f, hf⟩, rfl⟩
@@ -56,7 +55,7 @@ lemma TotallyBounded_𝓜 (hU : IsOpen U) : TotallyBounded (𝓜 U) := by
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
   suffices : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
-  { exact (IsClosed_𝓗 hU).inter this }
+  · exact (IsClosed_𝓗 hU).inter this
   simp_rw [MapsTo, setOf_forall]
   refine isClosed_biInter (λ z hz => isClosed_ball.preimage ?_)
   exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)

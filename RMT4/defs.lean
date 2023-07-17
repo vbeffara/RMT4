@@ -58,8 +58,8 @@ noncomputable def embedding.sqrt [good_domain U] (f : embedding U V) (hf : ∀ z
     { g : embedding U {z | z ^ 2 ∈ V} // U.EqOn f (g.to_fun ^ 2) } := by
   choose g g_diff g_sqrt using good_domain.has_sqrt f hf f.is_diff
   refine ⟨⟨g, g_diff, ?_, ?_⟩, g_sqrt⟩
-  { exact λ z hz z' hz' h => f.is_inj hz hz' (by simp [g_sqrt hz, g_sqrt hz', h]) }
-  { exact λ z hz => by simpa [g_sqrt hz] using f.maps_to hz }
+  · exact λ z hz z' hz' h => f.is_inj hz hz' (by simp [g_sqrt hz, g_sqrt hz', h])
+  · exact λ z hz => by simpa [g_sqrt hz] using f.maps_to hz
 
 noncomputable def embedding.sqrt' [good_domain U] (f : embedding U 𝔻) (hf : ∀ z ∈ U, f z ≠ 0) :
     { g : embedding U 𝔻 // U.EqOn f (g.to_fun ^ 2) } := by
@@ -79,9 +79,9 @@ noncomputable def embedding.inv (w : ℂ) {r : ℝ} (hr : 0 < r) : embedding ((c
     simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le
   is_inj := λ x hx y hy hxy => by
     rw [div_eq_div_iff, eq_comm] at hxy
-    { simpa [hr.ne.symm] using hxy }
-    { simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le hx }
-    { simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le hy }
+    · simpa [hr.ne.symm] using hxy
+    · simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le hx
+    · simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le hy
   maps_to := λ x hx => by
     replace hx : r < abs (x - w) := by simpa [𝔻] using hx
     simp only [𝔻, mem_ball_zero_iff, norm_eq_abs, norm_div]

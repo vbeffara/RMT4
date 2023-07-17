@@ -255,8 +255,8 @@ lemma hurwitz2_2 (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n)
     have H8 : ContinuousOn (deriv f) (sphere z₀ r) :=
       (H3.deriv hU).continuousOn.mono hr2
     refine Tendsto.const_mul _ (TendstoUniformlyOn.tendsto_circle_integral hr1 ?_ ?_)
-    { filter_upwards [hurwitz2_1 H1 H2 H4 hf1, H6, H5] with n hn H6 H5 using ContinuousOn.div H6 H5 hn }
-    { exact TendstoUniformlyOn.div_of_compact H7 H2 H8 H4 hf1 H1 }
+    · filter_upwards [hurwitz2_1 H1 H2 H4 hf1, H6, H5] with n hn H6 H5 using ContinuousOn.div H6 H5 hn
+    · exact TendstoUniformlyOn.div_of_compact H7 H2 H8 H4 hf1 H1
 
 lemma hurwitz2
     (hU : IsOpen U)
@@ -340,8 +340,8 @@ theorem local_hurwitz [NeBot p]
         (eventually_closedBall_subset (hU.mem_nhds hz₀)).filter_mono nhdsWithin_le_nhds
       obtain ⟨r, h6, h7, h8, h9⟩ := (h.and (h4.and h5)).exists'
       refine ⟨r, h6, h9, ?_, ?_⟩
-      { exact λ z hz => h7 z (sphere_subset_closedBall hz) (ne_of_mem_sphere hz h6.lt.ne.symm) }
-      { simp [h8, h1.ne.symm] }
+      · exact λ z hz => h7 z (sphere_subset_closedBall hz) (ne_of_mem_sphere hz h6.lt.ne.symm)
+      · simp [h8, h1.ne.symm]
     obtain ⟨n, z, h5, h6⟩ := (hurwitz2 hU F_holo F_conv h1 h2 h3 h4).exists
     cases F_noz n z (h2 (ball_subset_closedBall (mem_ball.mpr h5))) h6
 
@@ -409,7 +409,7 @@ theorem hurwitz_inj [NeBot p]
   have hgx : g x = 0 := sub_self _
   have hgy : g y = 0 := by simp [hfxy]
   suffices : ∀ z ∈ U, g z = 0
-  { exact ⟨f x, by simpa [sub_eq_zero] using this⟩ }
+  · exact ⟨f x, by simpa [sub_eq_zero] using this⟩
   --
   contrapose hi; simp only [not_frequently, InjOn, not_forall]
   have h1 : DifferentiableOn ℂ g U := hg.differentiableOn hG hU

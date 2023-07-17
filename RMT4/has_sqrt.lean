@@ -69,7 +69,7 @@ lemma has_primitives.has_logs (hp : has_primitives U) (hU : IsOpen U) (hU' : IsP
     have e1 : DifferentiableOn ℂ h U := hf.div e4 (λ z _ => exp_ne_zero _)
     refine ⟨g, h3, ?_⟩
     suffices : EqOn h (λ _ => 1) U
-    { exact λ z hz => eq_of_div_eq_one (this hz) }
+    · exact λ z hz => eq_of_div_eq_one (this hz)
     have : 1 = h z₀ := by simp [exp_log, hfz z₀ hz₀]
     rw [this]
     refine EqOn_of_deriv_eq_zero hU hU' e1 (λ z hz => ?_) hz₀

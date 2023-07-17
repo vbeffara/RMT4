@@ -34,11 +34,11 @@ lemma UniformlyBoundedOn.deriv (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
   rintro z₀ hz₀ w ⟨i, rfl⟩
   simp only [mem_closedBall_zero_iff]
   refine norm_deriv_le_aux hδ ?_ ?_
-  { exact (h2 i).diffContOnCl_ball ((closedBall_subset_cthickening hz₀ δ).trans h) }
-  { rintro z hz
+  · exact (h2 i).diffContOnCl_ball ((closedBall_subset_cthickening hz₀ δ).trans h)
+  · rintro z hz
     have : z ∈ cthickening δ K :=
       sphere_subset_closedBall.trans (closedBall_subset_cthickening hz₀ δ) hz
-    simpa using hM z this ⟨i, rfl⟩ }
+    simpa using hM z this ⟨i, rfl⟩
 
 lemma UniformlyBoundedOn.equicontinuous_on
     (h1 : UniformlyBoundedOn F U)

@@ -19,8 +19,8 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
   have h10 : ∀ z ∈ sphere c r, z - z₀ ≠ 0 :=
     λ z hz => sub_ne_zero.2 (sphere_disjoint_ball.ne_of_mem hz hz₀)
   suffices : cindex c r f = ((2 * Real.pi * I)⁻¹ * ∮ z in C(c, r), (z - z₀)⁻¹) + cindex c r g
-  { rw [this, integral_sub_inv_of_mem_ball hz₀, cindex_eq_zero hU hr hcr h1 h2]
-    field_simp [two_ne_zero, Real.pi_ne_zero, I_ne_zero] }
+  · rw [this, integral_sub_inv_of_mem_ball hz₀, cindex_eq_zero hU hr hcr h1 h2]
+    field_simp [two_ne_zero, Real.pi_ne_zero, I_ne_zero]
   have h6 : ∀ z ∈ sphere c r, deriv f z / f z = (z - z₀)⁻¹ + deriv g z / g z := by
     rintro z hz
     have h3 : ∀ z ∈ U, f z = (z - z₀) * g z :=
@@ -42,9 +42,9 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
   congr
   refine circleIntegral.add hr.le ((continuousOn_id.sub (continuousOn_const)).inv₀ h10) ?_
   refine ContinuousOn.div ?_ ?_ ?_
-  { exact (h1.deriv hU).continuousOn.mono (sphere_subset_closedBall.trans hcr) }
-  { exact h1.continuousOn.mono (sphere_subset_closedBall.trans hcr) }
-  { exact λ z hz => h2 z (sphere_subset_closedBall hz) }
+  · exact (h1.deriv hU).continuousOn.mono (sphere_subset_closedBall.trans hcr)
+  · exact h1.continuousOn.mono (sphere_subset_closedBall.trans hcr)
+  · exact λ z hz => h2 z (sphere_subset_closedBall hz)
 
 lemma tendsto_uniformly_on_const {f : α → β} [UniformSpace β] {p : Filter ι} {s : Set α} :
   TendstoUniformlyOn (λ _ => f) f p s :=
@@ -103,7 +103,7 @@ lemma deriv_ne_zero_of_inj_aux {g : ℂ → ℂ} (hU : IsOpen U) (hg : Different
       (∀ z ∈ closedBall z₀ r, z ≠ z₀ → deriv g z ≠ 0) ∧
       (∀ z ∈ closedBall z₀ r, z ≠ z₀ → g z ≠ 0) ∧
       closedBall z₀ r ⊆ U
-  { obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).analyticAt (hU.mem_nhds hz₀)
+  · obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).analyticAt (hU.mem_nhds hz₀)
     have h26 : q ≠ 0 := by
       rintro rfl
       simpa [hgz₀] using (((bla ⟨p, hp⟩ hq).filter_mono nhdsWithin_le_nhds).and h25).exists
@@ -113,7 +113,7 @@ lemma deriv_ne_zero_of_inj_aux {g : ℂ → ℂ} (hU : IsOpen U) (hg : Different
     have e4 := hU.eventually_mem hz₀
     simp only [eventually_nhdsWithin_iff, mem_compl_singleton_iff] at e2 e3
     simp only [eventually_nhds_iff_eventually_closed_ball] at e2 e3 e4
-    exact (e1.and (e3.and (e2.and e4))).exists' }
+    exact (e1.and (e3.and (e2.and e4))).exists'
   have h22 : ∀ z ∈ sphere z₀ r, g z ≠ 0 :=
     λ z hz => h21 z (sphere_subset_closedBall hz) (ne_of_mem_sphere hz h7.lt.ne.symm)
   have h18 : ∀ ε, DifferentiableOn ℂ (λ z => g z + ε) U := λ ε => hg.add_const ε
