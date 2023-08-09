@@ -2,18 +2,12 @@ import Mathlib.Topology.UniformSpace.UniformConvergence
 
 open Set Filter UniformSpace Function Uniformity Topology
 
-lemma comp_symm_of_uniformity' [UniformSpace α] (hU : U ∈ 𝓤 α) :
-    ∃ T ∈ 𝓤 α, SymmetricRel T ∧ T ○ T ⊆ U := by
-  let ⟨V, hV, hVU, hU'⟩ := comp_symm_of_uniformity hU
-  suffices : SymmetricRel V
-  exact ⟨V, hV, this, hU'⟩
-  ext
-  exact ⟨hVU, hVU⟩
+lemma symmetricRel_of (hx : ∀ {a b : α}, (a, b) ∈ x → (b, a) ∈ x) : SymmetricRel x :=
+  ext (λ _ => ⟨(hx ·), (hx ·)⟩)
 
 namespace UniformSpace -- uniform thickening
 
-def thickening (U : Set (α × α)) (S : Set α) : Set α :=
-  ⋃ x ∈ S, ball x U
+def thickening (U : Set (α × α)) (S : Set α) : Set α := ⋃ x ∈ S, ball x U
 
 lemma mem_thickening : a ∈ thickening u s ↔ ∃ x ∈ s, (x, a) ∈ u := by
   simp only [thickening, ball, mem_iUnion, mem_preimage, exists_prop]
@@ -21,18 +15,17 @@ lemma mem_thickening : a ∈ thickening u s ↔ ∃ x ∈ s, (x, a) ∈ u := by
 @[simp] lemma thickening_singleton : thickening u {a} = ball a u := by
   simp only [thickening, mem_singleton_iff, iUnion_iUnion_eq_left]
 
-@[simp] lemma monotone_thickening : Monotone (λ u => thickening u s) := by
+@[simp] lemma monotone_thickening : Monotone (thickening · s) := by
   intro u v huv
   apply iUnion₂_mono
   simp only [ball, le_eq_subset] at huv ⊢
-  exact λ i _ => preimage_mono huv
+  exact λ _ _ => preimage_mono huv
 
 lemma thickening_mono : Monotone (thickening u) :=
   λ _ _ h => iUnion₂_mono' (λ a ha => ⟨a, h ha, subset_rfl⟩)
 
 @[simp] lemma thickening_comp : thickening v (thickening u s) = thickening (u ○ v) s := by
-  ext
-  simp [thickening, ball]
+  ext; simp [thickening, ball]
 
 lemma disjoint_ball_iff : Disjoint (ball a u) t ↔ ∀ b ∈ t, (a, b) ∉ u := by
   rw [← compl_compl (ball a u), disjoint_compl_left_iff_subset]
@@ -57,7 +50,7 @@ end UniformSpace
 -----------------------------------------------------------------------------
 
 def uniform_nhds_set [UniformSpace α] (s : Set α) : Filter α :=
-  Filter.lift' (𝓤 α) (λ u => UniformSpace.thickening u s)
+  Filter.lift' (𝓤 α) (UniformSpace.thickening · s)
 
 scoped[Uniformity] notation "𝓝ᵘ" => uniform_nhds_set
 
@@ -81,14 +74,14 @@ lemma nhds_le_uniform_nhds_set {s : Set α} (ha : a ∈ s) : 𝓝 a ≤ 𝓝ᵘ 
   simpa [← uniform_nhds_set_singleton] using uniform_nhds_set_mono (singleton_subset_iff.mpr ha)
 
 lemma nhds_set_le_uniform_nhds_set {s : Set α} : 𝓝ˢ s ≤ 𝓝ᵘ s := by
-  simpa [nhdsSet] using λ a => nhds_le_uniform_nhds_set
+  simpa [nhdsSet] using λ _ => nhds_le_uniform_nhds_set
 
 lemma uniform_nhds_inf_uniform_nhds_eq_bot {s t : Set α} (h : 𝓝ᵘ s ⊓ 𝓟 t = ⊥) : 𝓝ᵘ s ⊓ 𝓝ᵘ t = ⊥ := by
   simp_rw [inf_principal_eq_bot, inf_eq_bot_iff, mem_uniform_nhds_set_iff] at h ⊢
   obtain ⟨u, hu, hsu⟩ := h
-  obtain ⟨v, hv, hvs, hvu⟩ := comp_symm_of_uniformity' hu
+  obtain ⟨v, hv, hvs, hvu⟩ := comp_symm_of_uniformity hu
   refine ⟨_, ⟨v, hv, subset_rfl⟩, _, ⟨v, hv, subset_rfl⟩, ?h⟩
-  apply thickening_inter_thickening_eq_empty_of_comp hvs hvu
+  apply thickening_inter_thickening_eq_empty_of_comp (symmetricRel_of hvs) hvu
   exact (subset_compl_iff_disjoint_right.mp hsu).inter_eq
 
 lemma nhds_inf_uniform_nhds_eq_bot {s : Set α} (hf : 𝓝 a ⊓ 𝓟 s = ⊥) : 𝓝 a ⊓ 𝓝ᵘ s = ⊥ := by

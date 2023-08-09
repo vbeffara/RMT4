@@ -28,16 +28,14 @@ end filter
 section unifops
 
 variable [NormedField 𝕜] {F G : ι → α → 𝕜} {f g : α → 𝕜} {x y : 𝕜} {η η' : ℝ}
--- variables {ι α 𝕜 : Type*} [normed_field 𝕜] {p : filter ι} [ne_bot p] {K s : set α} {m mf mg : ℝ}
 
-lemma dist_inv_le_dist_div (hη : 0 < η) (hη' : 0 < η')
-    (hx : x ∉ ball (0 : 𝕜) η) (hy : y ∉ ball (0 : 𝕜) η') :
+lemma dist_inv_le_dist_div (hη : 0 < η) (hη' : 0 < η') (hx : x ∉ ball 0 η) (hy : y ∉ ball 0 η') :
     dist x⁻¹ y⁻¹ ≤ dist x y / (η * η') := by
-  have h1 : x ≠ 0 := by contrapose! hx; simp [hx, hη]
-  have h2 : y ≠ 0 := by contrapose! hy; simp [hy, hη']
-  simp [dist_eq_norm] at hx hy
-  rw [dist_eq_norm, inv_sub_inv h1 h2, norm_div, norm_mul, dist_comm, dist_eq_norm]
-  exact div_le_div (norm_nonneg _) le_rfl (mul_pos hη hη') (mul_le_mul hx hy hη'.le (norm_nonneg _))
+  have h1 : x ≠ 0 := by contrapose! hx; simp only [hx, mem_ball_self, hη]
+  have h2 : y ≠ 0 := by contrapose! hy; simp only [hy, mem_ball_self, hη']
+  simp only [mem_ball, dist_eq_norm, sub_zero, not_lt] at hx hy
+  rw [dist_inv_inv₀ h1 h2]
+  gcongr
 
 lemma titi {p q : Filter 𝕜} (hp : p ⊓ 𝓝 0 = ⊥) (hq : q ⊓ 𝓝 0 = ⊥) :
     map (λ x : 𝕜 × 𝕜 => (x.1⁻¹, x.2⁻¹)) (𝓤 𝕜 ⊓ (p ×ˢ q)) ≤ 𝓤 𝕜 := by
@@ -60,12 +58,8 @@ lemma titi {p q : Filter 𝕜} (hp : p ⊓ 𝓝 0 = ⊥) (hq : q ⊓ 𝓝 0 = �
   field_simp [hη.lt.ne.symm, hη'.lt.ne.symm]
 
 lemma uniform_ContinuousOn_inv {s : Set 𝕜} (hs : 𝓟 s ⊓ 𝓝 0 = ⊥) :
-    UniformContinuousOn (λ x => x⁻¹) s := by
+    UniformContinuousOn Inv.inv s := by
   simpa only [UniformContinuousOn, Tendsto, ← prod_principal_principal] using titi hs hs
-
-example (hη : 0 < η) : UniformContinuousOn (λ x => x⁻¹) ((ball (0 : 𝕜) η)ᶜ) := by
-  apply uniform_ContinuousOn_inv
-  simpa only [inf_comm, inf_principal_eq_bot, compl_compl] using ball_mem_nhds _ hη
 
 lemma TendstoUniformlyOn.inv (hF : TendstoUniformlyOn F f p s) (hf : 𝓟 (f '' s) ⊓ 𝓝 0 = ⊥) :
     TendstoUniformlyOn F⁻¹ f⁻¹ p s := by
