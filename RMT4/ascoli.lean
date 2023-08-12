@@ -65,7 +65,7 @@ lemma theorem1' {𝔖 : Set (Set X)} (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
   simp_rw [UniformSpace.comap_iInf, ← UniformSpace.comap_comap]
   refine iInf_congr (λ K => iInf_congr $ λ hK => ?_)
   haveI : CompactSpace K := isCompact_iff_compactSpace.mp (h𝔖 K hK)
-  simp_rw [theorem1 (hF K hK), @UniformSpace.comap_comap _ _ _ _ F,
+  simp_rw [theorem1 (hF K hK), UniformSpace.comap_comap,
             Pi.uniformSpace, UniformSpace.ofCoreEq_toCore, UniformSpace.comap_iInf, iInf_subtype]
   refine iInf_congr (λ x => iInf_congr $ λ hx => congr_arg _ ?_)
   rw [← UniformSpace.comap_comap]

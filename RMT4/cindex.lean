@@ -9,8 +9,7 @@ noncomputable def cindex (z₀ : ℂ) (r : ℝ) (f : ℂ → ℂ) : ℂ :=
 
 section basic
 
-variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
-  {p : FormalMultilinearSeries ℂ ℂ E}
+variable [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {p : FormalMultilinearSeries ℂ ℂ E}
 
 lemma DifferentiableOn.deriv {f : ℂ → E} (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) :
     DifferentiableOn ℂ (deriv f) U :=

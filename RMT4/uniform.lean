@@ -2,8 +2,8 @@ import Mathlib.Topology.UniformSpace.UniformConvergence
 
 open Set Filter UniformSpace Function Uniformity Topology
 
-lemma symmetricRel_of (hx : ∀ {a b : α}, (a, b) ∈ x → (b, a) ∈ x) : SymmetricRel x :=
-  ext (λ _ => ⟨(hx ·), (hx ·)⟩)
+lemma symmetricRel_of (h : ∀ {a b : α}, (a, b) ∈ x → (b, a) ∈ x) : SymmetricRel x :=
+  ext (λ _ => ⟨h, h⟩)
 
 namespace UniformSpace -- uniform thickening
 
