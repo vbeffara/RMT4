@@ -1,3 +1,111 @@
+import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Order.Interval
+import Mathlib.MeasureTheory.Integral.CircleIntegral
+import Mathlib.MeasureTheory.Integral.IntervalIntegral
+import Mathlib.Topology.PathConnected
+
+variable [TopologicalSpace 𝕜] [NormedAddCommGroup 𝕜] [NormedSpace ℝ 𝕜] [HSMul 𝕜 E E] [NormedAddCommGroup E]
+  [NormedSpace ℝ E]
+
+open intervalIntegral Real MeasureTheory Filter Topology
+
+/-- We start with a basic definition of the integral of a function along a path, which makes sense
+  when the path is differentiable -/
+
+noncomputable def pintegral (t₁ t₂ : ℝ) (f : 𝕜 → E) (γ : ℝ → 𝕜) : E :=
+  ∫ t in t₁..t₂, deriv γ t • f (γ t)
+
+-- the definition is defeq to `circleIntegral` when appropriate:
+lemma circleIntegral_eq_pintegral2 {f : ℂ → ℂ} :
+    (∮ z in C(c, R), f z) = (pintegral 0 (2 * π) f (circleMap c R)) := rfl
+
+-- a version using `Path` (but it loses all the Path API):
+noncomputable def pintegral2 (f : 𝕜 → E) {x y : 𝕜} (γ : Path x y) : E :=
+    pintegral 0 1 f γ.extend
+
+-- integral against a `Path`, has the Path API but is tedious to use
+
+noncomputable def pderiv {x y : 𝕜} (γ : Path x y) (t : unitInterval) : 𝕜 := deriv γ.extend t
+
+noncomputable def pintegral1' (f : 𝕜 → E) {x y : 𝕜} (γ : Path x y) : E :=
+  ∫ t, pderiv γ t • f (γ t)
+
+/-- Some plumbing -/
+
+noncomputable def circlePath (c : ℂ) (R : ℝ) : Path (c + R) (c + R) where
+  toFun := λ t => circleMap c R (2 * π * t)
+  source' := by simp [circleMap]
+  target' := by simp [circleMap]
+
+noncomputable def toPath (t₁ t₂ : ℝ) (γ : ℝ → 𝕜) (h1 : ContinuousOn γ (Set.Icc t₁ t₂)) (h2 : t₁ < t₂) :
+    Path (γ t₁) (γ t₂) where
+  toFun := λ t => γ ((iccHomeoI t₁ t₂ h2).symm t)
+  continuous_toFun := by
+    apply h1.comp_continuous
+    · exact continuous_subtype_val.comp (iccHomeoI t₁ t₂ h2).symm.continuous_toFun
+    · exact λ t => Subtype.mem _
+  source' := by simp
+  target' := by simp
+
+example {c : ℂ} {R : ℝ} : (circlePath c R).cast (by simp [circleMap]) (by simp [circleMap]) =
+    toPath 0 (2 * π) (circleMap c R) (continuous_circleMap c R).continuousOn two_pi_pos := by
+  ext1; simp [toPath, circlePath]
+
+/-- Version with `deriv_within` is useful -/
+
+-- noncomputable def curvint' (f : 𝕜 → E) (γ : contour 𝕜) : E :=
+-- ∫ t in 0..γ.ℓ, deriv_within γ (interval 0 γ.ℓ) t • f (γ t)
+
+noncomputable def pintegral' (t₁ t₂ : ℝ) (f : 𝕜 → E) (γ : ℝ → 𝕜) : E :=
+  ∫ t in t₁..t₂, derivWithin γ (Set.uIcc t₁ t₂) t • f (γ t)
+
+lemma pintegral'_eq_pintegral : (pintegral' : ℝ → ℝ → (𝕜 → E) → (ℝ → 𝕜) → E) = pintegral := by
+  ext t₁ t₂ f γ
+  apply intervalIntegral.integral_congr_ae
+  apply eventually_of_mem (U := {t₁, t₂}ᶜ)
+  · rw [mem_ae_iff, compl_compl]
+    apply measure_union_null volume_singleton volume_singleton
+  · intro t ht1 ht2
+    simp only [Set.mem_singleton_iff, Set.mem_compl_iff, Set.mem_insert_iff] at ht1
+    simp [Set.uIoc] at ht2
+    push_neg at ht1
+    simp only [derivWithin, ge_iff_le, deriv]
+    congr
+    apply fderivWithin_of_mem_nhds
+    apply Icc_mem_nhds
+    · cases ht2.1
+      · apply inf_le_left.trans_lt
+        assumption
+      · apply inf_le_right.trans_lt
+        assumption
+    · cases ht2.2
+      · refine lt_of_le_of_lt' le_sup_left ?_
+        apply lt_of_le_of_ne _ ht1.1
+        assumption
+      · refine lt_of_le_of_lt' le_sup_right ?_
+        apply lt_of_le_of_ne _ ht1.2
+        assumption
+
+-- @[simp] lemma curvint'_eq_curvint : (curvint' : (𝕜 → E) → contour 𝕜 → E) = curvint :=
+-- begin
+--   ext f γ,
+--   have h1 : ({ 0, γ.ℓ }ᶜ : set ℝ) ∈ volume.ae,
+--   { rw [measure_theory.mem_ae_iff, compl_compl],
+--     exact measure_theory.measure_union_null real.volume_singleton real.volume_singleton },
+--   refine interval_integral.integral_congr_ae (eventually_of_mem h1 (λ x hx hx', _)),
+--   simp only [mem_compl_iff, mem_insert_iff, mem_singleton_iff] at hx,
+--   push_neg at hx,
+--   simp only [deriv, deriv_within],
+--   congr,
+--   refine fderiv_within_of_mem_nhds (Icc_mem_nhds hx'.1 (lt_of_le_of_ne hx'.2 _)),
+--   cases le_or_lt 0 γ.ℓ,
+--   { simp [h, hx] },
+--   { simp [h.le, hx] }
+-- end
+
+
+-- lemma toto : pintegral t₁ t₂ f γ = p
+
 -- import analysis.calculus.parametric_integral
 -- import analysis.complex.cauchy_integral
 -- import analysis.complex.removable_singularity
