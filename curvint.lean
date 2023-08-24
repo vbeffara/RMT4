@@ -95,10 +95,9 @@ variable
 -- TODO: perhaps `U` is not useful here
 theorem hasDerivAt_curvint (ht : t₁ < t₂)
     (γ_diff : ContDiffOn ℝ 1 γ (Icc t₁ t₂))
-    (γ_maps : MapsTo γ (Icc t₁ t₂) U)
-    (F_cont : ∀ᶠ i in 𝓝 i₀, ContinuousOn (F i) U)
+    (F_cont : ∀ᶠ i in 𝓝 i₀, ContinuousOn (F i) (γ '' Icc t₁ t₂))
     (F_deri : ∀ᶠ i in 𝓝 i₀, ∀ t ∈ Icc t₁ t₂, HasDerivAt (λ i => F i (γ t)) (F' i (γ t)) i)
-    (F'_cont : ContinuousOn (F' i₀) U)
+    (F'_cont : ContinuousOn (F' i₀) (γ '' Icc t₁ t₂))
     (F'_norm : ∀ᶠ i in 𝓝 i₀, ∀ t ∈ Icc t₁ t₂, ‖F' i (γ t)‖ ≤ C)
     :
     HasDerivAt (λ i => pintegral t₁ t₂ (F i) γ) (pintegral t₁ t₂ (F' i₀) γ) i₀ := by
@@ -114,7 +113,7 @@ theorem hasDerivAt_curvint (ht : t₁ < t₂)
 
   have φ_cont : ∀ᶠ i in 𝓝 i₀, ContinuousOn (φ i) (Icc t₁ t₂) := by
     filter_upwards [F_cont] with i h
-    exact γ'_cont.smul (h.comp γ_diff.continuousOn γ_maps)
+    exact γ'_cont.smul (h.comp γ_diff.continuousOn (mapsTo_image _ _))
 
   have φ_meas : ∀ᶠ i in 𝓝 i₀, AEStronglyMeasurable (φ i) μ := by
     filter_upwards [φ_cont] with i h
@@ -129,7 +128,7 @@ theorem hasDerivAt_curvint (ht : t₁ < t₂)
     apply ((h_in_δ i hi).1 t (Ioc_subset_Icc_self ht)).const_smul
 
   have ψ_cont : ContinuousOn (ψ i₀) (Icc t₁ t₂) :=
-    γ'_cont.smul (F'_cont.comp γ_diff.continuousOn γ_maps)
+    γ'_cont.smul (F'_cont.comp γ_diff.continuousOn (mapsTo_image _ _))
 
   have ψ_meas : AEStronglyMeasurable (ψ i₀) μ :=
     (ψ_cont.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc
