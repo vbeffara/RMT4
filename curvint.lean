@@ -53,56 +53,30 @@ example {c : ℂ} {R : ℝ} : (circlePath c R).cast (by simp [circleMap]) (by si
 
 /-- Version with `deriv_within` is useful -/
 
--- noncomputable def curvint' (f : 𝕜 → E) (γ : contour 𝕜) : E :=
--- ∫ t in 0..γ.ℓ, deriv_within γ (interval 0 γ.ℓ) t • f (γ t)
-
 noncomputable def pintegral' (t₁ t₂ : ℝ) (f : 𝕜 → E) (γ : ℝ → 𝕜) : E :=
   ∫ t in t₁..t₂, derivWithin γ (Set.uIcc t₁ t₂) t • f (γ t)
 
+lemma uIcc_mem_nhds {t t₁ t₂ : ℝ} (h1 : t ∈ Ι t₁ t₂) (h2 : t ≠ t₁) (h3 : t ≠ t₂) :
+    Set.uIcc t₁ t₂ ∈ 𝓝 t := by
+  rw [Set.mem_uIoc] at h1
+  apply Icc_mem_nhds
+  · match h1 with
+    | Or.inl h => exact inf_le_left.trans_lt h.1
+    | Or.inr h => exact inf_le_right.trans_lt h.1
+  · match h1 with
+    | Or.inl h => exact lt_of_le_of_lt' le_sup_right (lt_of_le_of_ne h.2 h3)
+    | Or.inr h => exact lt_of_le_of_lt' le_sup_left (lt_of_le_of_ne h.2 h2)
+
 lemma pintegral'_eq_pintegral : (pintegral' : ℝ → ℝ → (𝕜 → E) → (ℝ → 𝕜) → E) = pintegral := by
   ext t₁ t₂ f γ
-  apply intervalIntegral.integral_congr_ae
-  apply eventually_of_mem (U := {t₁, t₂}ᶜ)
+  refine intervalIntegral.integral_congr_ae (eventually_of_mem (U := {t₁, t₂}ᶜ) ?_ ?_)
   · rw [mem_ae_iff, compl_compl]
     apply measure_union_null volume_singleton volume_singleton
   · intro t ht1 ht2
     simp only [Set.mem_singleton_iff, Set.mem_compl_iff, Set.mem_insert_iff] at ht1
-    simp [Set.uIoc] at ht2
     push_neg at ht1
     simp only [derivWithin, ge_iff_le, deriv]
-    congr
-    apply fderivWithin_of_mem_nhds
-    apply Icc_mem_nhds
-    · cases ht2.1
-      · apply inf_le_left.trans_lt
-        assumption
-      · apply inf_le_right.trans_lt
-        assumption
-    · cases ht2.2
-      · refine lt_of_le_of_lt' le_sup_left ?_
-        apply lt_of_le_of_ne _ ht1.1
-        assumption
-      · refine lt_of_le_of_lt' le_sup_right ?_
-        apply lt_of_le_of_ne _ ht1.2
-        assumption
-
--- @[simp] lemma curvint'_eq_curvint : (curvint' : (𝕜 → E) → contour 𝕜 → E) = curvint :=
--- begin
---   ext f γ,
---   have h1 : ({ 0, γ.ℓ }ᶜ : set ℝ) ∈ volume.ae,
---   { rw [measure_theory.mem_ae_iff, compl_compl],
---     exact measure_theory.measure_union_null real.volume_singleton real.volume_singleton },
---   refine interval_integral.integral_congr_ae (eventually_of_mem h1 (λ x hx hx', _)),
---   simp only [mem_compl_iff, mem_insert_iff, mem_singleton_iff] at hx,
---   push_neg at hx,
---   simp only [deriv, deriv_within],
---   congr,
---   refine fderiv_within_of_mem_nhds (Icc_mem_nhds hx'.1 (lt_of_le_of_ne hx'.2 _)),
---   cases le_or_lt 0 γ.ℓ,
---   { simp [h, hx] },
---   { simp [h.le, hx] }
--- end
-
+    rw [fderivWithin_of_mem_nhds (uIcc_mem_nhds ht2 ht1.1 ht1.2)]
 
 -- lemma toto : pintegral t₁ t₂ f γ = p
 
