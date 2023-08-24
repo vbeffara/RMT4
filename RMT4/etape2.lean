@@ -2,6 +2,8 @@ import Mathlib.Analysis.Complex.Schwarz
 import RMT4.defs
 import RMT4.to_mathlib
 
+local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
+
 open Complex ComplexConjugate Set Metric Topology Filter
 
 namespace RMT
@@ -129,7 +131,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
   have v_in_𝔻 : v ∈ 𝔻 := g.maps_to hz₀
   let h : embedding U 𝔻 := (φ v_in_𝔻).comp g
   have h_z₀_eq_0 : h z₀ = 0 := by simp [φ]
-  let σ : ℂ → ℂ := λ z => HPow.hPow z 2
+  let σ : ℂ → ℂ := λ z => z ^ 2
   let ψ : ℂ → ℂ := φ (neg_in_𝔻 u_in_𝔻) ∘ σ ∘ φ (neg_in_𝔻 v_in_𝔻)
   have f_eq_ψ_h : EqOn f (ψ ∘ h) U := λ z hz => by
     have e1 := φ_inv v_in_𝔻 (g.maps_to hz)

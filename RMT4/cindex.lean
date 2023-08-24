@@ -2,6 +2,8 @@ import Mathlib.Analysis.Analytic.IsolatedZeros
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.MeasureTheory.Integral.CircleIntegral
 
+local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
+
 open Real Complex Function TopologicalSpace Filter Topology Metric MeasureTheory Nat
 
 noncomputable def cindex (z₀ : ℂ) (r : ℝ) (f : ℂ → ℂ) : ℂ :=
@@ -76,9 +78,9 @@ end dslope
 variable {f g : ℂ → ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ}
 
 lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (hgz : g z ≠ 0)
-    (hfg : f =ᶠ[𝓝 z] λ w => HPow.hPow (w - z₀) n * g w) (hz : z ≠ z₀) :
+    (hfg : f =ᶠ[𝓝 z] λ w => (w - z₀) ^ n * g w) (hz : z ≠ z₀) :
     deriv f z / f z = n / (z - z₀) + deriv g z / g z := by
-  have h1 : DifferentiableAt ℂ (λ y => HPow.hPow (y - z₀) n) z :=
+  have h1 : DifferentiableAt ℂ (λ y => (y - z₀) ^ n) z :=
     ((differentiable_id'.sub_const z₀).pow n).differentiableAt
   have h4 : DifferentiableAt ℂ (λ y => y - z₀) z := (differentiable_id'.sub_const z₀).differentiableAt
   have h5 : deriv (fun y => y - z₀) z = 1 := by simp only [deriv_sub_const, deriv_id'']

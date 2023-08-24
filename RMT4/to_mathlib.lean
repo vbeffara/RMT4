@@ -1,6 +1,8 @@
 import Mathlib.Analysis.Calculus.ParametricIntegral
 import RMT4.cindex
 
+local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
+
 open Metric Topology Filter Set MeasureTheory
 
 lemma isCompact_segment [OrderedRing 𝕜] [TopologicalSpace 𝕜] [TopologicalAddGroup 𝕜] [CompactIccSpace 𝕜]
@@ -13,10 +15,10 @@ lemma mem_closed_ball_neg_iff_mem_neg_closed_ball [SeminormedAddCommGroup V] {u 
   rw [← neg_closedBall r v]; rfl
 
 lemma DifferentiableAt.deriv_eq_deriv_pow_div_pow {n : ℕ} (n_pos : 0 < n) {f g : ℂ → ℂ}
-    (hg : ∀ᶠ z in 𝓝 z, f z = HPow.hPow (g z) n) (g_diff : DifferentiableAt ℂ g z) (fz_nonzero : f z ≠ 0) :
-    deriv g z = deriv f z / (n * HPow.hPow (g z) (n - 1)) := by
+    (hg : ∀ᶠ z in 𝓝 z, f z = (g z) ^ n) (g_diff : DifferentiableAt ℂ g z) (fz_nonzero : f z ≠ 0) :
+    deriv g z = deriv f z / (n * (g z) ^ (n - 1)) := by
   have h1 : g z ≠ 0 := λ h => fz_nonzero (by simp [Eventually.self_of_nhds hg, h, n_pos])
-  have h2 : n * HPow.hPow (g z) (n - 1) ≠ 0 := by simp [pow_ne_zero, h1, n_pos.ne.symm]
+  have h2 : n * (g z) ^ (n - 1) ≠ 0 := by simp [pow_ne_zero, h1, n_pos.ne.symm]
   rw [(EventuallyEq.deriv hg).self_of_nhds, deriv_pow'' _ g_diff, eq_div_iff h2]
   ring
 

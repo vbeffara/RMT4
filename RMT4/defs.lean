@@ -38,21 +38,17 @@ instance {U V : Set ℂ} : CoeFun (embedding U V) (λ _ => ℂ → ℂ) := ⟨em
 
 @[simp] lemma embedding.to_fun_eq_coe (f : embedding U V) : f.to_fun = f := rfl
 
-@[simp] def embedding.id (hUV : U = V) : embedding U V :=
-{
-  to_fun := λ x => x,
-  is_diff := differentiable_id.differentiableOn,
-  is_inj := λ _ _ _ _ z => z,
+@[simp] def embedding.id (hUV : U = V) : embedding U V where
+  to_fun := λ x => x
+  is_diff := differentiable_id.differentiableOn
+  is_inj := λ _ _ _ _ z => z
   maps_to := λ _ hx => hUV ▸ hx
-}
 
-@[simp] def embedding.comp (f : embedding V W) (g : embedding U V) : embedding U W :=
-{
-  to_fun := f ∘ g,
-  is_diff := f.is_diff.comp g.is_diff g.maps_to,
-  is_inj := f.is_inj.comp g.is_inj g.maps_to,
+@[simp] def embedding.comp (f : embedding V W) (g : embedding U V) : embedding U W where
+  to_fun := f ∘ g
+  is_diff := f.is_diff.comp g.is_diff g.maps_to
+  is_inj := f.is_inj.comp g.is_inj g.maps_to
   maps_to := f.maps_to.comp g.maps_to
-}
 
 noncomputable def embedding.sqrt [good_domain U] (f : embedding U V) (hf : ∀ z ∈ U, f z ≠ 0) :
     { g : embedding U {z | z ^ 2 ∈ V} // U.EqOn f (g.to_fun ^ 2) } := by
@@ -71,8 +67,7 @@ lemma ne_center_of_not_mem_closed_ball {w : ℂ} {r : ℝ} (hr : 0 ≤ r) ⦃z :
   contrapose! hz
   simp [hz, hr]
 
-noncomputable def embedding.inv (w : ℂ) {r : ℝ} (hr : 0 < r) : embedding ((closedBall w r)ᶜ) 𝔻 :=
-{
+noncomputable def embedding.inv (w : ℂ) {r : ℝ} (hr : 0 < r) : embedding ((closedBall w r)ᶜ) 𝔻 where
   to_fun := λ z => r / (z - w)
   is_diff := by
     refine (differentiableOn_const _).div (differentiableOn_id.sub (differentiableOn_const _)) ?_
@@ -88,7 +83,6 @@ noncomputable def embedding.inv (w : ℂ) {r : ℝ} (hr : 0 < r) : embedding ((c
     refine (@div_lt_one _ _ _ _ (hr.trans hx)).mpr ?_
     convert hx
     simp [hr.le]
-}
 
 lemma embedding.deriv_ne_zero {f : embedding U V} {z : ℂ} (hU : IsOpen U) (hz : z ∈ U) :
   deriv f z ≠ 0 :=
