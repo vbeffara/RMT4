@@ -3,6 +3,7 @@ import Mathlib.Analysis.Calculus.ParametricIntegral
 import Mathlib.Order.Interval
 import Mathlib.MeasureTheory.Integral.CircleIntegral
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
+import Mathlib.MeasureTheory.Function.Jacobian
 import Mathlib.Topology.PathConnected
 
 open intervalIntegral Real MeasureTheory Filter Topology Set Metric
@@ -145,3 +146,42 @@ theorem hasDerivAt_curvint (ht : t₁ < t₂)
     using (hasDerivAt_integral_of_dominated_loc_of_deriv_le hδ φ_meas φ_intg ψ_meas ψ_norm hC φ_deri).2
 
 end derivcurvint
+
+section bla
+
+variable
+  [NormedAddCommGroup 𝕜] [NormedSpace ℝ 𝕜]
+  [NormedAddCommGroup E] [CompleteSpace E] [NormedSpace ℝ E] [SMul 𝕜 E] [IsScalarTower ℝ 𝕜 E]
+  {γ : ℝ → 𝕜} {φ φ' : ℝ → ℝ} {f : 𝕜 → E}
+
+theorem cdv
+    (φ_diff : ContDiffOn ℝ 1 φ (uIcc s₁ s₂))
+
+    (h1 : ∀ t, DifferentiableAt ℝ γ (φ t))
+    (h2 : ∀ t, DifferentiableAt ℝ φ t)
+    (h3 : φ '' Ioc s₁ s₂ = Ioc t₁ t₂)
+    (h9 : φ '' Ioc s₂ s₁ = Ioc t₂ t₁)
+    (h4 : ∀ t, |deriv φ t| = deriv φ t)
+    (h5 : ∀ t ∈ Ioc s₁ s₂, HasDerivWithinAt φ (deriv φ t) (Ioc s₁ s₂) t)
+    (h7 : ∀ t ∈ Ioc s₂ s₁, HasDerivWithinAt φ (deriv φ t) (Ioc s₂ s₁) t)
+    (h6 : InjOn φ (Ioc s₁ s₂))
+    (h8 : InjOn φ (Ioc s₂ s₁))
+
+    :
+
+    pintegral t₁ t₂ f γ = pintegral s₁ s₂ f (γ ∘ φ) := by
+
+  -- rw [← pintegral'_eq_pintegral]
+
+  simp [pintegral, deriv.scomp, h1, h2, intervalIntegral, smul_assoc]
+
+  have H1 := integral_image_eq_integral_abs_deriv_smul measurableSet_Ioc h5 h6 (λ x => deriv γ x • f (γ x))
+  simp [h3, h4] at H1
+  rw [← H1]
+
+  have H2 := integral_image_eq_integral_abs_deriv_smul measurableSet_Ioc h7 h6 (λ x => deriv γ x • f (γ x))
+  simp [h9, h4] at H2
+  rw [← H2]
+
+end bla
+
