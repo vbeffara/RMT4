@@ -92,7 +92,6 @@ variable
   [NormedAddCommGroup E] [CompleteSpace E] [NormedSpace ℝ E] [NormedSpace 𝕜 E]
   {t₁ t₂ : ℝ} {F F' : 𝕜 → 𝕜 → E}
 
--- TODO: perhaps `U` is not useful here
 theorem hasDerivAt_curvint (ht : t₁ < t₂)
     (γ_diff : ContDiffOn ℝ 1 γ (Icc t₁ t₂))
     (F_cont : ∀ᶠ i in 𝓝 i₀, ContinuousOn (F i) (γ '' Icc t₁ t₂))
@@ -146,50 +145,3 @@ theorem hasDerivAt_curvint (ht : t₁ < t₂)
     using (hasDerivAt_integral_of_dominated_loc_of_deriv_le hδ φ_meas φ_intg ψ_meas ψ_norm hC φ_deri).2
 
 end derivcurvint
-
--- section
-
--- variables {E : Type*} [normed_add_comm_group E] [normed_space ℂ E] [complete_space E]
---   {x y z : ℂ} {γ : path x y} {f : ℂ → ℂ} {t : unit_interval}
-
--- noncomputable def pderiv (γ : path x y) (t : unit_interval) : ℂ := deriv γ.extend t
-
--- lemma min_max {t : ℝ} : min 1 (max 0 t) = max 0 (min 1 t) :=
--- begin
---   simp [min, max, inf_sup_left],
--- end
-
--- lemma min_max' {t : ℝ} :
---   1 - max 0 (min 1 t) = max 0 (min 1 (1 - t)) :=
--- begin
---   rw [← min_sub_sub_left 1 0 (min 1 t), ← max_sub_sub_left 1 1 t, ← min_max],
---   simp only [tsub_zero, sub_self]
--- end
-
--- lemma symm_sub {t : ℝ} : σ (proj_Icc 0 1 zero_le_one t) = proj_Icc 0 1 zero_le_one (1 - t) :=
--- subtype.ext min_max'
-
--- @[simp] lemma path.symm_extend {t : ℝ} : γ.symm.extend t = γ.extend (1 - t) :=
--- begin
---   simp only [path.extend, path.symm, Icc_extend, symm_sub, path.coe_mk, function.comp_app],
--- end
-
--- @[simp] lemma pderiv.symm : pderiv γ.symm t = - pderiv γ (σ t) :=
--- begin
---   dsimp [pderiv],
---   convert deriv_apply_comp_sub_id,
---   ext1 t,
---   simp,
--- end
-
--- noncomputable def cint (γ : path x y) (f : ℂ → E) : E :=
--- ∫ t : unit_interval, (pderiv γ t • f (γ t))
-
--- lemma cint_swap : cint γ.symm f = - cint γ f :=
--- begin
---   simp [cint],
---   -- have := measure_theory.integral_image_eq_integral_abs_deriv_smul,
---   sorry
--- end
-
--- end
