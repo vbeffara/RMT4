@@ -177,37 +177,28 @@ variable
   [NormedAddCommGroup E] [CompleteSpace E] [NormedSpace ℝ E] [SMul 𝕜 E] [IsScalarTower ℝ 𝕜 E]
   {γ : ℝ → 𝕜} {φ φ' : ℝ → ℝ} {f : 𝕜 → E}
 
-theorem lemma5
-    [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
-    {f : ℝ → ℝ} {f' : ℝ → ℝ}
-    (hf' : ∀ s, HasDerivWithinAt f (f' s) (uIcc s₁ s₂) s)
-    (hf : Set.InjOn f (uIcc s₁ s₂))
-    (hf2 : f '' uIcc s₁ s₂ = uIcc t₁ t₂)
-    (g : ℝ → F)
-    :
-    ∫ t in t₁..t₂, g t = ∫ s in s₁..s₂, |f' s| • g (f s) := by
-  sorry
-
 theorem cdv
-    (h4 : ∀ t, |deriv φ t| = deriv φ t)
     (h10 : ∀ t, DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t)
-    (h11 : ∀ t, DifferentiableWithinAt ℝ γ (uIcc t₁ t₂) (φ t))
-    (h12 : MapsTo φ (uIcc s₁ s₂) (uIcc t₁ t₂))
+    (h17 : ContinuousOn (deriv φ) (uIcc s₁ s₂))
+    (h11 : ∀ t, DifferentiableWithinAt ℝ γ (uIcc (φ s₁) (φ s₂)) (φ t))
+    (h12 : MapsTo φ (uIcc s₁ s₂) (uIcc (φ s₁) (φ s₂)))
     (h13 : ∀ t, UniqueDiffWithinAt ℝ (uIcc s₁ s₂) t)
-    (h14 : φ '' uIcc s₁ s₂ = uIcc t₁ t₂)
-    (h15 : ∀ s, HasDerivWithinAt φ (deriv φ s) (uIcc s₁ s₂) s)
-    (h16 : InjOn φ (uIcc s₁ s₂))
+    (h15 : ∀ s ∈ uIcc s₁ s₂, HasDerivAt φ (deriv φ s) s)
+    (h18 : ContinuousOn (fun t => derivWithin γ (uIcc (φ s₁) (φ s₂)) t • f (γ t)) (φ '' uIcc s₁ s₂))
     :
-    pintegral t₁ t₂ f γ = pintegral s₁ s₂ f (γ ∘ φ) := by
+    pintegral (φ s₁) (φ s₂) f γ = pintegral s₁ s₂ f (γ ∘ φ) := by
 
   have H1 : ∀ t, derivWithin (γ ∘ φ) (uIcc s₁ s₂) t =
-      derivWithin φ (uIcc s₁ s₂) t • derivWithin γ (uIcc t₁ t₂) (φ t) :=
+      derivWithin φ (uIcc s₁ s₂) t • derivWithin γ (uIcc (φ s₁) (φ s₂)) (φ t) :=
     λ t => derivWithin.scomp t (h11 t) (h10 t) h12 (h13 t)
 
-  have H2 := lemma5 h15 h16 h14 (λ t => derivWithin γ (uIcc t₁ t₂) t • f (γ t))
+  have := intervalIntegral.integral_comp_smul_deriv' h15 h17 h18
 
-  simpa only [← pintegral'_eq_pintegral, pintegral', H2, h4, H1, Function.comp_apply, smul_assoc]
-    using lemma3 (λ t ht => by rw [lemma4 ht])
+  simp [← pintegral'_eq_pintegral, pintegral', H1, ← this]
+  apply lemma3
+  intro t ht
+  simp
+  rw [lemma4 ht]
 
 end bla
 
