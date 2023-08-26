@@ -71,16 +71,39 @@ lemma uIcc_mem_nhds {t t₁ t₂ : ℝ} (h1 : t ∈ Ι t₁ t₂) (h2 : t ≠ t�
     | Or.inl h => exact lt_of_le_of_lt' le_sup_right (lt_of_le_of_ne h.2 h3)
     | Or.inr h => exact lt_of_le_of_lt' le_sup_left (lt_of_le_of_ne h.2 h2)
 
+lemma uIcc_mem_nhds' {t t₁ t₂ : ℝ} (h1 : t ∈ Ι t₁ t₂ \ {t₁, t₂}) :
+    Set.uIcc t₁ t₂ ∈ 𝓝 t := by
+  simp [mem_uIoc] at h1
+  push_neg at h1
+  apply Icc_mem_nhds
+  · match h1.1 with
+    | Or.inl h => exact inf_le_left.trans_lt h.1
+    | Or.inr h => exact inf_le_right.trans_lt h.1
+  · match h1.1 with
+    | Or.inl h => exact lt_of_le_of_lt' le_sup_right (lt_of_le_of_ne h.2 h1.2.2)
+    | Or.inr h => exact lt_of_le_of_lt' le_sup_left (lt_of_le_of_ne h.2 h1.2.1)
+
+lemma lemma2 {γ : ℝ → 𝕜} {x : ℝ} (h : x ∈ Ι t₁ t₂ \ {t₁, t₂}) :
+    derivWithin γ (uIcc t₁ t₂) x = deriv γ x := by
+  simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds' h)]
+
+lemma lemma4 {γ : ℝ → 𝕜} : EqOn (derivWithin γ (uIcc t₁ t₂)) (deriv γ) (Ι t₁ t₂ \ {t₁, t₂}) := by
+  intro t ht
+  simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds' ht)]
+
+lemma lemma3 {f g : ℝ → E} (h : EqOn f g (uIoc t₁ t₂ \ {t₁, t₂})) :
+    ∫ t in t₁..t₂, f t = ∫ t in t₁..t₂, g t := by
+  apply intervalIntegral.integral_congr_ae
+  apply eventually_of_mem (U := {t₁, t₂}ᶜ)
+  · simp only [mem_singleton_iff, mem_ae_iff, compl_compl]
+    exact measure_union_null volume_singleton volume_singleton
+  · aesop
+
 lemma pintegral'_eq_pintegral : (pintegral' : ℝ → ℝ → (𝕜 → E) → (ℝ → 𝕜) → E) = pintegral := by
   ext t₁ t₂ f γ
-  refine intervalIntegral.integral_congr_ae (eventually_of_mem (U := {t₁, t₂}ᶜ) ?_ ?_)
-  · rw [mem_ae_iff, compl_compl]
-    apply measure_union_null volume_singleton volume_singleton
-  · intro t ht1 ht2
-    simp only [Set.mem_singleton_iff, Set.mem_compl_iff, Set.mem_insert_iff] at ht1
-    push_neg at ht1
-    simp only [derivWithin, ge_iff_le, deriv]
-    rw [fderivWithin_of_mem_nhds (uIcc_mem_nhds ht2 ht1.1 ht1.2)]
+  apply lemma3
+  intro t ht
+  simp [lemma4 ht]
 
 end definitions
 
@@ -154,34 +177,37 @@ variable
   [NormedAddCommGroup E] [CompleteSpace E] [NormedSpace ℝ E] [SMul 𝕜 E] [IsScalarTower ℝ 𝕜 E]
   {γ : ℝ → 𝕜} {φ φ' : ℝ → ℝ} {f : 𝕜 → E}
 
-theorem cdv
-    (φ_diff : ContDiffOn ℝ 1 φ (uIcc s₁ s₂))
-
-    (h1 : ∀ t, DifferentiableAt ℝ γ (φ t))
-    (h2 : ∀ t, DifferentiableAt ℝ φ t)
-    (h3 : φ '' Ioc s₁ s₂ = Ioc t₁ t₂)
-    (h9 : φ '' Ioc s₂ s₁ = Ioc t₂ t₁)
-    (h4 : ∀ t, |deriv φ t| = deriv φ t)
-    (h5 : ∀ t ∈ Ioc s₁ s₂, HasDerivWithinAt φ (deriv φ t) (Ioc s₁ s₂) t)
-    (h7 : ∀ t ∈ Ioc s₂ s₁, HasDerivWithinAt φ (deriv φ t) (Ioc s₂ s₁) t)
-    (h6 : InjOn φ (Ioc s₁ s₂))
-    (h8 : InjOn φ (Ioc s₂ s₁))
-
+theorem lemma5
+    [NormedAddCommGroup F] [NormedSpace ℝ F] [CompleteSpace F]
+    {f : ℝ → ℝ} {f' : ℝ → ℝ}
+    (hf' : ∀ s, HasDerivWithinAt f (f' s) (uIcc s₁ s₂) s)
+    (hf : Set.InjOn f (uIcc s₁ s₂))
+    (hf2 : f '' uIcc s₁ s₂ = uIcc t₁ t₂)
+    (g : ℝ → F)
     :
+    ∫ t in t₁..t₂, g t = ∫ s in s₁..s₂, |f' s| • g (f s) := by
+  sorry
 
+theorem cdv
+    (h4 : ∀ t, |deriv φ t| = deriv φ t)
+    (h10 : ∀ t, DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t)
+    (h11 : ∀ t, DifferentiableWithinAt ℝ γ (uIcc t₁ t₂) (φ t))
+    (h12 : MapsTo φ (uIcc s₁ s₂) (uIcc t₁ t₂))
+    (h13 : ∀ t, UniqueDiffWithinAt ℝ (uIcc s₁ s₂) t)
+    (h14 : φ '' uIcc s₁ s₂ = uIcc t₁ t₂)
+    (h15 : ∀ s, HasDerivWithinAt φ (deriv φ s) (uIcc s₁ s₂) s)
+    (h16 : InjOn φ (uIcc s₁ s₂))
+    :
     pintegral t₁ t₂ f γ = pintegral s₁ s₂ f (γ ∘ φ) := by
 
-  -- rw [← pintegral'_eq_pintegral]
+  have H1 : ∀ t, derivWithin (γ ∘ φ) (uIcc s₁ s₂) t =
+      derivWithin φ (uIcc s₁ s₂) t • derivWithin γ (uIcc t₁ t₂) (φ t) :=
+    λ t => derivWithin.scomp t (h11 t) (h10 t) h12 (h13 t)
 
-  simp [pintegral, deriv.scomp, h1, h2, intervalIntegral, smul_assoc]
+  have H2 := lemma5 h15 h16 h14 (λ t => derivWithin γ (uIcc t₁ t₂) t • f (γ t))
 
-  have H1 := integral_image_eq_integral_abs_deriv_smul measurableSet_Ioc h5 h6 (λ x => deriv γ x • f (γ x))
-  simp [h3, h4] at H1
-  rw [← H1]
-
-  have H2 := integral_image_eq_integral_abs_deriv_smul measurableSet_Ioc h7 h6 (λ x => deriv γ x • f (γ x))
-  simp [h9, h4] at H2
-  rw [← H2]
+  simpa only [← pintegral'_eq_pintegral, pintegral', H2, h4, H1, Function.comp_apply, smul_assoc]
+    using lemma3 (λ t ht => by rw [lemma4 ht])
 
 end bla
 
