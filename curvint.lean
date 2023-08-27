@@ -180,9 +180,44 @@ variable
 lemma lemma6 {s₁ s₂ : ℝ} (h : ¬ (t ∈ uIcc s₁ s₂)) : 𝓝[uIcc s₁ s₂] t = ⊥ :=
   inf_principal_eq_bot.2 ((isOpen_compl_iff.2 isClosed_Icc).mem_nhds h)
 
-lemma toto {f : ℝ → ℝ} {a b : ℝ} (h : ContDiffOn ℝ 1 f (uIcc a b)) :
-    ∃ g : ℝ → ℝ, (ContDiff ℝ 1 g) ∧ (EqOn g f (uIcc a b)) := by
-  sorry
+-- TODO : integral_eq_sub_of_contdiffon
+
+theorem integral_eq_sub_of_contDiffOn {f : ℝ → E} (hab : a ≤ b) (h : ContDiffOn ℝ 1 f (Icc a b)) :
+    ∫ y in a..b, derivWithin f (Icc a b) y = f b - f a := by
+  apply integral_eq_sub_of_hasDerivAt_of_le hab h.continuousOn
+  · intro t ht
+    have l1 : IsOpen (Ioo a b) := isOpen_Ioo
+    have l2 : Icc a b ∈ 𝓝 t := sorry
+    exact ((h.differentiableOn le_rfl) t (Ioo_subset_Icc_self ht)).hasDerivWithinAt.hasDerivAt l2
+  · sorry
+
+lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn ℝ n f (Icc a b)) :
+    ∃ g : ℝ → ℝ, (ContDiff ℝ n g) ∧ (EqOn g f (Icc a b)) := by
+  induction n generalizing f
+  · case zero =>
+    simp only [CharP.cast_eq_zero, contDiff_zero, contDiffOn_zero] at h ⊢
+    refine ⟨IccExtend hab.le (restrict (Icc a b) f), h.restrict.Icc_extend', ?_⟩
+    exact λ t ht => IccExtend_of_mem _ _ ht
+  · case succ n ih =>
+    have h1 : ContDiffOn ℝ n (derivWithin f (Icc a b)) (Icc a b) :=
+      h.derivWithin (uniqueDiffOn_Icc hab) le_rfl
+    obtain ⟨gg, h2, h3⟩ := ih h1
+    refine ⟨λ t => f a + ∫ u in a..t, gg u, ?_, ?_⟩
+    · sorry
+    · intro t ht
+      have l1 : a ≤ t := sorry
+      have l2 : ContDiffOn ℝ 1 f (Icc a t) := sorry
+      -- have l2 : ContinuousOn f (Icc a t) := sorry
+      -- have l3 : ∀ x ∈ Ioo a t, HasDerivAt f (gg x) x := sorry
+      -- have l4 : IntervalIntegrable gg volume a t := sorry
+      -- have := @intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le ℝ _ _ _ f gg a t l1 l2 l3 l4
+      have l3 := @integral_eq_sub_of_contDiffOn ℝ _ _ _ a t f l1 l2
+      have l4 : EqOn gg (derivWithin f (Icc a t)) (uIcc a t) := sorry
+      have l5 := @intervalIntegral.integral_congr ℝ _ _ gg (derivWithin f (Icc a t)) volume a t l4
+      simp [l5, l3]
+
+lemma toto' {f : ℝ → ℝ} {a b : ℝ} {n : ℕ} (h : ContDiffOn ℝ n f (uIcc a b)) :
+    ∃ g : ℝ → ℝ, (ContDiff ℝ n g) ∧ (EqOn g f (uIcc a b)) := by sorry
 
 lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := by
   intro t ht
@@ -194,7 +229,7 @@ lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := by
 theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
     (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
     (∫ x in a..b, deriv f x • (g ∘ f) x) = (∫ x in f a..f b, g x) := by
-  obtain ⟨ff, hff1, hff2⟩ := toto h
+  obtain ⟨ff, hff1, hff2⟩ := toto' h
   have h1 : ∀ t ∈ uIcc a b, HasDerivAt ff (deriv ff t) t :=
     λ _ _ => (hff1.differentiable le_rfl).differentiableAt.hasDerivAt
   have h2 : ContinuousOn (deriv ff) (uIcc a b) :=
