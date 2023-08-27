@@ -182,14 +182,20 @@ lemma lemma6 {s₁ s₂ : ℝ} (h : ¬ (t ∈ uIcc s₁ s₂)) : 𝓝[uIcc s₁ 
 
 -- TODO : integral_eq_sub_of_contdiffon
 
+theorem integral_eq_sub_of_contDiffOn' {f : ℝ → E} (hab : a < b) (h : ContDiffOn ℝ 1 f (Icc a b)) :
+    ∫ y in a..b, derivWithin f (Icc a b) y = f b - f a := by
+  apply integral_eq_sub_of_hasDerivAt_of_le hab.le h.continuousOn
+  · intro t ht
+    apply ((h.differentiableOn le_rfl) t (Ioo_subset_Icc_self ht)).hasDerivWithinAt.hasDerivAt
+    exact Icc_mem_nhds ht.1 ht.2
+  · apply ContinuousOn.intervalIntegrable_of_Icc hab.le
+    exact h.continuousOn_derivWithin (uniqueDiffOn_Icc hab) le_rfl
+
 theorem integral_eq_sub_of_contDiffOn {f : ℝ → E} (hab : a ≤ b) (h : ContDiffOn ℝ 1 f (Icc a b)) :
     ∫ y in a..b, derivWithin f (Icc a b) y = f b - f a := by
-  apply integral_eq_sub_of_hasDerivAt_of_le hab h.continuousOn
-  · intro t ht
-    have l1 : IsOpen (Ioo a b) := isOpen_Ioo
-    have l2 : Icc a b ∈ 𝓝 t := sorry
-    exact ((h.differentiableOn le_rfl) t (Ioo_subset_Icc_self ht)).hasDerivWithinAt.hasDerivAt l2
-  · sorry
+  cases lt_or_eq_of_le hab
+  · case inl hab => exact integral_eq_sub_of_contDiffOn' hab h
+  · case inr hab => simp [hab]
 
 lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn ℝ n f (Icc a b)) :
     ∃ g : ℝ → ℝ, (ContDiff ℝ n g) ∧ (EqOn g f (Icc a b)) := by
@@ -203,7 +209,17 @@ lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn
       h.derivWithin (uniqueDiffOn_Icc hab) le_rfl
     obtain ⟨gg, h2, h3⟩ := ih h1
     refine ⟨λ t => f a + ∫ u in a..t, gg u, ?_, ?_⟩
-    · sorry
+    · rw [contDiff_succ_iff_deriv]
+      constructor
+      · apply differentiableOn_univ.1
+        apply DifferentiableOn.const_add
+        refine differentiableOn_integral_of_continuous ?_ h2.continuous
+        intro t _
+        apply h2.continuous.intervalIntegrable
+      · convert h2
+        ext t
+        rw [deriv_const_add]
+        apply h2.continuous.deriv_integral
     · intro t ht
       have l1 : a ≤ t := sorry
       have l2 : ContDiffOn ℝ 1 f (Icc a t) := sorry
@@ -242,8 +258,7 @@ theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
   have h7 : t ∈ uIcc a b := titi ((diff_subset _ _) ht)
   simp only [Function.comp_apply, hff2 h7, (eventuallyEq_of_mem (uIcc_mem_nhds' ht) hff2).deriv_eq]
 
-theorem cdv
-    [ContinuousSMul 𝕜 E]
+theorem cdv [ContinuousSMul 𝕜 E]
     (hφ : ContDiffOn ℝ 1 φ (uIcc s₁ s₂))
     (h17 : ContinuousOn (deriv φ) (uIcc s₁ s₂))
     (h12 : MapsTo φ (uIcc s₁ s₂) (uIcc (φ s₁) (φ s₂)))
