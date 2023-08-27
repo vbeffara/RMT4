@@ -190,10 +190,10 @@ theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
     (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
     (∫ x in a..b, deriv f x • (g ∘ f) x) = (∫ x in f a..f b, g x) := by
   obtain ⟨ff, hff1, hff2⟩ := toto h
-  have h1 : ∀ x ∈ uIcc a b, HasDerivAt ff (deriv ff x) x := sorry
+  have h1 : ∀ t ∈ uIcc a b, HasDerivAt ff (deriv ff t) t :=
+    λ _ _ => (hff1.differentiable le_rfl).differentiableAt.hasDerivAt
   have h2 : ContinuousOn (deriv ff) (uIcc a b) := sorry
-  have h3 : ContinuousOn g (ff '' uIcc a b) := by
-    sorry
+  have h3 : ContinuousOn g (ff '' uIcc a b) := by simpa only [hff2.image_eq]
   have h4 := integral_comp_smul_deriv' h1 h2 h3
   rw [← hff2 left_mem_uIcc, ← hff2 right_mem_uIcc, ← h4]
   apply lemma3
