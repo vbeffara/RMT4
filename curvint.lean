@@ -197,6 +197,37 @@ theorem integral_eq_sub_of_contDiffOn {f : ℝ → E} (hab : a ≤ b) (h : ContD
   · case inl hab => exact integral_eq_sub_of_contDiffOn' hab h
   · case inr hab => simp [hab]
 
+theorem integral_eq_sub_of_contDiffOn''' {f : ℝ → E} (hab : a ≤ b) (h : ContDiffOn ℝ 1 f (Icc a b)) :
+    ∫ y in a..b, deriv f y = f b - f a := by
+  convert integral_eq_sub_of_contDiffOn hab h using 1
+  apply lemma3
+  intro t ht
+  convert (@lemma2 E _ _ a b f t ht).symm using 3
+  simp [uIcc, hab]
+
+theorem integral_eq_sub_of_contDiffOn'' {f : ℝ → E} (hab : a ≤ b) (ht : t ∈ Icc a b)
+  (h : ContDiffOn ℝ 1 f (Icc a b)) :
+    ∫ y in a..t, derivWithin f (Icc a b) y = f t - f a := by
+  have l1 : Icc a t ⊆ Icc a b := Icc_subset_Icc_right ht.2
+  have l2 := integral_eq_sub_of_contDiffOn''' ht.1 (h.mono l1)
+  rw [← l2]
+  apply lemma3
+  intro u hu
+  simp
+  have l3 : u ∈ Ι a b \ {a, b} := by
+    simp [mem_uIoc] at hu
+    cases hu.1
+    · case inl hh =>
+      simp [mem_uIoc]
+      push_neg at hu ⊢
+      refine ⟨Or.inl ⟨hh.1, hh.2.trans ht.2⟩, hu.2.1, ?_⟩
+      intro hub
+      subst_vars
+      cases hu.2.2 (le_antisymm hh.2 ht.2)
+    · case inr hh => linarith [ht.1]
+  convert (@lemma2 E _ _ a b f u l3) using 2
+  simp [uIcc, hab]
+
 lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn ℝ n f (Icc a b)) :
     ∃ g : ℝ → ℝ, (ContDiff ℝ n g) ∧ (EqOn g f (Icc a b)) := by
   induction n generalizing f
@@ -221,19 +252,20 @@ lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn
         rw [deriv_const_add]
         apply h2.continuous.deriv_integral
     · intro t ht
-      have l1 : a ≤ t := sorry
-      have l2 : ContDiffOn ℝ 1 f (Icc a t) := sorry
-      -- have l2 : ContinuousOn f (Icc a t) := sorry
-      -- have l3 : ∀ x ∈ Ioo a t, HasDerivAt f (gg x) x := sorry
-      -- have l4 : IntervalIntegrable gg volume a t := sorry
-      -- have := @intervalIntegral.integral_eq_sub_of_hasDerivAt_of_le ℝ _ _ _ f gg a t l1 l2 l3 l4
-      have l3 := @integral_eq_sub_of_contDiffOn ℝ _ _ _ a t f l1 l2
-      have l4 : EqOn gg (derivWithin f (Icc a t)) (uIcc a t) := sorry
-      have l5 := @intervalIntegral.integral_congr ℝ _ _ gg (derivWithin f (Icc a t)) volume a t l4
-      simp [l5, l3]
+      simp
+      have l1 : a ≤ t := ht.1
+      have l6 : Icc a t ⊆ Icc a b := Icc_subset_Icc_right ht.2
+      have l9 : EqOn gg (derivWithin f (Icc a b)) (uIcc a t) := by
+        apply h3.mono
+        simp [uIcc, l1, l6]
+      have l10 := integral_eq_sub_of_contDiffOn'' hab.le ht h.one_of_succ
+      simp [integral_congr l9, l10]
 
 lemma toto' {f : ℝ → ℝ} {a b : ℝ} {n : ℕ} (h : ContDiffOn ℝ n f (uIcc a b)) :
-    ∃ g : ℝ → ℝ, (ContDiff ℝ n g) ∧ (EqOn g f (uIcc a b)) := by sorry
+    ∃ g : ℝ → ℝ, (ContDiff ℝ n g) ∧ (EqOn g f (uIcc a b)) := by
+  cases eq_or_ne a b
+  · case inl hab => exact ⟨λ _ => f a, by simp [hab, contDiff_const]⟩
+  · case inr hab => exact toto (min_lt_max.2 hab) h
 
 lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := by
   intro t ht
