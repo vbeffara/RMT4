@@ -184,7 +184,12 @@ lemma toto {f : ℝ → ℝ} {a b : ℝ} (h : ContDiffOn ℝ 1 f (uIcc a b)) :
     ∃ g : ℝ → ℝ, (ContDiff ℝ 1 g) ∧ (EqOn g f (uIcc a b)) := by
   sorry
 
-lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := sorry
+lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := by
+  intro t ht
+  rw [mem_uIcc]
+  cases mem_uIoc.1 ht
+  · case inl h => exact Or.inl ⟨h.1.le, h.2⟩
+  · case inr h => exact Or.inr ⟨h.1.le, h.2⟩
 
 theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
     (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
@@ -192,7 +197,8 @@ theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
   obtain ⟨ff, hff1, hff2⟩ := toto h
   have h1 : ∀ t ∈ uIcc a b, HasDerivAt ff (deriv ff t) t :=
     λ _ _ => (hff1.differentiable le_rfl).differentiableAt.hasDerivAt
-  have h2 : ContinuousOn (deriv ff) (uIcc a b) := sorry
+  have h2 : ContinuousOn (deriv ff) (uIcc a b) :=
+    (hff1.continuous_deriv le_rfl).continuousOn
   have h3 : ContinuousOn g (ff '' uIcc a b) := by simpa only [hff2.image_eq]
   have h4 := integral_comp_smul_deriv' h1 h2 h3
   rw [← hff2 left_mem_uIcc, ← hff2 right_mem_uIcc, ← h4]
