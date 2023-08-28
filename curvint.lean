@@ -60,46 +60,38 @@ example {c : ℂ} {R : ℝ} : (circlePath c R).cast (by simp [circleMap]) (by si
 noncomputable def pintegral' (t₁ t₂ : ℝ) (f : 𝕜 → E) (γ : ℝ → 𝕜) : E :=
   ∫ t in t₁..t₂, derivWithin γ (Set.uIcc t₁ t₂) t • f (γ t)
 
-lemma uIcc_mem_nhds {t t₁ t₂ : ℝ} (h1 : t ∈ Ι t₁ t₂) (h2 : t ≠ t₁) (h3 : t ≠ t₂) :
-    Set.uIcc t₁ t₂ ∈ 𝓝 t := by
-  rw [Set.mem_uIoc] at h1
-  apply Icc_mem_nhds
-  · match h1 with
-    | Or.inl h => exact inf_le_left.trans_lt h.1
-    | Or.inr h => exact inf_le_right.trans_lt h.1
-  · match h1 with
-    | Or.inl h => exact lt_of_le_of_lt' le_sup_right (lt_of_le_of_ne h.2 h3)
-    | Or.inr h => exact lt_of_le_of_lt' le_sup_left (lt_of_le_of_ne h.2 h2)
-
-lemma uIcc_mem_nhds' {t t₁ t₂ : ℝ} (h1 : t ∈ Ι t₁ t₂ \ {t₁, t₂}) :
-    Set.uIcc t₁ t₂ ∈ 𝓝 t := by
-  simp [mem_uIoc] at h1
-  push_neg at h1
-  apply Icc_mem_nhds
-  · match h1.1 with
-    | Or.inl h => exact inf_le_left.trans_lt h.1
-    | Or.inr h => exact inf_le_right.trans_lt h.1
-  · match h1.1 with
-    | Or.inl h => exact lt_of_le_of_lt' le_sup_right (lt_of_le_of_ne h.2 h1.2.2)
-    | Or.inr h => exact lt_of_le_of_lt' le_sup_left (lt_of_le_of_ne h.2 h1.2.1)
-
 def uIoo (a b : ℝ) : Set ℝ := Ioo (a ⊓ b) (a ⊔ b)
-lemma uIoo_eq_uIoc_sdiff_ends : uIoo a b = uIoc a b \ {a, b} := sorry
-lemma uIoo_eq_uIcc_sdiff_ends : uIoo a b = uIcc a b \ {a, b} := sorry
-lemma uIoo_subset_uIcc : uIoo a b ⊆ uIcc a b := sorry
 
-lemma lemma2 {γ : ℝ → 𝕜} {x t₁ t₂ : ℝ} (h : x ∈ uIoo t₁ t₂) :
-    derivWithin γ (uIcc t₁ t₂) x = deriv γ x := by
-  rw [uIoo_eq_uIoc_sdiff_ends] at h
-  simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds' h)]
+lemma uIoo_eq_union : uIoo a b = (Ioo a b) ∪ (Ioo b a) := by
+  cases le_total a b <;> simp [*, uIoo]
 
-lemma lemma2' {γ : ℝ → 𝕜} : EqOn (derivWithin γ (uIcc t₁ t₂)) (deriv γ) (uIoo t₁ t₂) :=
-  λ _ => lemma2
+lemma mem_uIoo : t ∈ uIoo a b ↔ (a < t ∧ t < b) ∨ (b < t ∧ t < a) := by simp [uIoo_eq_union]
 
-lemma lemma4 {γ : ℝ → 𝕜} : EqOn (derivWithin γ (uIcc t₁ t₂)) (deriv γ) (uIoo t₁ t₂) := by
-  rw [uIoo_eq_uIoc_sdiff_ends]
-  intro t ht
-  simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds' ht)]
+lemma uIoo_eq_uIoc_sdiff_ends : uIoo a b = Ι a b \ {a, b} := by
+  ext t
+  constructor <;> intro hh
+  · simp [mem_uIoo] at hh
+    cases hh with
+    | inl h => simp [uIoc, h, h.2.le, h.1.ne.symm, h.2.ne]
+    | inr h => simp [uIoc, h, h.2.le, h.1.ne.symm, h.2.ne]
+  · simp_rw [uIoc, mem_diff, mem_Ioc, mem_insert_iff, mem_singleton_iff] at hh
+    push_neg at hh
+    refine ⟨hh.1.1, lt_of_le_of_ne hh.1.2 ?_⟩
+    cases le_total a b <;> simp [*]
+
+lemma uIoo_eq_uIcc_sdiff_ends : uIoo a b = uIcc a b \ {a, b} := by
+  cases le_total a b
+  · simp [uIoo, uIcc, *]
+  · simp [uIoo, uIcc, *, pair_comm a b]
+
+lemma uIoo_subset_uIcc : uIoo a b ⊆ uIcc a b := by
+  cases le_total a b <;> simp [uIoo, uIcc, Ioo_subset_Icc_self, *]
+
+lemma uIcc_mem_nhds (h1 : t ∈ uIoo t₁ t₂) : Set.uIcc t₁ t₂ ∈ 𝓝 t :=
+  mem_of_superset (isOpen_Ioo.mem_nhds h1) uIoo_subset_uIcc
+
+lemma lemma2 {γ : ℝ → 𝕜} : EqOn (derivWithin γ (uIcc t₁ t₂)) (deriv γ) (uIoo t₁ t₂) :=
+  λ t ht => by simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds ht)]
 
 lemma lemma3 {f g : ℝ → E} (h : EqOn f g (uIoo t₁ t₂)) : ∫ t in t₁..t₂, f t = ∫ t in t₁..t₂, g t := by
   apply intervalIntegral.integral_congr_ae
@@ -107,13 +99,11 @@ lemma lemma3 {f g : ℝ → E} (h : EqOn f g (uIoo t₁ t₂)) : ∫ t in t₁..
   · simp only [mem_singleton_iff, mem_ae_iff, compl_compl]
     exact measure_union_null volume_singleton volume_singleton
   · rw [uIoo_eq_uIoc_sdiff_ends] at h
-    aesop
+    exact λ t h1 h2 => h ⟨h2, h1⟩
 
 lemma pintegral'_eq_pintegral : (pintegral' : ℝ → ℝ → (𝕜 → E) → (ℝ → 𝕜) → E) = pintegral := by
   ext t₁ t₂ f γ
-  apply lemma3
-  intro t ht
-  simp [lemma4 ht]
+  exact lemma3 (λ t ht => congr_arg₂ _ (lemma2 ht) rfl)
 
 end definitions
 
@@ -187,11 +177,6 @@ variable
   [NormedAddCommGroup E] [CompleteSpace E] [NormedSpace ℝ E] [SMul 𝕜 E] [IsScalarTower ℝ 𝕜 E]
   {γ : ℝ → 𝕜} {φ φ' : ℝ → ℝ} {f : 𝕜 → E}
 
-lemma lemma6 {s₁ s₂ : ℝ} (h : ¬ (t ∈ uIcc s₁ s₂)) : 𝓝[uIcc s₁ s₂] t = ⊥ :=
-  inf_principal_eq_bot.2 ((isOpen_compl_iff.2 isClosed_Icc).mem_nhds h)
-
--- TODO : integral_eq_sub_of_contdiffon
-
 theorem integral_eq_sub_of_contDiffOn' {f : ℝ → E} (hab : a < b) (h : ContDiffOn ℝ 1 f (Icc a b)) :
     ∫ y in a..b, derivWithin f (Icc a b) y = f b - f a := by
   apply integral_eq_sub_of_hasDerivAt_of_le hab.le h.continuousOn
@@ -212,8 +197,14 @@ theorem integral_eq_sub_of_contDiffOn''' {f : ℝ → E} (hab : a ≤ b) (h : Co
   convert integral_eq_sub_of_contDiffOn hab h using 1
   apply lemma3
   intro t ht
-  convert (@lemma2 E _ _ f t _ _ ht).symm using 3
+  convert (lemma2 ht).symm using 3
   simp [uIcc, hab]
+
+theorem integral_eq_sub_of_contDiffOn_u {f : ℝ → E} (h : ContDiffOn ℝ 1 f (uIcc a b)) :
+    ∫ y in a..b, deriv f y = f b - f a := by
+  cases le_total a b <;> simp only [uIcc_of_le, uIcc_of_ge, *] at h
+  · simp [integral_eq_sub_of_contDiffOn''', *]
+  · simp [integral_symm b a, integral_eq_sub_of_contDiffOn''', *]
 
 theorem integral_eq_sub_of_contDiffOn'' {f : ℝ → E} (hab : a ≤ b) (ht : t ∈ Icc a b)
   (h : ContDiffOn ℝ 1 f (Icc a b)) :
@@ -236,7 +227,7 @@ theorem integral_eq_sub_of_contDiffOn'' {f : ℝ → E} (hab : a ≤ b) (ht : t 
       subst_vars
       cases hu.2.2 (le_antisymm hh.2 ht.2)
     · case inr hh => linarith [ht.1]
-  convert (@lemma2 E _ _ f u _ _ l3) using 2
+  convert (lemma2 l3) using 2
   simp [uIcc, hab]
 
 lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn ℝ n f (Icc a b)) :
@@ -253,22 +244,15 @@ lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn
     refine ⟨λ t => f a + ∫ u in a..t, gg u, ?_, ?_⟩
     · rw [contDiff_succ_iff_deriv]
       constructor
-      · apply differentiableOn_univ.1
-        apply DifferentiableOn.const_add
-        refine differentiableOn_integral_of_continuous ?_ h2.continuous
-        intro t _
-        apply h2.continuous.intervalIntegrable
+      · refine differentiableOn_univ.1 ((differentiableOn_integral_of_continuous ?_ h2.continuous).const_add _)
+        simp [h2.continuous.intervalIntegrable]
       · convert h2
         ext t
-        rw [deriv_const_add]
-        apply h2.continuous.deriv_integral
+        simp [deriv_const_add, h2.continuous.deriv_integral]
     · intro t ht
-      simp
-      have l1 : a ≤ t := ht.1
+      dsimp
       have l6 : Icc a t ⊆ Icc a b := Icc_subset_Icc_right ht.2
-      have l9 : EqOn gg (derivWithin f (Icc a b)) (uIcc a t) := by
-        apply h3.mono
-        simp [uIcc, l1, l6]
+      have l9 : EqOn gg (derivWithin f (Icc a b)) (uIcc a t) := h3.mono (by simp [uIcc, ht.1, l6])
       have l10 := integral_eq_sub_of_contDiffOn'' hab.le ht h.one_of_succ
       simp [integral_congr l9, l10]
 
@@ -277,13 +261,6 @@ lemma toto' {f : ℝ → ℝ} {a b : ℝ} {n : ℕ} (h : ContDiffOn ℝ n f (uIc
   cases eq_or_ne a b
   · case inl hab => exact ⟨λ _ => f a, by simp [hab, contDiff_const]⟩
   · case inr hab => exact toto (min_lt_max.2 hab) h
-
-lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := by
-  intro t ht
-  rw [mem_uIcc]
-  cases mem_uIoc.1 ht
-  · case inl h => exact Or.inl ⟨h.1.le, h.2⟩
-  · case inr h => exact Or.inr ⟨h.1.le, h.2⟩
 
 theorem integral_comp_smul_deriv'_bis {f : ℝ → ℝ} {g : ℝ → E}
     (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
@@ -299,8 +276,7 @@ theorem integral_comp_smul_deriv'_bis {f : ℝ → ℝ} {g : ℝ → E}
   apply lemma3
   intro t ht
   have h7 : t ∈ uIcc a b := uIoo_subset_uIcc ht
-  rw [uIoo_eq_uIoc_sdiff_ends] at ht
-  simp only [Function.comp_apply, hff2 h7, (eventuallyEq_of_mem (uIcc_mem_nhds' ht) hff2).deriv_eq]
+  simp only [Function.comp_apply, hff2 h7, (eventuallyEq_of_mem (uIcc_mem_nhds ht) hff2).deriv_eq]
 
 theorem integral_comp_smul_deriv'_ter {f : ℝ → ℝ} {g : ℝ → E}
     (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
@@ -310,31 +286,30 @@ theorem integral_comp_smul_deriv'_ter {f : ℝ → ℝ} {g : ℝ → E}
   intro _ ht
   simp [lemma2 ht]
 
+theorem ContDiffOn.continuousOn_derivWithin'' {f : ℝ → E} (h : ContDiffOn ℝ n f (uIcc a b)) (hn : 1 ≤ n) :
+    ContinuousOn (derivWithin f (uIcc a b)) (uIcc a b) := by
+  by_cases hab : a = b
+  · simp [continuousOn_singleton, hab]
+  · refine h.continuousOn_derivWithin (uniqueDiffOn_Icc (min_lt_max.2 hab)) hn
+
 theorem cdv [ContinuousSMul 𝕜 E]
-    (hφ : ContDiffOn ℝ 1 φ (uIcc s₁ s₂))
-    --
-    (h12 : MapsTo φ (uIcc s₁ s₂) (uIcc (φ s₁) (φ s₂)))
-    (h11 : ∀ t, DifferentiableWithinAt ℝ γ (uIcc (φ s₁) (φ s₂)) (φ t))
-    (h20 : ContinuousOn (derivWithin γ (uIcc (φ s₁) (φ s₂))) (φ '' uIcc s₁ s₂))
-    (h21 : ContinuousOn (fun t => f (γ t)) (φ '' uIcc s₁ s₂))
+    (φ_diff : ContDiffOn ℝ 1 φ (uIcc a b))
+    (φ_maps : φ '' uIcc a b = uIcc (φ a) (φ b))
+    (γ_diff : ContDiffOn ℝ 1 γ (uIcc (φ a) (φ b)))
+    (f_cont : ContinuousOn f (γ '' uIcc (φ a) (φ b)))
     :
-    pintegral (φ s₁) (φ s₂) f γ = pintegral s₁ s₂ f (γ ∘ φ) := by
-
-  simp_rw [← pintegral'_eq_pintegral, pintegral', ← integral_comp_smul_deriv'_ter hφ (h20.smul h21)]
-  apply lemma3
-  intro t ht
-
-  have h1 : t ∈ uIcc s₁ s₂ → DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t :=
-    λ ht => (hφ t ht).differentiableWithinAt le_rfl
-
-  have h10 : DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t := by
-    by_cases (t ∈ uIcc s₁ s₂)
-    · case pos => exact h1 h
-    · case neg => simp [DifferentiableWithinAt, HasFDerivWithinAt, HasFDerivAtFilter, lemma6 h]
-
-  rw [uIoo_eq_uIoc_sdiff_ends] at ht
-  have h13 : UniqueDiffWithinAt ℝ (uIcc s₁ s₂) t := uniqueDiffWithinAt_of_mem_nhds (uIcc_mem_nhds' ht)
-
-  simp [derivWithin.scomp t (h11 t) h10 h12 h13]
+    pintegral (φ a) (φ b) f γ = pintegral a b f (γ ∘ φ) := by
+  have l1 : ContinuousOn (fun x => derivWithin γ (uIcc (φ a) (φ b)) x • f (γ x)) (φ '' uIcc a b) := by
+    have e1 := γ_diff.continuousOn_derivWithin'' le_rfl
+    have e2 := f_cont.comp γ_diff.continuousOn (mapsTo_image _ _)
+    simpa only [φ_maps] using e1.smul e2
+  simp_rw [← pintegral'_eq_pintegral, pintegral', ← integral_comp_smul_deriv'_ter φ_diff l1]
+  refine lemma3 (λ t ht => ?_)
+  have l2 : MapsTo φ (uIcc a b) (uIcc (φ a) (φ b)) := φ_maps ▸ mapsTo_image _ _
+  have l6 : t ∈ uIcc a b := uIoo_subset_uIcc ht
+  have l3 : DifferentiableWithinAt ℝ γ (uIcc (φ a) (φ b)) (φ t) := γ_diff.differentiableOn le_rfl (φ t) (l2 l6)
+  have l4 : DifferentiableWithinAt ℝ φ (uIcc a b) t := (φ_diff t l6).differentiableWithinAt le_rfl
+  have l5 : UniqueDiffWithinAt ℝ (uIcc a b) t := uniqueDiffWithinAt_of_mem_nhds (uIcc_mem_nhds ht)
+  simp [derivWithin.scomp t l3 l4 l2 l5]
 
 end bla
