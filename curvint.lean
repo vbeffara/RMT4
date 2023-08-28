@@ -87,6 +87,9 @@ lemma lemma2 {γ : ℝ → 𝕜} {x : ℝ} (h : x ∈ Ι t₁ t₂ \ {t₁, t₂
     derivWithin γ (uIcc t₁ t₂) x = deriv γ x := by
   simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds' h)]
 
+lemma lemma2' {γ : ℝ → 𝕜} {x : ℝ} : EqOn (derivWithin γ (uIcc t₁ t₂)) (deriv γ) (Ι t₁ t₂ \ {t₁, t₂}) :=
+  λ _ => lemma2
+
 lemma lemma4 {γ : ℝ → 𝕜} : EqOn (derivWithin γ (uIcc t₁ t₂)) (deriv γ) (Ι t₁ t₂ \ {t₁, t₂}) := by
   intro t ht
   simp [derivWithin, deriv, fderivWithin_of_mem_nhds (uIcc_mem_nhds' ht)]
@@ -274,7 +277,7 @@ lemma titi {a b : ℝ} : uIoc a b ⊆ uIcc a b := by
   · case inl h => exact Or.inl ⟨h.1.le, h.2⟩
   · case inr h => exact Or.inr ⟨h.1.le, h.2⟩
 
-theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
+theorem integral_comp_smul_deriv'_bis {f : ℝ → ℝ} {g : ℝ → E}
     (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
     (∫ x in a..b, deriv f x • (g ∘ f) x) = (∫ x in f a..f b, g x) := by
   obtain ⟨ff, hff1, hff2⟩ := toto' h
@@ -290,49 +293,37 @@ theorem integral_comp_smul_deriv'_bis {f f' : ℝ → ℝ} {g : ℝ → E}
   have h7 : t ∈ uIcc a b := titi ((diff_subset _ _) ht)
   simp only [Function.comp_apply, hff2 h7, (eventuallyEq_of_mem (uIcc_mem_nhds' ht) hff2).deriv_eq]
 
+theorem integral_comp_smul_deriv'_ter {f : ℝ → ℝ} {g : ℝ → E}
+    (h : ContDiffOn ℝ 1 f (uIcc a b)) (hg : ContinuousOn g (f '' uIcc a b)) :
+    (∫ x in a..b, derivWithin f (uIcc a b) x • (g ∘ f) x) = (∫ x in f a..f b, g x) := by
+  rw [← integral_comp_smul_deriv'_bis h hg]
+  apply lemma3
+  intro t ht
+  simp [lemma2 ht]
+
 theorem cdv [ContinuousSMul 𝕜 E]
     (hφ : ContDiffOn ℝ 1 φ (uIcc s₁ s₂))
-    (h17 : ContinuousOn (deriv φ) (uIcc s₁ s₂))
     (h12 : MapsTo φ (uIcc s₁ s₂) (uIcc (φ s₁) (φ s₂)))
-    (h15 : ∀ s ∈ uIcc s₁ s₂, HasDerivAt φ (deriv φ s) s)
-
     (h11 : ∀ t, DifferentiableWithinAt ℝ γ (uIcc (φ s₁) (φ s₂)) (φ t))
     (h20 : ContinuousOn (derivWithin γ (uIcc (φ s₁) (φ s₂))) (φ '' uIcc s₁ s₂))
-
     (h21 : ContinuousOn (fun t => f (γ t)) (φ '' uIcc s₁ s₂))
-
     (h13 : ∀ t, UniqueDiffWithinAt ℝ (uIcc s₁ s₂) t)
     :
     pintegral (φ s₁) (φ s₂) f γ = pintegral s₁ s₂ f (γ ∘ φ) := by
 
-  have h1 : ∀ t ∈ uIcc s₁ s₂, DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t :=
-    λ t ht => (hφ t ht).differentiableWithinAt le_rfl
+  simp_rw [← pintegral'_eq_pintegral, pintegral', ← integral_comp_smul_deriv'_ter hφ (h20.smul h21)]
+  apply lemma3
+  intro t _
 
-  have h10 : ∀ t, DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t := by
-    intro t
+  have h1 : t ∈ uIcc s₁ s₂ → DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t :=
+    λ ht => (hφ t ht).differentiableWithinAt le_rfl
+
+  have h10 : DifferentiableWithinAt ℝ φ (uIcc s₁ s₂) t := by
     by_cases (t ∈ uIcc s₁ s₂)
-    · case pos => exact h1 t h
+    · case pos => exact h1 h
     · case neg => simp [DifferentiableWithinAt, HasFDerivWithinAt, HasFDerivAtFilter, lemma6 h]
 
-  have h19 (h : s₁ ≠ s₂) : UniqueDiffOn ℝ (uIcc s₁ s₂) :=
-    uniqueDiffOn_Icc (inf_lt_sup.2 h)
-
-  have h17' : ContinuousOn (derivWithin φ (uIcc s₁ s₂)) (uIcc s₁ s₂) := by
-    by_cases (s₁ = s₂)
-    · case pos => simp only [h, le_refl, uIcc_of_le, Icc_self, continuousOn_singleton]
-    · case neg => exact hφ.continuousOn_derivWithin (h19 h) le_rfl
-
-  have H1 : ∀ t, derivWithin (γ ∘ φ) (uIcc s₁ s₂) t =
-      derivWithin φ (uIcc s₁ s₂) t • derivWithin γ (uIcc (φ s₁) (φ s₂)) (φ t) :=
-    λ t => derivWithin.scomp t (h11 t) (h10 t) h12 (h13 t)
-
-  have := intervalIntegral.integral_comp_smul_deriv' h15 h17 (h20.smul h21)
-
-  simp [← pintegral'_eq_pintegral, pintegral', H1, ← this]
-  apply lemma3
-  intro t ht
-  simp
-  rw [lemma4 ht]
+  simp [derivWithin.scomp t (h11 t) h10 h12 (h13 t)]
 
 end bla
 
