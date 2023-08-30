@@ -8,35 +8,6 @@ import Mathlib.Topology.UniformSpace.Equicontinuity
 
 open Set Filter Uniformity Function UniformConvergence
 
-lemma supr_sUnion [CompleteLattice β] {p : α → β} :
-    (⨆ x ∈ ⋃₀ S, p x) = ⨆ (s ∈ S) (x ∈ s), p x := by
-  rw [sUnion_eq_iUnion, iSup_iUnion, ← iSup_subtype'']
-
-lemma infi_sUnion [CompleteLattice β] {p : α → β} :
-    (⨅ x ∈ ⋃₀ S, p x) = ⨅ (s ∈ S) (x ∈ s), p x := by
-  rw [sUnion_eq_iUnion, iInf_iUnion, ← iInf_subtype'']
-
-lemma forall_sUnion {p : α → Prop} :
-    (∀ x ∈ ⋃₀ S, p x) ↔ ∀ s ∈ S, ∀ x ∈ s, p x := by
-  simp_rw [← iInf_Prop_eq, infi_sUnion]
-
-lemma cauchy_of_ne_bot [UniformSpace α] [hl : NeBot l] : Cauchy l ↔ l ×ˢ l ≤ 𝓤 α := by
-  simp [Cauchy, hl]
-
-lemma cauchy_pi {α : ι → Type u} [∀ i, UniformSpace (α i)] {l : Filter (∀ i, α i)} [NeBot l] :
-    Cauchy l ↔ ∀ i, Cauchy (map (Function.eval i) l) := by
-  simp_rw [cauchy_of_ne_bot, prod_map_map_eq, map_le_iff_le_comap, Pi.uniformity, le_iInf_iff]
-
-lemma cauchy_infi {u : ι → UniformSpace α} {l : Filter α} [NeBot l] :
-    @Cauchy _ (⨅ i, u i) l ↔ ∀ i, @Cauchy _ (u i) l := by
-  have h1 : NeBot l := by assumption
-  simp [Cauchy, iInf_uniformity, h1]
-
-lemma cauchy_map_iff_comap {u : UniformSpace β} {f : α → β} {l : Filter α} :
-    Cauchy (map f l) ↔ @Cauchy _ (UniformSpace.comap f u) l := by
-  simp only [Cauchy, map_neBot_iff, prod_map_map_eq, map_le_iff_le_comap, uniformity_comap]
-  rfl
-
 variable [TopologicalSpace X] [UniformSpace α] {F : ι → X → α}
 
 lemma theorem1 [CompactSpace X] (hF : Equicontinuous F) :
@@ -74,7 +45,7 @@ lemma theorem1' {𝔖 : Set (Set X)} (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
 lemma theorem1'' {𝔖 : Set (Set X)} (hcover : ⋃₀ 𝔖 = univ) (h𝔖 : ∀ K ∈ 𝔖, IsCompact K)
     (hF : ∀ K ∈ 𝔖, Equicontinuous ((K.restrict : (X → α) → (K → α)) ∘ F)) :
     (UniformOnFun.uniformSpace X α 𝔖).comap F = (Pi.uniformSpace (λ _ => α)).comap F := by
-  simp [theorem1' h𝔖 hF, Pi.uniformSpace, UniformSpace.ofCoreEq_toCore, ←infi_sUnion, hcover]
+  simp [theorem1' h𝔖 hF, Pi.uniformSpace, UniformSpace.ofCoreEq_toCore, ← iInf_sUnion, hcover]
 
 lemma ascoli₀ {𝔖 : Set (Set X)} {F : ι → X →ᵤ[𝔖] α} {l : Filter ι} [NeBot l]
     (h1 : ∀ A ∈ 𝔖, IsCompact A)
@@ -82,7 +53,7 @@ lemma ascoli₀ {𝔖 : Set (Set X)} {F : ι → X →ᵤ[𝔖] α} {l : Filter 
     (h3 : ∀ x ∈ ⋃₀ 𝔖, Cauchy (map (eval x ∘ F) l)) :
     Cauchy (map F l) := by
   have e1 : @Cauchy _ (⨅ K ∈ 𝔖, ⨅ x ∈ K, ‹UniformSpace _›.comap (eval x)) (map F l) := by
-    simp_rw [cauchy_infi, ← cauchy_map_iff_comap, ← forall_sUnion]
+    simp_rw [cauchy_iInf_uniformSpace', cauchy_comap_uniformSpace, ← forall_sUnion]
     exact h3
   rcases e1 with ⟨e2, e3⟩
   refine ⟨e2, ?_⟩
