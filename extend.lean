@@ -32,7 +32,7 @@ lemma toto {f : ℝ → ℝ} {a b : ℝ} (hab : a < b) {n : ℕ} (h : ContDiffOn
       dsimp
       have l6 : Icc a t ⊆ Icc a b := Icc_subset_Icc_right ht.2
       have l9 : EqOn gg (derivWithin f (Icc a b)) (uIcc a t) := h3.mono (by simp [uIcc, ht.1, l6])
-      have l10 := integral_eq_sub_of_contDiffOn'' hab.le ht h.one_of_succ
+      have l10 := h.one_of_succ.integral_eq_sub'' hab.le ht
       simp [integral_congr l9, l10]
 
 lemma toto' {f : ℝ → ℝ} {a b : ℝ} {n : ℕ} (h : ContDiffOn ℝ n f (uIcc a b)) :

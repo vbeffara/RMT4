@@ -20,6 +20,15 @@ variable [TopologicalSpace 𝕜] [NormedAddCommGroup 𝕜] [NormedSpace ℝ 𝕜
 noncomputable def pintegral (t₁ t₂ : ℝ) (f : 𝕜 → E) (γ : ℝ → 𝕜) : E :=
   ∫ t in t₁..t₂, deriv γ t • f (γ t)
 
+structure contour (𝕜 : Type) := (a : ℝ) (b : ℝ) (toFun : ℝ → 𝕜)
+
+instance : CoeFun (contour 𝕜) (λ _ => ℝ → 𝕜) := ⟨contour.toFun⟩
+
+noncomputable def cintegral (γ : contour 𝕜) (f : 𝕜 → E) : E :=
+  ∫ t in γ.a..γ.b, deriv γ t • f (γ t)
+
+example {f : 𝕜 → E} {γ : contour 𝕜} : pintegral γ.a γ.b f γ = cintegral γ f := rfl
+
 -- the definition is defeq to `circleIntegral` when appropriate:
 lemma circleIntegral_eq_pintegral2 {f : ℂ → ℂ} :
     (∮ z in C(c, R), f z) = (pintegral 0 (2 * π) f (circleMap c R)) := rfl
@@ -61,9 +70,8 @@ example {c : ℂ} {R : ℝ} : (circlePath c R).cast (by simp [circleMap]) (by si
 noncomputable def pintegral' (t₁ t₂ : ℝ) (f : 𝕜 → E) (γ : ℝ → 𝕜) : E :=
   ∫ t in t₁..t₂, derivWithin γ (Set.uIcc t₁ t₂) t • f (γ t)
 
-lemma pintegral'_eq_pintegral : (pintegral' : ℝ → ℝ → (𝕜 → E) → (ℝ → 𝕜) → E) = pintegral := by
-  ext t₁ t₂ f γ
-  exact lemma3' (λ t ht => congr_arg₂ _ (lemma2' ht) rfl)
+lemma pintegral'_eq_pintegral {f : 𝕜 → E} {γ : ℝ → 𝕜} : pintegral' a b f γ = pintegral a b f γ :=
+  integral_congr_uIoo (λ _ ht => congr_arg₂ _ (derivWithin_of_mem_uIoo ht) rfl)
 
 end definitions
 
@@ -84,7 +92,7 @@ theorem hasDerivAt_curvint (ht : t₁ < t₂)
     (F'_norm : ∀ᶠ i in 𝓝 i₀, ∀ t ∈ Icc t₁ t₂, ‖F' i (γ t)‖ ≤ C)
     :
     HasDerivAt (λ i => pintegral t₁ t₂ (F i) γ) (pintegral t₁ t₂ (F' i₀) γ) i₀ := by
-  rw [← pintegral'_eq_pintegral]
+  simp_rw [← pintegral'_eq_pintegral]
   set μ : Measure ℝ := volume.restrict (Ioc t₁ t₂)
   set φ : 𝕜 → ℝ → E := λ i t => derivWithin γ (Icc t₁ t₂) t • F i (γ t)
   set ψ : 𝕜 → ℝ → E := λ i t => derivWithin γ (Icc t₁ t₂) t • F' i (γ t)
@@ -149,7 +157,7 @@ theorem cdv [ContinuousSMul 𝕜 E]
     have e2 := f_cont.comp γ_diff.continuousOn (mapsTo_image _ _)
     simpa only [φ_maps] using e1.smul e2
   simp_rw [← pintegral'_eq_pintegral, pintegral', ← φ_diff.integral_derivWithin_smul_comp l1]
-  refine lemma3' (λ t ht => ?_)
+  refine integral_congr_uIoo (λ t ht => ?_)
   have l2 : MapsTo φ (uIcc a b) (uIcc (φ a) (φ b)) := φ_maps ▸ mapsTo_image _ _
   have l6 : t ∈ uIcc a b := uIoo_subset_uIcc ht
   have l3 : DifferentiableWithinAt ℝ γ (uIcc (φ a) (φ b)) (φ t) := γ_diff.differentiableOn le_rfl (φ t) (l2 l6)
@@ -158,3 +166,53 @@ theorem cdv [ContinuousSMul 𝕜 E]
   simp [derivWithin.scomp t l3 l4 l2 l5]
 
 end bla
+
+section holo
+
+variable (Γ Γ' : ℝ → ℝ → ℂ) (f f' : ℂ → ℂ) (a b u₀ : ℝ)
+
+theorem holo
+    (hab : a ≤ b)
+    (hcycle : ∀ u, Γ u b = Γ u a)
+    (hcycle' : ∀ u, Γ' u b = Γ' u a)
+    :
+    HasDerivAt (λ u => pintegral a b f (Γ u)) 0 u₀
+    := by
+
+  simp [pintegral, intervalIntegral, hab]
+
+  set μ : Measure ℝ := volume.restrict (Ioc a b)
+  set F : ℝ → ℝ → ℂ := λ u t => deriv (Γ u) t * f (Γ u t)
+  set F' : ℝ → ℝ → ℂ := λ u t => deriv (Γ' u) t * f (Γ u t) + deriv (Γ u) t * Γ' u t * f' (Γ u t) with def_F'
+  set G : ℝ → ℂ := λ s => Γ' u₀ s * f (Γ u₀ s) with def_G
+  set C : ℝ → ℝ := sorry
+  set ε : ℝ := sorry
+  have hε : 0 < ε := sorry
+
+  have h1 : ∀ᶠ x in 𝓝 u₀, AEStronglyMeasurable (F x) μ := sorry
+
+  have h2 : Integrable (F u₀) μ := sorry
+
+  have h3 : AEStronglyMeasurable (F' u₀) μ := sorry
+
+  have h4 : ∀ᵐ t ∂μ, ∀ u ∈ ball u₀ ε, ‖F' u t‖ ≤ C t := sorry
+
+  have h5 : Integrable C μ := sorry
+
+  have h6 : ∀ᵐ t ∂μ, ∀ u ∈ ball u₀ ε, HasDerivAt (F · t) (F' u t) u := by sorry
+
+  convert ← (hasDerivAt_integral_of_dominated_loc_of_deriv_le hε h1 h2 h3 h4 h5 h6).2
+
+  have h7 : ∀ u t, F' u t = deriv G t := sorry
+
+  simp [h7]
+
+  have h8 : ∀ x ∈ uIcc a b, DifferentiableAt ℝ G x := sorry
+
+  have h9 : IntervalIntegrable (deriv G) volume a b := sorry
+
+  have := @integral_deriv_eq_sub ℂ _ _ _ G a b h8 h9
+
+  simpa [def_G, intervalIntegral, hab, hcycle, hcycle'] using this
+
+end holo
