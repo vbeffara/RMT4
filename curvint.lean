@@ -175,25 +175,40 @@ theorem holo
     (hab : a ≤ b)
     (hcycle : ∀ u, Γ u b = Γ u a)
     (hcycle' : ∀ u, Γ' u b = Γ' u a)
+    (hΓ : ∀ᶠ u in 𝓝 u₀, ContDiffOn ℝ 1 (Γ u) (Icc a b))
     :
     HasDerivAt (λ u => pintegral a b f (Γ u)) 0 u₀
     := by
 
-  simp [pintegral, intervalIntegral, hab]
+  simp_rw [← pintegral'_eq_pintegral]
+  simp [pintegral', intervalIntegral, hab]
 
   set μ : Measure ℝ := volume.restrict (Ioc a b)
-  set F : ℝ → ℝ → ℂ := λ u t => deriv (Γ u) t * f (Γ u t)
-  set F' : ℝ → ℝ → ℂ := λ u t => deriv (Γ' u) t * f (Γ u t) + deriv (Γ u) t * Γ' u t * f' (Γ u t) with def_F'
+  set F : ℝ → ℝ → ℂ := λ u t =>
+    derivWithin (Γ u) (Icc a b) t * f (Γ u t)
+  set F' : ℝ → ℝ → ℂ := λ u t =>
+    derivWithin (Γ' u) (Icc a b) t * f (Γ u t) +
+    derivWithin (Γ u) (Icc a b) t * Γ' u t * f' (Γ u t) with def_F'
   set G : ℝ → ℂ := λ s => Γ' u₀ s * f (Γ u₀ s) with def_G
   set C : ℝ → ℝ := sorry
   set ε : ℝ := sorry
   have hε : 0 < ε := sorry
 
-  have h1 : ∀ᶠ x in 𝓝 u₀, AEStronglyMeasurable (F x) μ := sorry
+  have F_cont : ∀ᶠ u in 𝓝 u₀, ContinuousOn (F u) (Icc a b) := by
+    filter_upwards [hΓ] with u h
+    sorry
 
-  have h2 : Integrable (F u₀) μ := sorry
+  have F'_cont : ContinuousOn (F' u₀) (Icc a b) := sorry
 
-  have h3 : AEStronglyMeasurable (F' u₀) μ := sorry
+  have h1 : ∀ᶠ u in 𝓝 u₀, AEStronglyMeasurable (F u) μ := by
+    filter_upwards [F_cont] with u h
+    exact (h.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc
+
+  have h2 : Integrable (F u₀) μ :=
+    F_cont.self_of_nhds.integrableOn_Icc.mono_set Ioc_subset_Icc_self
+
+  have h3 : AEStronglyMeasurable (F' u₀) μ :=
+    (F'_cont.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc
 
   have h4 : ∀ᵐ t ∂μ, ∀ u ∈ ball u₀ ε, ‖F' u t‖ ≤ C t := sorry
 
