@@ -24,21 +24,74 @@ variable [LinearOrder α]
 
 end Finset
 
-def List.pairs (l : List α) : List (α × α) := List.zip l l.tail
+namespace List
 
-section topology
+def pairs (l : List α) : List (α × α) := List.zip l l.tail
 
-variable {K : Set ℝ} {S : ι → Set ℝ}
+def progression (a δ : ℝ) : ℕ → List ℝ
+| 0 => [a]
+| n+1 => a :: List.progression (a + δ) δ n
 
-lemma bla (hK : IsCompact K) (hS : ∀ i, IsOpen (S i)) (hKS : K ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ x ∈ K, ∃ i, ball x ε ⊆ S i := by
-  exact lebesgue_number_lemma_of_metric hK hS hKS
+lemma minimum_progression (h : 0 ≤ δ) : (progression a δ n).minimum = a := by
+  induction n generalizing a with
+  | zero => rfl
+  | succ n ih => simp [progression, minimum_cons, ih, h]
 
-end topology
+lemma toto (h : 0 ≤ δ) : ∀ x ∈ progression a δ n, a ≤ x := by
+  induction n generalizing a with
+  | zero => simp [progression]
+  | succ n ih =>
+    simp [progression]
+    intro x hx
+    linarith [ih x hx]
+
+lemma maximum_progression (h : 0 ≤ δ) : (progression a δ n).maximum = a + n * δ := by
+  induction n generalizing a with
+  | zero => simp [progression]
+  | succ n ih =>
+    simp only [progression, maximum_cons, ih, Nat.cast_succ]
+    have e1 : (1 : WithBot ℝ) = ((1 : ℕ) : ℝ) := by norm_cast
+    have e2 : (n : WithBot ℝ) = (n : ℝ) := by norm_cast
+    have e3 : 0 ≤ (n : ℝ) := n.cast_nonneg
+    convert max_eq_right ?_ using 1
+    · simp only [e1, e2, ← WithBot.coe_mul, ← WithBot.coe_add, WithBot.coe_eq_coe]
+      ring
+    · simp only [e1, e2, ← WithBot.coe_mul, ← WithBot.coe_add, WithBot.coe_le_coe]
+      nlinarith [e3]
+
+end List
 
 --
 
 abbrev subd (a b : ℝ) := { s : Finset ℝ // s.min = a ∧ s.max = b }
+
+structure subdivides (s : Finset ℝ) (a b : ℝ) : Prop where
+  nonempty : s.Nonempty
+  min : s.min' nonempty = a
+  max : s.max' nonempty = b
+
+abbrev subd' (a b : ℝ) := { s : Finset ℝ // subdivides s a b }
+
+noncomputable def subdsubd : subd a b ≃ subd' a b where
+  toFun := by
+    rintro ⟨s, ha, hb⟩
+    refine ⟨s, ?_, ?_, ?_⟩
+    · by_contra h
+      rw [Finset.min_eq_top.mpr (not_nonempty_iff_eq_empty.mp h)] at ha
+      contradiction
+    · rw [← WithBot.coe_inj]
+      convert Finset.coe_min' _
+      exact ha.symm
+    · rw [← WithBot.coe_inj]
+      convert Finset.coe_max' _
+      exact hb.symm
+  invFun := by
+    rintro ⟨s, h0, ha, hb⟩
+    refine ⟨s, ?_, ?_⟩
+    · rw [← Finset.coe_min' h0, ha]
+    · rw [← Finset.coe_max' h0, hb]
+  left_inv := by rintro ⟨s, h1, h2⟩; simp
+  right_inv := by rintro ⟨s, h1, h2, h3⟩; simp
 
 noncomputable instance : Sup (subd a b) where
   sup := λ s t => ⟨s ∪ t, by simp [s.prop, t.prop]⟩
@@ -47,24 +100,58 @@ instance : Membership ℝ (subd a b) := ⟨λ x σ => x ∈ σ.val⟩
 
 namespace subd
 
-variable {a b : ℝ}
+variable {a b : ℝ} {n : ℕ}
 
 noncomputable def ofList (l : List ℝ) (ha : l.minimum = a) (hb : l.maximum = b) : subd a b :=
   ⟨l.toFinset, by simp [ha, hb]⟩
+
+noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subd a b :=
+  have h1 : 0 ≤ (b - a) / n := (div_nonneg (sub_nonneg_of_le h) (Nat.cast_nonneg n))
+  have h2 : minimum (progression a ((b - a) / n) n) = a := minimum_progression h1
+  have h3 : maximum (progression a ((b - a) / n) n) = b := by
+    rw [maximum_progression h1]
+    norm_cast
+    rw [← WithBot.coe_add]
+    field_simp [mul_comm, hn]
+  ofList (List.progression a ((b - a) / n) n) h2 h3
 
 def cast (σ : subd a b) (ha : a = a') (hb : b = b') : subd a' b' := ⟨σ, by simp [ha, hb, σ.prop]⟩
 
 noncomputable def points (σ : subd a b) : List ℝ := σ.val.sort (· ≤ ·)
 
-noncomputable def pairs (σ : subd a b) : Finset (ℝ × ℝ) := σ.points.pairs.toFinset
+lemma points_subset {σ : subd a b} : ∀ x ∈ σ.points, x ∈ Set.Icc a b := by
+  simp [points]
+  rintro x hx
+  have e1 : a ≤ x := by simpa [σ.prop.1] using Finset.min_le hx
+  have e2 : x ≤ b := by simpa [σ.prop.2] using Finset.le_max hx
+  tauto
+
+noncomputable def pairs (σ : subd a b) : List (ℝ × ℝ) := σ.points.pairs
+
+noncomputable def mesh (σ : subd a b) : ℝ :=
+  (σ.pairs.map (λ p => |p.2 - p.1|)).maximum.getD 0
 
 variable [AddCommMonoid E] [SMul ℝ E]
 
-noncomputable def RiemannSum (f : ℝ → E) (σ : subd a b) : E :=
-  ∑ p in σ.pairs, (p.2 - p.1) • f p.1
+noncomputable def RS (f : ℝ → E) (σ : subd a b) : E :=
+  (σ.points.pairs.map (λ p => (p.2 - p.1) • f p.1)).sum
 
 def adapted (σ : subd a b) (S : ι → Set ℝ) : Prop :=
   ∀ p ∈ pairs σ, ∃ i, Set.Icc p.1 p.2 ⊆ S i
+
+lemma titi (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+    ∃ ε > 0, ∀ σ : subd a b, σ.mesh ≤ ε → adapted σ S := by
+  obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
+  refine ⟨ε / 2, by linarith, ?_⟩
+  intro σ hσ p hp
+  have l2 : p.1 ∈ Set.Icc a b := sorry
+  obtain ⟨i, hi⟩ := l1 p.1 l2
+  refine ⟨i, subset_trans ?_ hi⟩
+  have l3 : Set.OrdConnected (ball p.fst ε) := sorry
+  refine Set.Icc_subset _ (mem_ball_self hε) ?_
+  simp [ball, dist_eq_norm]
+  sorry
+
 
 lemma toto (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
     ∃ σ : subd a b, adapted σ S := by
