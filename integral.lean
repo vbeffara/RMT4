@@ -1,95 +1,74 @@
 import Mathlib
 
-variable [AddCommMonoid E] [SMul ℝ E]
+open List Finset BigOperators Function Metric
 
-open List Finset BigOperators
+namespace Finset
 
-structure subdivision :=
-  n : ℕ
-  t : ℕ → ℝ
-  ht : ∀ i < n, t i < t (i+1)
+variable [LinearOrder α]
 
-instance : CoeFun subdivision (λ _ => ℕ → ℝ) := ⟨subdivision.t⟩
+@[simp] lemma min_union {s t : Finset α} : (s ∪ t).min = s.min ⊓ t.min := by
+  simp [min_eq_inf_withTop, inf_union]
 
-namespace subdivision
+@[simp] lemma max_union {s t : Finset α} : (s ∪ t).max = s.max ⊔ t.max := by
+  simp [max_eq_sup_withBot, sup_union]
 
-def le (σ τ : subdivision) : Prop := ∀ i < σ.n, ∃ j < τ.n, σ i = τ j
+@[simp] lemma min_toFinset {l : List α} : l.toFinset.min = l.minimum := by
+  induction l with
+  | nil => simp
+  | cons a l ih => simp [ih, List.minimum_cons]
 
-instance : LE subdivision := ⟨subdivision.le⟩
+@[simp] lemma max_toFinset {l : List α} : l.toFinset.max = l.maximum := by
+  induction l with
+  | nil => rfl
+  | cons a l ih => simp [ih, List.maximum_cons]
 
-@[ext] lemma le_ext {σ τ : subdivision} (h1 : σ.n = τ.n) (h2 : ∀ i ∈ Set.Iio σ.n, σ i = τ i) :
-    σ = τ := sorry
+end Finset
 
-lemma le_iff {σ τ : subdivision} : σ ≤ τ ↔ σ '' Set.Iio σ.n ⊆ τ '' Set.Iio τ.n := by
-  constructor
-  · rintro h1 t ⟨i, h2, rfl⟩
-    obtain ⟨j, h3, h4⟩ := h1 i h2
-    exact h4 ▸ ⟨j, h3, rfl⟩
-  · intro h1 i h2
-    obtain ⟨j, h3, h4⟩ := h1 ⟨i, h2, rfl⟩
-    exact ⟨j, h3, h4.symm⟩
+def List.pairs (l : List α) : List (α × α) := List.zip l l.tail
 
-lemma le_refl {σ : subdivision} : σ ≤ σ := by rw [le_iff]
+section topology
 
-lemma le_trans {σ τ υ : subdivision} (hστ : σ ≤ τ) (hτυ : τ ≤ υ) : σ ≤ υ := by
-  rw [le_iff] at hστ hτυ ⊢
-  exact hστ.trans hτυ
+variable {K : Set ℝ} {S : ι → Set ℝ}
 
-lemma le_antisymm {σ τ : subdivision} (hστ : σ ≤ τ) (hτσ : τ ≤ σ) : σ = τ := by
-  rw [le_iff] at hστ hτσ
-  ext i
-  cases' i with i hi
-  · exact le_antisymm hστ hτσ
-  · exact hστ ⟨i, hi, rfl⟩
+lemma bla (hK : IsCompact K) (hS : ∀ i, IsOpen (S i)) (hKS : K ⊆ ⋃ i, S i) :
+    ∃ ε > 0, ∀ x ∈ K, ∃ i, ball x ε ⊆ S i := by
+  exact lebesgue_number_lemma_of_metric hK hS hKS
 
-instance : Preorder subdivision where
-  le_refl := λ _ => le_refl
-  le_trans := λ _ _ _ => le_trans
-
-instance : PartialOrder subdivision where
-  le_antisymm := sorry
-
-end subdivision
-
-def RiemannSum (f : ℝ → E) (σ : subdivision) : E :=
-  ∑ i in Iio σ.n, (σ (i+1) - σ i) • f (σ i)
+end topology
 
 --
 
-@[ext] structure subd :=
-  l : List ℝ
-  sorted : l.Sorted (· < ·)
-  nonempty : 1 < l.length
+abbrev subd (a b : ℝ) := { s : Finset ℝ // s.min = a ∧ s.max = b }
+
+noncomputable instance : Sup (subd a b) where
+  sup := λ s t => ⟨s ∪ t, by simp [s.prop, t.prop]⟩
+
+instance : Membership ℝ (subd a b) := ⟨λ x σ => x ∈ σ.val⟩
 
 namespace subd
 
-variable {σ τ : subd}
+variable {a b : ℝ}
 
-def le (σ τ : subd) : Prop := σ.l ⊆ τ.l
+noncomputable def ofList (l : List ℝ) (ha : l.minimum = a) (hb : l.maximum = b) : subd a b :=
+  ⟨l.toFinset, by simp [ha, hb]⟩
 
-instance : LE subd := ⟨le⟩
+def cast (σ : subd a b) (ha : a = a') (hb : b = b') : subd a' b' := ⟨σ, by simp [ha, hb, σ.prop]⟩
 
-lemma le_refl : σ ≤ σ := List.Subset.refl σ.l
+noncomputable def points (σ : subd a b) : List ℝ := σ.val.sort (· ≤ ·)
 
-lemma le_trans (hστ : σ ≤ τ) (hτυ : τ ≤ υ) : σ ≤ υ := List.Subset.trans hστ hτυ
+noncomputable def pairs (σ : subd a b) : Finset (ℝ × ℝ) := σ.points.pairs.toFinset
 
-lemma le_antisymm (hστ : σ ≤ τ) (hτσ : τ ≤ σ) : σ = τ := by
-  ext1
-  refine eq_of_perm_of_sorted ?_ σ.sorted τ.sorted
-  apply perm_of_nodup_nodup_toFinset_eq σ.sorted.nodup τ.sorted.nodup
-  apply subset_antisymm <;> (intro t ht; aesop)
+variable [AddCommMonoid E] [SMul ℝ E]
 
-instance : PartialOrder subd where
-  le_refl := λ _ => le_refl
-  le_trans := λ _ _ _ => le_trans
-  le_antisymm := λ _ _ => le_antisymm
+noncomputable def RiemannSum (f : ℝ → E) (σ : subd a b) : E :=
+  ∑ p in σ.pairs, (p.2 - p.1) • f p.1
+
+def adapted (σ : subd a b) (S : ι → Set ℝ) : Prop :=
+  ∀ p ∈ pairs σ, ∃ i, Set.Icc p.1 p.2 ⊆ S i
+
+lemma toto (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+    ∃ σ : subd a b, adapted σ S := by
+  obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
+  sorry
 
 end subd
-
-def pairs : List α → List (α × α)
-  | [] => []
-  | (_ :: []) => []
-  | x :: y :: ys => (x, y) :: pairs (y :: ys)
-
-noncomputable def RiemannSum' (f : ℝ → E) (σ : subd) : E :=
-  ∑ i in (pairs σ.l).toFinset, (i.2 - i.1) • f i.1
