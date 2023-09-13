@@ -100,7 +100,7 @@ instance : Membership ℝ (subd a b) := ⟨λ x σ => x ∈ σ.val⟩
 
 namespace subd
 
-variable {a b : ℝ} {n : ℕ}
+variable {a b : ℝ} {n : ℕ} {σ : subd a b}
 
 noncomputable def ofList (l : List ℝ) (ha : l.minimum = a) (hb : l.maximum = b) : subd a b :=
   ⟨l.toFinset, by simp [ha, hb]⟩
@@ -119,6 +119,13 @@ def cast (σ : subd a b) (ha : a = a') (hb : b = b') : subd a' b' := ⟨σ, by s
 
 noncomputable def points (σ : subd a b) : List ℝ := σ.val.sort (· ≤ ·)
 
+lemma one_lt_length (hab : a < b) : 1 < σ.points.length := by
+  simp [points]
+  have h1 := Finset.mem_of_min σ.prop.1
+  have h2 := Finset.mem_of_max σ.prop.2
+  rw [Finset.one_lt_card]
+  refine ⟨a, h1, b, h2, ne_of_lt hab⟩
+
 lemma points_subset {σ : subd a b} : ∀ x ∈ σ.points, x ∈ Set.Icc a b := by
   simp [points]
   rintro x hx
@@ -128,8 +135,11 @@ lemma points_subset {σ : subd a b} : ∀ x ∈ σ.points, x ∈ Set.Icc a b := 
 
 noncomputable def pairs (σ : subd a b) : List (ℝ × ℝ) := σ.points.pairs
 
-noncomputable def mesh (σ : subd a b) : ℝ :=
-  (σ.pairs.map (λ p => |p.2 - p.1|)).maximum.getD 0
+lemma pos_length_pairs (hab : a < b) : 0 < σ.pairs.length := by
+  simp [pairs, List.pairs, one_lt_length hab]
+
+noncomputable def mesh (σ : subd a b) (hab : a < b) : ℝ :=
+  (σ.pairs.map (λ p => |p.2 - p.1|)).maximum_of_length_pos (by simpa using pos_length_pairs hab)
 
 variable [AddCommMonoid E] [SMul ℝ E]
 
@@ -139,19 +149,27 @@ noncomputable def RS (f : ℝ → E) (σ : subd a b) : E :=
 def adapted (σ : subd a b) (S : ι → Set ℝ) : Prop :=
   ∀ p ∈ pairs σ, ∃ i, Set.Icc p.1 p.2 ⊆ S i
 
-lemma titi (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : subd a b, σ.mesh ≤ ε → adapted σ S := by
+lemma titi (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+    ∃ ε > 0, ∀ σ : subd a b, σ.mesh hab ≤ ε → adapted σ S := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε / 2, by linarith, ?_⟩
   intro σ hσ p hp
-  have l2 : p.1 ∈ Set.Icc a b := sorry
+  have l5 := List.mem_zip hp
+  have l4 : p.1 ∈ σ.points := l5.1
+  have l2 : p.1 ∈ Set.Icc a b := points_subset _ l4
   obtain ⟨i, hi⟩ := l1 p.1 l2
   refine ⟨i, subset_trans ?_ hi⟩
-  have l3 : Set.OrdConnected (ball p.fst ε) := sorry
+  have l3 : Set.OrdConnected (ball p.fst ε) := (convex_ball ..).ordConnected
   refine Set.Icc_subset _ (mem_ball_self hε) ?_
   simp [ball, dist_eq_norm]
-  sorry
-
+  have l6 : |p.2 - p.1| ∈ σ.pairs.map (λ p => |p.2 - p.1|) :=
+    List.mem_map_of_mem (λ p : ℝ × ℝ => |p.2 - p.1|) hp
+  have l7 := List.le_maximum_of_mem' l6
+  have l8 : 0 < (List.map (fun p => |p.snd - p.fst|) (pairs σ)).length := by
+    simpa using pos_length_pairs hab
+  rw [← List.coe_maximum_of_length_pos l8] at l7
+  have := (WithBot.coe_le_coe.mp l7).trans hσ
+  linarith
 
 lemma toto (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
     ∃ σ : subd a b, adapted σ S := by
