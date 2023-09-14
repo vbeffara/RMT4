@@ -70,34 +70,6 @@ structure subdivides (s : Finset ℝ) (a b : ℝ) : Prop where
   min : s.min' nonempty = a
   max : s.max' nonempty = b
 
-abbrev subd' (a b : ℝ) := { s : Finset ℝ // subdivides s a b }
-
-noncomputable def subdsubd : subd a b ≃ subd' a b where
-  toFun := by
-    rintro ⟨s, ha, hb⟩
-    refine ⟨s, ?_, ?_, ?_⟩
-    · by_contra h
-      rw [Finset.min_eq_top.mpr (not_nonempty_iff_eq_empty.mp h)] at ha
-      contradiction
-    · rw [← WithBot.coe_inj]
-      convert Finset.coe_min' _
-      exact ha.symm
-    · rw [← WithBot.coe_inj]
-      convert Finset.coe_max' _
-      exact hb.symm
-  invFun := by
-    rintro ⟨s, h0, ha, hb⟩
-    refine ⟨s, ?_, ?_⟩
-    · rw [← Finset.coe_min' h0, ha]
-    · rw [← Finset.coe_max' h0, hb]
-  left_inv := by rintro ⟨s, h1, h2⟩; simp
-  right_inv := by rintro ⟨s, h1, h2, h3⟩; simp
-
-noncomputable instance : Sup (subd a b) where
-  sup := λ s t => ⟨s ∪ t, by simp [s.prop, t.prop]⟩
-
-instance : Membership ℝ (subd a b) := ⟨λ x σ => x ∈ σ.val⟩
-
 namespace subd
 
 variable {a b : ℝ} {n : ℕ} {σ : subd a b}
@@ -114,62 +86,6 @@ noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subd a b :=
     rw [← WithBot.coe_add]
     field_simp [mul_comm, hn]
   ofList (List.progression a ((b - a) / n) n) h2 h3
-
-def cast (σ : subd a b) (ha : a = a') (hb : b = b') : subd a' b' := ⟨σ, by simp [ha, hb, σ.prop]⟩
-
-noncomputable def points (σ : subd a b) : List ℝ := σ.val.sort (· ≤ ·)
-
-lemma one_lt_length (hab : a < b) : 1 < σ.points.length := by
-  simp [points]
-  have h1 := Finset.mem_of_min σ.prop.1
-  have h2 := Finset.mem_of_max σ.prop.2
-  rw [Finset.one_lt_card]
-  refine ⟨a, h1, b, h2, ne_of_lt hab⟩
-
-lemma points_subset {σ : subd a b} : ∀ x ∈ σ.points, x ∈ Set.Icc a b := by
-  simp [points]
-  rintro x hx
-  have e1 : a ≤ x := by simpa [σ.prop.1] using Finset.min_le hx
-  have e2 : x ≤ b := by simpa [σ.prop.2] using Finset.le_max hx
-  tauto
-
-noncomputable def pairs (σ : subd a b) : List (ℝ × ℝ) := σ.points.pairs
-
-lemma pos_length_pairs (hab : a < b) : 0 < σ.pairs.length := by
-  simp [pairs, List.pairs, one_lt_length hab]
-
-noncomputable def mesh (σ : subd a b) (hab : a < b) : ℝ :=
-  (σ.pairs.map (λ p => |p.2 - p.1|)).maximum_of_length_pos (by simpa using pos_length_pairs hab)
-
-variable [AddCommMonoid E] [SMul ℝ E]
-
-noncomputable def RS (f : ℝ → E) (σ : subd a b) : E :=
-  (σ.points.pairs.map (λ p => (p.2 - p.1) • f p.1)).sum
-
-def adapted (σ : subd a b) (S : ι → Set ℝ) : Prop :=
-  ∀ p ∈ pairs σ, ∃ i, Set.Icc p.1 p.2 ⊆ S i
-
-lemma titi (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : subd a b, σ.mesh hab ≤ ε → adapted σ S := by
-  obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
-  refine ⟨ε / 2, by linarith, ?_⟩
-  intro σ hσ p hp
-  have l5 := List.mem_zip hp
-  have l4 : p.1 ∈ σ.points := l5.1
-  have l2 : p.1 ∈ Set.Icc a b := points_subset _ l4
-  obtain ⟨i, hi⟩ := l1 p.1 l2
-  refine ⟨i, subset_trans ?_ hi⟩
-  have l3 : Set.OrdConnected (ball p.fst ε) := (convex_ball ..).ordConnected
-  refine Set.Icc_subset _ (mem_ball_self hε) ?_
-  simp [ball, dist_eq_norm]
-  have l6 : |p.2 - p.1| ∈ σ.pairs.map (λ p => |p.2 - p.1|) :=
-    List.mem_map_of_mem (λ p : ℝ × ℝ => |p.2 - p.1|) hp
-  have l7 := List.le_maximum_of_mem' l6
-  have l8 : 0 < (List.map (fun p => |p.snd - p.fst|) (pairs σ)).length := by
-    simpa using pos_length_pairs hab
-  rw [← List.coe_maximum_of_length_pos l8] at l7
-  have := (WithBot.coe_le_coe.mp l7).trans hσ
-  linarith
 
 end subd
 
@@ -209,9 +125,9 @@ variable {a b x : ℝ} {σ : subdivision a b}
 
 instance : Membership ℝ (subdivision a b) := ⟨λ x σ => x ∈ σ.val⟩
 
-noncomputable instance : Sup (subdivision a b) := sorry
+-- noncomputable instance : Sup (subdivision a b) := sorry
 
-noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subdivision a b := sorry
+-- noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subdivision a b := sorry
 
 def cast (σ : subdivision a b) (ha : a = a') (hb : b = b') : subdivision a' b' :=
   ⟨σ, σ.prop.nonempty, σ.prop.sorted, σ.prop.nodup, ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
@@ -258,5 +174,10 @@ lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc 
 --     ∃ σ : subd a b, adapted σ S := by
 --   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
 --   sorry
+
+variable [AddCommMonoid E] [SMul ℝ E]
+
+noncomputable def RS (f : ℝ → E) (σ : subdivision a b) : E :=
+  (σ.pairs.map (λ p => (p.2 - p.1) • f p.1)).sum
 
 end subdivision
