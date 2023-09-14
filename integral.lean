@@ -60,10 +60,15 @@ lemma maximum_progression (h : 0 ≤ δ) : (progression a δ n).maximum = a + n 
       nlinarith [e3]
 
 noncomputable def prog (a h : ℝ) : ℕ → List ℝ
-| 0 => []
+| 0 => [a]
 | n + 1 => a :: prog (a + h) h n
 
-lemma prog_length : (prog a h n).length = n := by
+lemma prog_length : (prog a h n).length = n + 1 := by
+  induction n generalizing a with
+  | zero => simp [prog]
+  | succ n ih => simp [prog, ih]
+
+lemma prog_ne_nil : prog a h n ≠ [] := by
   induction n generalizing a with
   | zero => simp [prog]
   | succ n ih => simp [prog, ih]
@@ -80,7 +85,7 @@ lemma List.Sorted.map [Preorder α] [Preorder β] {l : List α} {f : α → β}
 
 lemma prog_le (hh : 0 ≤ h) (hx : x ∈ prog a h n) : a ≤ x := by
   induction n generalizing a with
-  | zero => cases hx
+  | zero => simp [prog] at hx; linarith
   | succ n ih =>
     simp [prog] at hx
     cases hx with
@@ -94,6 +99,28 @@ lemma prog_sorted (hh : 0 ≤ h) : (prog a h n).Sorted (· ≤ ·) := by
     simp [prog, ih]
     intro b hb
     linarith [prog_le hh hb]
+
+lemma prog_sorted' (hh : 0 < h) : (prog a h n).Sorted (· < ·) := by
+  induction n generalizing a with
+  | zero => simp [prog]
+  | succ n ih =>
+    simp [prog, ih]
+    intro b hb
+    linarith [prog_le hh.le hb]
+
+lemma prog_last : (prog a h n).getLast prog_ne_nil = a + n * h := by
+  induction n generalizing a with
+  | zero => simp [prog]
+  | succ n ih => simp [prog, getLast_cons prog_ne_nil, ih]; ring
+
+lemma prog_sub (hh : 0 ≤ h) : (prog a h n).pairs.map (λ p => |p.2 - p.1|) = List.replicate n h := by
+  induction n generalizing a with
+  | zero => simp [prog]
+  | succ n ih =>
+    simp [pairs, prog]
+    cases' n with n
+    · simp [hh]
+    · simp [hh]; exact ih (a := a + h)
 
 end List
 
@@ -130,7 +157,7 @@ end subd
 structure List.subdivides (l : List ℝ) (a b : ℝ) : Prop where
   nonempty : l ≠ []
   sorted : l.Sorted (· ≤ ·)
-  nodup : l.Nodup
+  -- nodup : l.Nodup
   first : l.head nonempty = a
   last : l.getLast nonempty = b
 
@@ -168,45 +195,47 @@ lemma le (σ : subdivision a b) : a ≤ b := by
 
 instance : Membership ℝ (subdivision a b) := ⟨λ x σ => x ∈ σ.val⟩
 
-noncomputable instance : Sup (subdivision a b) where
-  sup := by
-    intro σ τ
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
-    · exact (σ.val.toFinset ∪ τ.val.toFinset).sort (· ≤ ·)
-    · apply ne_nil_of_mem (a := a); simp [← σ.prop.first, head_mem]
-    · apply Finset.sort_sorted
-    · apply Finset.sort_nodup
-    all_goals {sorry}
+-- noncomputable instance : Sup (subdivision a b) where
+--   sup := by
+--     intro σ τ
+--     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+--     · exact (σ.val.toFinset ∪ τ.val.toFinset).sort (· ≤ ·)
+--     · apply ne_nil_of_mem (a := a); simp [← σ.prop.first, head_mem]
+--     · apply Finset.sort_sorted
+--     · apply Finset.sort_nodup
+--     all_goals {sorry}
 
-def bot_of_eq : subdivision a a := ⟨[a], by simp, by simp, by simp, rfl, rfl⟩
+def bot_of_eq : subdivision a a := ⟨[a], by simp, by simp, /-by simp,-/ rfl, rfl⟩
 
 def bot_of_lt (hab : a < b) : subdivision a b :=
-⟨[a, b], by simp, by simp [hab.le], by simp [hab.ne], rfl, rfl⟩
+⟨[a, b], by simp, by simp [hab.le], /-by simp [hab.ne],-/ rfl, rfl⟩
 
 def cast (σ : subdivision a b) (ha : a = a') (hb : b = b') : subdivision a' b' :=
-  ⟨σ, σ.prop.nonempty, σ.prop.sorted, σ.prop.nodup, ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
+  ⟨σ, σ.prop.nonempty, σ.prop.sorted, /-σ.prop.nodup,-/ ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
 
 noncomputable instance [le : Fact (a ≤ b)] : Bot (subdivision a b) :=
   ⟨if h : a = b then cast bot_of_eq rfl h else bot_of_lt (lt_of_le_of_ne le.out h)⟩
 
-noncomputable def regular' (a b : ℝ) (n : ℕ) : List ℝ := prog a ((b - a) / (n + 1)) (n + 2)
+noncomputable def regular' (a b : ℝ) (n : ℕ) : List ℝ := prog a ((b - a) / (n + 1)) (n + 1)
 
 lemma regular'_length : (regular' a b n).length = n + 2 := by simp [regular', prog_length]
 
 noncomputable def regular (h : a < b) (n : ℕ) : subdivision a b where
   val := regular' a b n
-  property := {
-    nonempty := by apply length_pos.mp; simp [regular'_length]
-    sorted := by
+  property := ⟨
+    by apply length_pos.mp; simp [regular'_length],
+    by
       have : 0 < b - a := by linarith
-      exact List.prog_sorted (div_pos this (Nat.cast_add_one_pos n)).le
-    nodup := sorry
-    first := rfl
-    last := sorry
-  }
+      exact List.prog_sorted (div_pos this (Nat.cast_add_one_pos n)).le,
+    /-by
+      have : 0 < b - a := by linarith
+      have := List.prog_sorted' (a := a) (n := n + 1) (div_pos this (Nat.cast_add_one_pos n))
+      exact this.nodup,-/
+    rfl,
+    by convert prog_last using 1; field_simp; ring⟩
 
 lemma one_lt_length (hab : a < b) : 1 < (σ : List ℝ).length := by
-  rcases σ with ⟨l, h1, h2, h3, h4, h5⟩ ; match l with
+  rcases σ with ⟨l, h1, h2, /-h3,-/ h4, h5⟩ ; match l with
   | [_] => linarith [h4.symm.trans h5]
   | _ :: _ :: l => simp
 
@@ -216,13 +245,23 @@ lemma pos_length_pairs (hab : a < b) : 0 < σ.pairs.length := by
   simp [pairs, List.pairs, one_lt_length hab]
 
 lemma subset (hx : x ∈ σ) : x ∈ Set.Icc a b := by
-  rcases σ with ⟨l, h1, h2, h3, h4, h5⟩
+  rcases σ with ⟨l, h1, h2, /-h3,-/ h4, h5⟩
   exact ⟨h4 ▸ h2.head_le hx, h5 ▸ h2.le_last hx⟩
 
 noncomputable def mesh (σ : subdivision a b) : ℝ :=
   if h : a < b
   then (σ.pairs.map (λ p => |p.2 - p.1|)).maximum_of_length_pos (by simpa using pos_length_pairs h)
   else 0
+
+lemma maximum_replicate : maximum (replicate (n + 1) a) = a := by
+  induction n with
+  | zero => rfl
+  | succ n ih => rw [replicate_succ, maximum_cons, ih, max_self]
+
+lemma regular_mesh (hab : a < b) : (regular hab n).mesh = (b - a) / (n + 1) := by
+  have : 0 ≤ (b - a) / (↑n + 1) := (div_pos (by linarith) (Nat.cast_add_one_pos n)).le
+  simp only [mesh, hab, pairs, regular, regular', prog_sub this, Nat.add_eq, add_zero, dite_true]
+  simp only [maximum_of_length_pos, maximum_replicate, unbot_coe]
 
 lemma le_mesh (hab : a < b) (hp : p ∈ σ.pairs) : |p.2 - p.1| ≤ σ.mesh := by
   have h1 : |p.2 - p.1| ∈ σ.pairs.map (λ p => |p.2 - p.1|) :=
@@ -246,18 +285,15 @@ lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc 
 lemma exists_div_lt {a ε : ℝ} (ha : 0 < a) (hε : 0 < ε): ∃ n : ℕ, a / (n + 1) < ε := by
   have e1 : 0 < ε / a := div_pos hε ha
   obtain ⟨n, hn⟩ := exists_nat_one_div_lt e1
-  refine ⟨n, ?_⟩
-  convert (@strictMono_mul_left_of_pos ℝ _ a ha).lt_iff_lt.2 hn using 1
-  · field_simp
-  · field_simp; ring
+  use n
+  convert (@strictMono_mul_left_of_pos ℝ _ a ha).lt_iff_lt.2 hn using 1 <;> field_simp; ring
 
 lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
     ∃ σ : subdivision a b, adapted σ S := by
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
   obtain ⟨n, hn⟩ := exists_div_lt (sub_pos_of_lt hab) hε
-  set σ : subdivision a b := regular hab n
-  have : mesh σ = (b - a) / (n + 1) := sorry
-  refine ⟨σ, h (by linarith)⟩
+  have : (regular hab n).mesh = (b - a) / (n + 1) := regular_mesh hab
+  refine ⟨regular hab n, h (by linarith)⟩
 
 variable [AddCommMonoid E] [SMul ℝ E]
 
