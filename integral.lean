@@ -39,10 +39,7 @@ namespace prog
   | zero => simp [prog]
   | succ n ih => simp [prog, ih]
 
-@[simp] lemma ne_nil : prog a h n ≠ [] := by
-  induction n generalizing a with
-  | zero => simp [prog]
-  | succ n ih => simp [prog, ih]
+@[simp] lemma ne_nil : prog a h n ≠ [] := by cases n <;> simp [prog]
 
 lemma le (hh : 0 ≤ h) (hx : x ∈ prog a h n) : a ≤ x := by
   induction n generalizing a with
@@ -69,10 +66,10 @@ lemma sorted' (hh : 0 < h) : (prog a h n).Sorted (· < ·) := by
     intro b hb
     linarith [prog.le hh.le hb]
 
-lemma last : (prog a h n).getLast hnil = a + n * h := by
+@[simp] lemma last : (prog a h n).getLast hnil = a + n * h := by
   induction n generalizing a with
   | zero => simp [prog]
-  | succ n ih => simp [prog, getLast_cons hnil, ih]; ring
+  | succ n ih => simp [prog, getLast_cons, ih]; ring
 
 lemma sub (hh : 0 ≤ h) : (prog a h n).pairs.map (λ p => |p.2 - p.1|) = List.replicate n h := by
   induction n generalizing a with
@@ -153,12 +150,12 @@ noncomputable instance [le : Fact (a ≤ b)] : Bot (subdivision a b) :=
 
 noncomputable def regular' (a b : ℝ) (n : ℕ) : List ℝ := prog a ((b - a) / (n + 1)) (n + 1)
 
-lemma regular'_length : (regular' a b n).length = n + 2 := by simp [regular']
+@[simp] lemma regular'_length : (regular' a b n).length = n + 2 := by simp [regular']
 
 noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
   val := regular' a b n
   property := ⟨
-    by apply length_pos.mp; simp [regular'_length],
+    by apply length_pos.mp; simp,
     by
       have : 0 ≤ b - a := by linarith
       apply List.prog.sorted
@@ -185,12 +182,12 @@ noncomputable def mesh (σ : subdivision a b) : ℝ :=
   then (σ.pairs.map (λ p => |p.2 - p.1|)).maximum_of_length_pos (by simpa using pos_length_pairs h)
   else 0
 
-lemma maximum_replicate : maximum (replicate (n + 1) a) = a := by
+@[simp] lemma maximum_replicate : maximum (replicate (n + 1) a) = a := by
   induction n with
   | zero => rfl
   | succ n ih => rw [replicate_succ, maximum_cons, ih, max_self]
 
-lemma regular_mesh (hab : a < b) : (regular hab.le n).mesh = (b - a) / (n + 1) := by
+@[simp] lemma regular_mesh (hab : a < b) : (regular hab.le n).mesh = (b - a) / (n + 1) := by
   have : 0 ≤ b - a := by linarith
   have : 0 ≤ (b - a) / (↑n + 1) := by positivity
   simp only [mesh, hab, pairs, regular, regular', prog.sub this, Nat.add_eq, add_zero, dite_true]
@@ -215,7 +212,7 @@ lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc 
   obtain ⟨i, hi⟩ := l1 p.1 (subset (List.mem_zip hp).1)
   exact ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh hab hp).trans_lt hσ)) hi⟩
 
-lemma exists_div_lt {a ε : ℝ} (ha : 0 < a) (hε : 0 < ε): ∃ n : ℕ, a / (n + 1) < ε := by
+lemma exists_div_lt {a ε : ℝ} (ha : 0 < a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
   obtain ⟨n, hn⟩ := exists_nat_one_div_lt (div_pos hε ha)
   use n
   convert (@strictMono_mul_left_of_pos ℝ _ a ha).lt_iff_lt.2 hn using 1 <;> field_simp; ring
