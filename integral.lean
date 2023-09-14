@@ -177,9 +177,29 @@ end subd
 
 structure List.subdivides (l : List ℝ) (a b : ℝ) : Prop where
   nonempty : l ≠ []
-  sorted : l.Sorted (· < ·)
+  sorted : l.Sorted (· ≤ ·)
+  nodup : l.Nodup
   first : l.head nonempty = a
   last : l.getLast nonempty = b
+
+lemma List.Sorted.head_le {l : List ℝ} (hl : l.Sorted (· ≤ ·)) (hx : x ∈ l) :
+    l.head (ne_nil_of_mem hx) ≤ x := by
+  match l with
+  | a :: as => cases hx with
+    | head => rfl
+    | tail e1 h => exact (sorted_cons.1 hl).1 _ h
+
+lemma List.Sorted.le_last {l : List ℝ} (hl : l.Sorted (· ≤ ·)) (hx : x ∈ l) :
+    x ≤ l.getLast (ne_nil_of_mem hx) := by
+  induction l with
+  | nil => cases hx
+  | cons a as ih => cases hx with
+    | head => match as with
+      | [] => rfl
+      | b :: bs => simpa only [getLast_cons_cons] using (sorted_cons.1 hl).1 _ (getLast_mem _)
+    | tail e h => match as with
+      | [] => cases h
+      | _ :: _ => exact ih (sorted_cons.1 hl).2 h
 
 abbrev subdivision (a b : ℝ) := { l : List ℝ // l.subdivides a b }
 
@@ -194,11 +214,11 @@ noncomputable instance : Sup (subdivision a b) := sorry
 noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subdivision a b := sorry
 
 def cast (σ : subdivision a b) (ha : a = a') (hb : b = b') : subdivision a' b' :=
-  ⟨σ, σ.prop.nonempty, σ.prop.sorted, ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
+  ⟨σ, σ.prop.nonempty, σ.prop.sorted, σ.prop.nodup, ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
 
 lemma one_lt_length (hab : a < b) : 1 < (σ : List ℝ).length := by
-  rcases σ with ⟨l, h1, h2, h3, h4⟩ ; match l with
-  | [_] => linarith [h3.symm.trans h4]
+  rcases σ with ⟨l, h1, h2, h3, h4, h5⟩ ; match l with
+  | [_] => linarith [h4.symm.trans h5]
   | _ :: _ :: l => simp
 
 noncomputable def pairs (σ : subdivision a b) : List (ℝ × ℝ) := (σ : List ℝ).pairs
@@ -206,7 +226,9 @@ noncomputable def pairs (σ : subdivision a b) : List (ℝ × ℝ) := (σ : List
 lemma pos_length_pairs (hab : a < b) : 0 < σ.pairs.length := by
   simp [pairs, List.pairs, one_lt_length hab]
 
-lemma subset : x ∈ σ → x ∈ Set.Icc a b := sorry
+lemma subset (hx : x ∈ σ) : x ∈ Set.Icc a b := by
+  rcases σ with ⟨l, h1, h2, h3, h4, h5⟩
+  exact ⟨h4 ▸ h2.head_le hx, h5 ▸ h2.le_last hx⟩
 
 noncomputable def mesh (σ : subdivision a b) : ℝ :=
   if h : a < b
