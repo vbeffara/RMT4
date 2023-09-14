@@ -59,6 +59,42 @@ lemma maximum_progression (h : 0 ≤ δ) : (progression a δ n).maximum = a + n 
     · simp only [e1, e2, ← WithBot.coe_mul, ← WithBot.coe_add, WithBot.coe_le_coe]
       nlinarith [e3]
 
+noncomputable def prog (a h : ℝ) : ℕ → List ℝ
+| 0 => []
+| n + 1 => a :: prog (a + h) h n
+
+lemma prog_length : (prog a h n).length = n := by
+  induction n generalizing a with
+  | zero => simp [prog]
+  | succ n ih => simp [prog, ih]
+
+lemma List.Sorted.map [Preorder α] [Preorder β] {l : List α} {f : α → β}
+  (h : l.Sorted (· ≤ ·)) (hf : Monotone f) : (l.map f).Sorted (· ≤ ·) := by
+  induction l with
+  | nil => simp
+  | cons a as ih =>
+    simp at h
+    simp [ih h.2]
+    intro a' ha'
+    exact hf (h.1 a' ha')
+
+lemma prog_le (hh : 0 ≤ h) (hx : x ∈ prog a h n) : a ≤ x := by
+  induction n generalizing a with
+  | zero => cases hx
+  | succ n ih =>
+    simp [prog] at hx
+    cases hx with
+    | inl h => linarith
+    | inr h => linarith [ih h]
+
+lemma prog_sorted (hh : 0 ≤ h) : (prog a h n).Sorted (· ≤ ·) := by
+  induction n generalizing a with
+  | zero => simp [prog]
+  | succ n ih =>
+    simp [prog, ih]
+    intro b hb
+    linarith [prog_le hh hb]
+
 end List
 
 --
@@ -117,20 +153,57 @@ lemma List.Sorted.le_last {l : List ℝ} (hl : l.Sorted (· ≤ ·)) (hx : x ∈
       | [] => cases h
       | _ :: _ => exact ih (sorted_cons.1 hl).2 h
 
+lemma List.Sorted.head_le_last {l : List ℝ} (hl : l.Sorted (· ≤ ·)) (h : l ≠ []) :
+    l.head h ≤ l.getLast h := by
+  exact hl.le_last (head_mem h)
+
 abbrev subdivision (a b : ℝ) := { l : List ℝ // l.subdivides a b }
 
 namespace subdivision
 
-variable {a b x : ℝ} {σ : subdivision a b}
+variable {a b x : ℝ} {σ : subdivision a b} {l : List ℝ} {f : ℝ → ℝ}
+
+lemma le (σ : subdivision a b) : a ≤ b := by
+  convert σ.prop.sorted.head_le_last σ.prop.nonempty <;> simp [σ.prop.first, σ.prop.last]
 
 instance : Membership ℝ (subdivision a b) := ⟨λ x σ => x ∈ σ.val⟩
 
--- noncomputable instance : Sup (subdivision a b) := sorry
+noncomputable instance : Sup (subdivision a b) where
+  sup := by
+    intro σ τ
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    · exact (σ.val.toFinset ∪ τ.val.toFinset).sort (· ≤ ·)
+    · apply ne_nil_of_mem (a := a); simp [← σ.prop.first, head_mem]
+    · apply Finset.sort_sorted
+    · apply Finset.sort_nodup
+    all_goals {sorry}
 
--- noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subdivision a b := sorry
+def bot_of_eq : subdivision a a := ⟨[a], by simp, by simp, by simp, rfl, rfl⟩
+
+def bot_of_lt (hab : a < b) : subdivision a b :=
+⟨[a, b], by simp, by simp [hab.le], by simp [hab.ne], rfl, rfl⟩
 
 def cast (σ : subdivision a b) (ha : a = a') (hb : b = b') : subdivision a' b' :=
   ⟨σ, σ.prop.nonempty, σ.prop.sorted, σ.prop.nodup, ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
+
+noncomputable instance [le : Fact (a ≤ b)] : Bot (subdivision a b) :=
+  ⟨if h : a = b then cast bot_of_eq rfl h else bot_of_lt (lt_of_le_of_ne le.out h)⟩
+
+noncomputable def regular' (a b : ℝ) (n : ℕ) : List ℝ := prog a ((b - a) / (n + 1)) (n + 2)
+
+lemma regular'_length : (regular' a b n).length = n + 2 := by simp [regular', prog_length]
+
+noncomputable def regular (h : a < b) (n : ℕ) : subdivision a b where
+  val := regular' a b n
+  property := {
+    nonempty := by apply length_pos.mp; simp [regular'_length]
+    sorted := by
+      have : 0 < b - a := by linarith
+      exact List.prog_sorted (div_pos this (Nat.cast_add_one_pos n)).le
+    nodup := sorry
+    first := rfl
+    last := sorry
+  }
 
 lemma one_lt_length (hab : a < b) : 1 < (σ : List ℝ).length := by
   rcases σ with ⟨l, h1, h2, h3, h4, h5⟩ ; match l with
@@ -163,17 +236,28 @@ def adapted (σ : subdivision a b) (S : ι → Set ℝ) : Prop :=
   ∀ p ∈ σ.pairs, ∃ i, Set.Icc p.1 p.2 ⊆ S i
 
 lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : subdivision a b, σ.mesh < ε → adapted σ S := by
+    ∃ ε > 0, ∀ {σ : subdivision a b}, σ.mesh < ε → adapted σ S := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
-  refine ⟨ε, hε, λ σ hσ p hp => ?_⟩
+  refine ⟨ε, hε, λ hσ p hp => ?_⟩
   have : Set.OrdConnected (ball p.1 ε) := (convex_ball ..).ordConnected
   obtain ⟨i, hi⟩ := l1 p.1 (subset (List.mem_zip hp).1)
   exact ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh hab hp).trans_lt hσ)) hi⟩
 
--- lemma toto (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
---     ∃ σ : subd a b, adapted σ S := by
---   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
---   sorry
+lemma exists_div_lt {a ε : ℝ} (ha : 0 < a) (hε : 0 < ε): ∃ n : ℕ, a / (n + 1) < ε := by
+  have e1 : 0 < ε / a := div_pos hε ha
+  obtain ⟨n, hn⟩ := exists_nat_one_div_lt e1
+  refine ⟨n, ?_⟩
+  convert (@strictMono_mul_left_of_pos ℝ _ a ha).lt_iff_lt.2 hn using 1
+  · field_simp
+  · field_simp; ring
+
+lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+    ∃ σ : subdivision a b, adapted σ S := by
+  obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
+  obtain ⟨n, hn⟩ := exists_div_lt (sub_pos_of_lt hab) hε
+  set σ : subdivision a b := regular hab n
+  have : mesh σ = (b - a) / (n + 1) := sorry
+  refine ⟨σ, h (by linarith)⟩
 
 variable [AddCommMonoid E] [SMul ℝ E]
 
