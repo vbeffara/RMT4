@@ -1,6 +1,6 @@
 import Mathlib
 
-open List Finset BigOperators Function Metric
+open List Finset BigOperators Function Metric WithBot
 
 namespace Finset
 
@@ -171,9 +171,70 @@ lemma titi (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i,
   have := (WithBot.coe_le_coe.mp l7).trans hσ
   linarith
 
-lemma toto (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ σ : subd a b, adapted σ S := by
-  obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
-  sorry
-
 end subd
+
+-----------------------------
+
+structure List.subdivides (l : List ℝ) (a b : ℝ) : Prop where
+  nonempty : l ≠ []
+  sorted : l.Sorted (· < ·)
+  first : l.head nonempty = a
+  last : l.getLast nonempty = b
+
+abbrev subdivision (a b : ℝ) := { l : List ℝ // l.subdivides a b }
+
+namespace subdivision
+
+variable {a b x : ℝ} {σ : subdivision a b}
+
+instance : Membership ℝ (subdivision a b) := ⟨λ x σ => x ∈ σ.val⟩
+
+noncomputable instance : Sup (subdivision a b) := sorry
+
+noncomputable def regular (h : a ≤ b) (hn : 0 < n) : subdivision a b := sorry
+
+def cast (σ : subdivision a b) (ha : a = a') (hb : b = b') : subdivision a' b' :=
+  ⟨σ, σ.prop.nonempty, σ.prop.sorted, ha ▸ σ.prop.first, hb ▸ σ.prop.last⟩
+
+lemma one_lt_length (hab : a < b) : 1 < (σ : List ℝ).length := by
+  rcases σ with ⟨l, h1, h2, h3, h4⟩ ; match l with
+  | [_] => linarith [h3.symm.trans h4]
+  | _ :: _ :: l => simp
+
+noncomputable def pairs (σ : subdivision a b) : List (ℝ × ℝ) := (σ : List ℝ).pairs
+
+lemma pos_length_pairs (hab : a < b) : 0 < σ.pairs.length := by
+  simp [pairs, List.pairs, one_lt_length hab]
+
+lemma subset : x ∈ σ → x ∈ Set.Icc a b := sorry
+
+noncomputable def mesh (σ : subdivision a b) : ℝ :=
+  if h : a < b
+  then (σ.pairs.map (λ p => |p.2 - p.1|)).maximum_of_length_pos (by simpa using pos_length_pairs h)
+  else 0
+
+lemma le_mesh (hab : a < b) (hp : p ∈ σ.pairs) : |p.2 - p.1| ≤ σ.mesh := by
+  have h1 : |p.2 - p.1| ∈ σ.pairs.map (λ p => |p.2 - p.1|) :=
+    List.mem_map_of_mem (λ p : ℝ × ℝ => |p.2 - p.1|) hp
+  have h2 : 0 < (List.map (fun p => |p.snd - p.fst|) (pairs σ)).length := by
+    simpa using pos_length_pairs hab
+  simp only [mesh, hab]
+  simpa only [← coe_maximum_of_length_pos h2, coe_le_coe] using le_maximum_of_mem' h1
+
+def adapted (σ : subdivision a b) (S : ι → Set ℝ) : Prop :=
+  ∀ p ∈ σ.pairs, ∃ i, Set.Icc p.1 p.2 ⊆ S i
+
+lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+    ∃ ε > 0, ∀ σ : subdivision a b, σ.mesh < ε → adapted σ S := by
+  obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
+  refine ⟨ε, hε, λ σ hσ p hp => ?_⟩
+  have : Set.OrdConnected (ball p.1 ε) := (convex_ball ..).ordConnected
+  obtain ⟨i, hi⟩ := l1 p.1 (subset (List.mem_zip hp).1)
+  exact ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh hab hp).trans_lt hσ)) hi⟩
+
+-- lemma toto (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+--     ∃ σ : subd a b, adapted σ S := by
+--   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
+--   sorry
+
+end subdivision
