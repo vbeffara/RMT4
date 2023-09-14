@@ -131,14 +131,14 @@ lemma le (σ : subdivision a b) : a ≤ b := by
 
 instance : Membership ℝ (subdivision a b) := ⟨λ x σ => x ∈ σ.val⟩
 
-noncomputable instance : Sup (subdivision a b) where
-  sup := by
-    intro σ τ
-    refine ⟨σ.val.merge (· ≤ ·) τ.val, ?_, ?_, ?_, ?_⟩
-    · sorry
-    · exact σ.prop.sorted.merge τ.prop.sorted
-    · sorry
-    · sorry
+-- noncomputable instance : Sup (subdivision a b) where
+--   sup := by
+--     intro σ τ
+--     refine ⟨σ.val.merge (· ≤ ·) τ.val, ?_, ?_, ?_, ?_⟩
+--     · sorry
+--     · exact σ.prop.sorted.merge τ.prop.sorted
+--     · sorry
+--     · sorry
 
 def bot_of_eq : subdivision a a := ⟨[a], by simp, by simp, rfl, rfl⟩
 
@@ -155,13 +155,14 @@ noncomputable def regular' (a b : ℝ) (n : ℕ) : List ℝ := prog a ((b - a) /
 
 lemma regular'_length : (regular' a b n).length = n + 2 := by simp [regular']
 
-noncomputable def regular (h : a < b) (n : ℕ) : subdivision a b where
+noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
   val := regular' a b n
   property := ⟨
     by apply length_pos.mp; simp [regular'_length],
     by
-      have : 0 < b - a := by linarith
-      exact List.prog.sorted (div_pos this (Nat.cast_add_one_pos n)).le,
+      have : 0 ≤ b - a := by linarith
+      apply List.prog.sorted
+      positivity,
     rfl,
     by convert prog.last using 1; field_simp; ring⟩
 
@@ -189,8 +190,9 @@ lemma maximum_replicate : maximum (replicate (n + 1) a) = a := by
   | zero => rfl
   | succ n ih => rw [replicate_succ, maximum_cons, ih, max_self]
 
-lemma regular_mesh (hab : a < b) : (regular hab n).mesh = (b - a) / (n + 1) := by
-  have : 0 ≤ (b - a) / (↑n + 1) := (div_pos (by linarith) (Nat.cast_add_one_pos n)).le
+lemma regular_mesh (hab : a < b) : (regular hab.le n).mesh = (b - a) / (n + 1) := by
+  have : 0 ≤ b - a := by linarith
+  have : 0 ≤ (b - a) / (↑n + 1) := by positivity
   simp only [mesh, hab, pairs, regular, regular', prog.sub this, Nat.add_eq, add_zero, dite_true]
   simp only [maximum_of_length_pos, maximum_replicate, unbot_coe]
 
@@ -222,12 +224,13 @@ lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b 
     ∃ σ : subdivision a b, adapted σ S := by
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
   obtain ⟨n, hn⟩ := exists_div_lt (sub_pos_of_lt hab) hε
-  have : (regular hab n).mesh = (b - a) / (n + 1) := regular_mesh hab
-  refine ⟨regular hab n, h (by linarith)⟩
+  have : (regular hab.le n).mesh = (b - a) / (n + 1) := regular_mesh hab
+  exact ⟨regular hab.le n, h (by linarith)⟩
+
+noncomputable def sum [AddCommMonoid E] (σ : subdivision a b) (f : ℝ → ℝ → E) : E :=
+  (σ.pairs.map (λ p => f p.1 p.2)).sum
+
+noncomputable def RS [AddCommMonoid E] [SMul ℝ E] (σ : subdivision a b) (f : ℝ → E) : E :=
+  σ.sum (λ x y => (y - x) • f x)
 
 end subdivision
-
-variable [AddCommMonoid E] [SMul ℝ E]
-
-noncomputable def RS (f : ℝ → E) (σ : subdivision a b) : E :=
-  (σ.pairs.map (λ p => (p.2 - p.1) • f p.1)).sum
