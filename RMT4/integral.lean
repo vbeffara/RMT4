@@ -2,7 +2,7 @@ import Mathlib.Tactic
 import Mathlib.Analysis.Calculus.ContDiffDef
 import Mathlib.Analysis.Calculus.Deriv.Basic
 
-open List Finset BigOperators Metric Set
+open List BigOperators Metric Set
 
 namespace List
 
@@ -142,13 +142,25 @@ noncomputable def pairs (σ : subdivision a b) : List (ℝ × ℝ) := (σ : List
 lemma pos_length_pairs (hab : a < b) : 0 < σ.pairs.length := by
   simp [pairs, List.pairs, one_lt_length hab]
 
-lemma subset (hx : x ∈ σ) : x ∈ Set.Icc a b := by
+noncomputable def fst (σ : subdivision a b) (i : Fin σ.pairs.length) : ℝ := (σ.pairs.get i).1
+
+noncomputable def snd (σ : subdivision a b) (i : Fin σ.pairs.length) : ℝ := (σ.pairs.get i).2
+
+def Icc (i : Fin σ.pairs.length) : Set ℝ := Set.Icc (σ.fst i) (σ.snd i)
+
+lemma subset {i : Fin σ.pairs.length} : σ.fst i ∈ Set.Icc a b := by
+  have hx : σ.fst i ∈ σ := by simpa only [fst, pairs, List.pairs, get_zip] using List.get_mem ..
   rcases σ with ⟨l, h1, h2, h4, h5⟩
   exact ⟨h4 ▸ h2.head_le hx, h5 ▸ h2.le_last hx⟩
 
 noncomputable def mesh (σ : subdivision a b) : ℝ :=
   if h : a < b
   then (σ.pairs.map (λ p => |p.2 - p.1|)).maximum_of_length_pos (by simpa using pos_length_pairs h)
+  else 0
+
+noncomputable def mesh' (σ : subdivision a b) : ℝ :=
+  if a < b
+  then ⨆ i, |σ.snd i - σ.fst i|
   else 0
 
 @[simp] lemma maximum_replicate : maximum (replicate (n + 1) a) = a := by
@@ -170,29 +182,19 @@ lemma le_mesh (hab : a < b) (hp : p ∈ σ.pairs) : |p.2 - p.1| ≤ σ.mesh := b
   simp only [mesh, hab]
   simpa only [← coe_maximum_of_length_pos h2, WithBot.coe_le_coe] using le_maximum_of_mem' h1
 
-def adapted (σ : subdivision a b) (S : ι → Set ℝ) : Prop :=
-  ∀ p ∈ σ.pairs, ∃ i, Set.Icc p.1 p.2 ⊆ S i
+lemma le_mesh' (hab : a < b) : |σ.snd i - σ.fst i| ≤ σ.mesh' := by
+  sorry
 
-def adapted' (σ : subdivision a b) (S : ι → Set ℝ) : Prop :=
-  ∀ k, ∃ i, let p := σ.pairs.get k; Set.Icc p.1 p.2 ⊆ S i
+def adapted (σ : subdivision a b) (S : ι → Set ℝ) : Prop := ∀ k, ∃ i, σ.Icc k ⊆ S i
 
 lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ {σ : subdivision a b}, σ.mesh < ε → adapted σ S := by
+    ∃ ε > 0, ∀ σ : subdivision a b, σ.mesh < ε → adapted σ S := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
-  refine ⟨ε, hε, λ hσ p hp => ?_⟩
-  have : Set.OrdConnected (ball p.1 ε) := (convex_ball ..).ordConnected
-  obtain ⟨i, hi⟩ := l1 p.1 (subset (List.mem_zip hp).1)
-  exact ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh hab hp).trans_lt hσ)) hi⟩
-
-lemma adapted'_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : subdivision a b, σ.mesh < ε → adapted' σ S := by
-  obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
-  refine ⟨ε, hε, λ σ hσ => ?_⟩
-  intro j
+  refine ⟨ε, hε, λ σ hσ j => ?_⟩
   set p := σ.pairs.get j
-  have hp : p ∈ σ.pairs := by apply get_mem
-  have : Set.OrdConnected (ball p.1 ε) := (convex_ball ..).ordConnected
-  obtain ⟨i, hi⟩ := l1 p.1 (subset (List.mem_zip hp).1)
+  have hp : p ∈ σ.pairs := get_mem ..
+  have : Set.OrdConnected (ball (σ.fst j) ε) := (convex_ball ..).ordConnected
+  obtain ⟨i, hi⟩ := l1 p.1 σ.subset
   exact ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh hab hp).trans_lt hσ)) hi⟩
 
 lemma exists_div_lt {a ε : ℝ} (ha : 0 < a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
@@ -205,25 +207,14 @@ lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b 
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
   obtain ⟨n, hn⟩ := exists_div_lt (sub_pos_of_lt hab) hε
   have : (regular hab.le n).mesh = (b - a) / (n + 1) := regular_mesh hab
-  exact ⟨regular hab.le n, h (by linarith)⟩
-
-lemma exists_adapted' (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ σ : subdivision a b, adapted' σ S := by
-  obtain ⟨ε, hε, h⟩ := adapted'_of_mesh_lt hab h1 h2
-  obtain ⟨n, hn⟩ := exists_div_lt (sub_pos_of_lt hab) hε
-  have : (regular hab.le n).mesh = (b - a) / (n + 1) := regular_mesh hab
   exact ⟨regular hab.le n, h _ (by linarith)⟩
 
-noncomputable def sum [AddCommMonoid E] (σ : subdivision a b) (f : ℝ → ℝ → E) : E :=
-  (σ.pairs.map (λ p => f p.1 p.2)).sum
-
 noncomputable def RS [AddCommMonoid E] [SMul ℝ E] (σ : subdivision a b) (f : ℝ → E) : E :=
-  σ.sum (λ x y => (y - x) • f x)
+  ∑ i, (σ.snd i - σ.fst i) • f (σ.fst i)
 
 end subdivision
 
-def ContDiffAlong (f : ℝ → ℝ) (σ : subdivision a b) : Prop :=
-  ∀ p ∈ σ.pairs, ContDiffOn ℝ 1 f (Set.Icc p.1 p.2)
+def ContDiffAlong (f : ℝ → ℝ) (σ : subdivision a b) : Prop := ∀ i, ContDiffOn ℝ 1 f (σ.Icc i)
 
 def PiecewiseContDiff (f : ℝ → ℝ) (a b : ℝ) : Prop := ∃ σ : subdivision a b, ContDiffAlong f σ
 
@@ -236,31 +227,19 @@ noncomputable def sumSubAlong (σ : subdivision a b) (F : Fin σ.pairs.length �
     (γ : ℝ → ℂ) : ℂ :=
   sumSub σ (λ i => F i ∘ γ)
 
-variable {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ}
+variable {f : ℂ → ℂ} {U : Set ℂ}
 
-noncomputable def pintegral (f : ℂ → ℂ) (γ : ℝ → ℂ)
-    -- (hU : IsOpen U)
-    (h2 : (γ '' Set.Icc 0 1) ⊆ U)
-    (hγ : Continuous γ)
-    (IsLocDeriv : ∀ z ∈ U, ∃ ε > 0, ∃ F : ℂ → ℂ, EqOn (deriv F) f (ball z ε))
+noncomputable def pintegral (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : (γ '' Set.Icc 0 1) ⊆ U)
+    (hγ : Continuous γ) (IsLocDeriv : ∀ z ∈ U, ∃ ε > 0, ∃ F : ℂ → ℂ, EqOn (deriv F) f (ball z ε))
     : ℂ := by
   choose! ε hε F _ using IsLocDeriv
-  set S : Set.Icc (0 : ℝ) 1 → Set ℝ := by
-    intro t
-    set B := Metric.ball (γ t) (ε (γ t))
-    exact γ ⁻¹' B
-  have l1 : ∀ i, IsOpen (S i) := λ i => isOpen_ball.preimage hγ
-  have l2 : Set.Icc 0 1 ⊆ ⋃ i, S i := by
-    intro t ht
-    rw [Set.mem_iUnion]
-    use ⟨t, ht⟩
-    simp
-    apply hε
-    apply h2
-    apply Set.mem_image_of_mem
-    exact ht
-  choose σ hσ using subdivision.exists_adapted' (by linarith) l1 l2
-  choose i _ using hσ
-  exact sumSubAlong σ (λ j => F (γ (i j))) γ
+  set S : Set.Icc (0 : ℝ) 1 → Set ℝ := λ t => γ ⁻¹' (ball (γ t) (ε (γ t)))
+  have l1 : ∀ i, ↑i ∈ S i := λ ⟨t, ht⟩ => by
+    exact mem_preimage.2 (mem_ball_self (hε _ (h2 (mem_image_of_mem _ ht))))
+  have l2 : Set.Icc 0 1 ⊆ ⋃ i, S i := λ t ht =>
+    Set.mem_iUnion.2 ⟨⟨t, ht⟩, l1 ⟨t, ht⟩⟩
+  choose σ hσ using subdivision.exists_adapted (by linarith) (λ i => isOpen_ball.preimage hγ) l2
+  choose I _ using hσ
+  exact sumSubAlong σ (λ i => F (γ (I i))) γ
 
 end pintegral
