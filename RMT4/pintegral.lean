@@ -1,6 +1,7 @@
 import Mathlib.Tactic
 import Mathlib.Analysis.Calculus.ContDiffDef
 import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.MeasureTheory.Integral.IntervalIntegral
 
 open List BigOperators Metric Set
 
@@ -91,16 +92,18 @@ lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b 
 end subdivision
 
 noncomputable def sumSub (σ : subdivision a b) (F : Fin (σ.n + 1) -> ℝ -> ℂ) : ℂ :=
-  ∑ i, (F i (σ i.castSucc) - F i (σ i.succ))
+  ∑ i, (F i (σ i.succ) - F i (σ i.castSucc))
 
 noncomputable def sumSubAlong (σ : subdivision a b) (F : Fin (σ.n + 1) → ℂ → ℂ)
     (γ : ℝ → ℂ) : ℂ :=
   sumSub σ (λ i => F i ∘ γ)
 
+def IsLocDerivOn (U : Set ℂ) (f : ℂ → ℂ) : Prop :=
+  ∀ z ∈ U, ∃ ε > 0, ∃ F : ℂ → ℂ, EqOn (deriv F) f (ball z ε)
+
 noncomputable def pintegral (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : (γ '' Set.Icc a b) ⊆ U)
-    (hγ : Continuous γ) (IsLocDeriv : ∀ z ∈ U, ∃ ε > 0, ∃ F : ℂ → ℂ, EqOn (deriv F) f (ball z ε))
-    : ℂ := by
-  choose! ε hε F _ using IsLocDeriv
+    (hγ : Continuous γ) (hf : IsLocDerivOn U f) : ℂ := by
+  choose! ε hε F _ using hf
   set S : Set.Icc a b → Set ℝ := λ t => γ ⁻¹' (ball (γ t) (ε (γ t)))
   have l1 : ∀ i, ↑i ∈ S i := λ ⟨t, ht⟩ => by
     exact mem_preimage.2 (mem_ball_self (hε _ (h2 (mem_image_of_mem _ ht))))
@@ -109,3 +112,24 @@ noncomputable def pintegral (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (
   choose σ hσ using subdivision.exists_adapted hab (λ i => isOpen_ball.preimage hγ) l2
   choose I _ using hσ
   exact sumSubAlong σ (λ i => F (γ (I i))) γ
+
+def isPiecewiseDiffAlong (γ : ℝ → ℂ) (σ : subdivision a b) : Prop :=
+  ∀ i : Fin (σ.n + 1), ContDiffOn ℝ 1 γ (σ.Icc i)
+
+noncomputable def piecewiseIntegral (F : ℂ → ℂ) (γ : ℝ → ℂ) (σ : subdivision a b) : ℂ :=
+  ∑ i : Fin (σ.n + 1), (∫ t in (σ i.castSucc)..(σ i.succ), F (γ t) * deriv γ t)
+
+lemma isLocDerivOn_deriv : IsLocDerivOn U (deriv F) := by
+  intro z _; exact ⟨1, zero_lt_one, F, eqOn_refl _ _⟩
+
+lemma preTelescopic {f : Fin (n + 1) → ℝ} :
+    ∑ i : Fin n, (f i.succ - f i.castSucc) = f (Fin.last n) - f 0 := by
+  induction n with
+  | zero => simp [Fin.last]
+  | succ n ih =>
+    simp
+    sorry
+
+lemma telescopic : sumSub σ (λ i => f) = f b - f a := by
+  simp [sumSub, ← σ.first]
+  sorry

@@ -4,6 +4,7 @@ import RMT4.hurwitz
 import RMT4.montel
 import RMT4.etape2
 import RMT4.has_sqrt
+import RMT4.pintegral
 
 open UniformConvergence Topology Filter Set Metric Function
 
