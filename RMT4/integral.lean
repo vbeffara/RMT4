@@ -8,47 +8,63 @@ namespace List
 
 def pairs (l : List α) : List (α × α) := zip l l.tail
 
-def prog (a h : ℝ) : ℕ → List ℝ
-| 0     => [a]
-| n + 1 => a :: prog (a + h) h n
+def prog (a h : ℝ) (n : ℕ) : List ℝ :=
+  (List.range (n + 1)).map (λ i : ℕ => a + i * h)
 
 namespace prog
 
+variable {n : ℕ}
+
+@[simp] lemma get : (prog a h n).get i = a + i * h := by
+  simp [prog, get_range]
+
 @[simp] lemma length : (prog a h n).length = n + 1 := by
-  induction n generalizing a <;> simp [prog, *]
+  simp [prog, length_range]
 
 @[simp] lemma ne_nil : prog a h n ≠ [] := by cases n <;> simp [prog]
 
 lemma le (hh : 0 ≤ h) (hx : x ∈ prog a h n) : a ≤ x := by
-  induction n generalizing a with
-  | zero => simp [prog] at hx; linarith
-  | succ n ih =>
-    simp [prog] at hx
-    cases hx with
-    | inl h => linarith
-    | inr h => linarith [ih h]
+  simp only [prog, mem_map, mem_range] at hx
+  obtain ⟨i, _, rfl⟩ := hx
+  have : 0 ≤ (i : ℝ) := i.cast_nonneg
+  nlinarith
 
 lemma sorted (hh : 0 ≤ h) : (prog a h n).Sorted (· ≤ ·) := by
-  induction n generalizing a with
-  | zero => simp [prog]
-  | succ n ih =>
-    simp [prog, ih]
-    intro b hb
-    linarith [prog.le hh hb]
+  sorry
+--   induction n generalizing a with
+--   | zero => simp [prog]
+--   | succ n ih =>
+--     simp [prog, ih]
+--     intro b hb
+--     linarith [prog.le hh hb]
 
-@[simp] lemma last : (prog a h n).getLast hnil = a + n * h := by
-  induction n generalizing a with
-  | zero => simp [prog]
-  | succ n ih => simp [prog, getLast_cons, ih]; ring
+@[simp] lemma head : (prog a h n).head hh = a := by
+  sorry
+
+@[simp] lemma getLast : (prog a h n).getLast hh = a + n * h := by
+  sorry
+
+-- @[simp] lemma last : (prog a h n).getLast hnil = a + n * h := by
+--   induction n generalizing a with
+--   | zero => simp [prog]
+--   | succ n ih => simp [prog, getLast_cons, ih]; ring
 
 lemma sub (hh : 0 ≤ h) : (prog a h n).pairs.map (λ p => |p.2 - p.1|) = List.replicate n h := by
-  induction n generalizing a with
-  | zero => simp [prog]
-  | succ n ih =>
-    simp [pairs, prog]
-    cases' n with n
-    · simp [hh]
-    · simp [hh]; exact ih (a := a + h)
+  sorry
+--   induction n generalizing a with
+--   | zero => simp [prog]
+--   | succ n ih =>
+--     simp [pairs, prog]
+--     cases' n with n
+--     · simp [hh]
+--     · simp [hh]; exact ih (a := a + h)
+
+-- @[simp] lemma sub' (hh : 0 ≤ h) :
+--     ((prog a h n).pairs.get i).snd - ((prog a h n).pairs.get i).fst = h := by
+--   simp [pairs, get]
+--   cases' n with n
+--   · cases i.prop
+--   · simp; ring
 
 end prog
 
@@ -124,13 +140,17 @@ noncomputable instance [le : Fact (a ≤ b)] : Bot (subdivision a b) :=
 
 noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
   val := List.regular a b n
-  property := ⟨
-    by apply length_pos.mp; simp,
-    by
+  property := {
+    nonempty := by
+      apply length_pos.mp
+      simp [regular_length, hab]
+    sorted := by
+      apply prog.sorted
       have : 0 ≤ b - a := by linarith;
-      exact List.prog.sorted (by positivity),
-    rfl,
-    by convert prog.last using 1; field_simp; ring⟩
+      positivity
+    first := by simp [List.regular]
+    last := by simp [List.regular]; field_simp; ring
+  }
 
 lemma one_lt_length (hab : a < b) : 1 < (σ : List ℝ).length := by
   rcases σ with ⟨l, h1, h2, h4, h5⟩ ; match l with
@@ -174,6 +194,11 @@ noncomputable def mesh' (σ : subdivision a b) : ℝ :=
   simp only [mesh, hab, pairs, regular, List.regular, prog.sub this, dite_true]
   simp only [maximum_of_length_pos, maximum_replicate, WithBot.unbot_coe]
 
+@[simp] lemma regular_mesh' (hab : a < b) : (regular hab.le n).mesh' = (b - a) / (n + 1) := by
+  have : 0 ≤ b - a := by linarith
+  have : 0 ≤ (b - a) / (↑n + 1) := by positivity
+  sorry
+
 lemma le_mesh (hab : a < b) (hp : p ∈ σ.pairs) : |p.2 - p.1| ≤ σ.mesh := by
   have h1 : |p.2 - p.1| ∈ σ.pairs.map (λ p => |p.2 - p.1|) :=
     List.mem_map_of_mem (λ p : ℝ × ℝ => |p.2 - p.1|) hp
@@ -183,19 +208,19 @@ lemma le_mesh (hab : a < b) (hp : p ∈ σ.pairs) : |p.2 - p.1| ≤ σ.mesh := b
   simpa only [← coe_maximum_of_length_pos h2, WithBot.coe_le_coe] using le_maximum_of_mem' h1
 
 lemma le_mesh' (hab : a < b) : |σ.snd i - σ.fst i| ≤ σ.mesh' := by
-  sorry
+  simpa only [mesh', hab, ite_true]
+  using le_ciSup (f := λ i => |σ.snd i - σ.fst i|) (finite_range _).bddAbove _
 
 def adapted (σ : subdivision a b) (S : ι → Set ℝ) : Prop := ∀ k, ∃ i, σ.Icc k ⊆ S i
 
 lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : subdivision a b, σ.mesh < ε → adapted σ S := by
+    ∃ ε > 0, ∀ σ : subdivision a b, σ.mesh' < ε → adapted σ S := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε, hε, λ σ hσ j => ?_⟩
   set p := σ.pairs.get j
-  have hp : p ∈ σ.pairs := get_mem ..
   have : Set.OrdConnected (ball (σ.fst j) ε) := (convex_ball ..).ordConnected
   obtain ⟨i, hi⟩ := l1 p.1 σ.subset
-  exact ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh hab hp).trans_lt hσ)) hi⟩
+  refine ⟨i, subset_trans (Set.Icc_subset _ (mem_ball_self hε) ((le_mesh' hab).trans_lt hσ)) hi⟩
 
 lemma exists_div_lt {a ε : ℝ} (ha : 0 < a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
   obtain ⟨n, hn⟩ := exists_nat_one_div_lt (div_pos hε ha)
@@ -206,7 +231,7 @@ lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b 
     ∃ σ : subdivision a b, adapted σ S := by
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
   obtain ⟨n, hn⟩ := exists_div_lt (sub_pos_of_lt hab) hε
-  have : (regular hab.le n).mesh = (b - a) / (n + 1) := regular_mesh hab
+  have : (regular hab.le n).mesh' = (b - a) / (n + 1) := regular_mesh' hab
   exact ⟨regular hab.le n, h _ (by linarith)⟩
 
 noncomputable def RS [AddCommMonoid E] [SMul ℝ E] (σ : subdivision a b) (f : ℝ → E) : E :=
@@ -221,7 +246,7 @@ def PiecewiseContDiff (f : ℝ → ℝ) (a b : ℝ) : Prop := ∃ σ : subdivisi
 section pintegral
 
 noncomputable def sumSub (σ : subdivision a b) (F : Fin σ.pairs.length -> ℝ -> ℂ) : ℂ :=
-  ∑ i, (F i (σ.pairs.get i).2 - F i (σ.pairs.get i).1)
+  ∑ i, (F i (σ.snd i) - F i (σ.fst i))
 
 noncomputable def sumSubAlong (σ : subdivision a b) (F : Fin σ.pairs.length → ℂ → ℂ)
     (γ : ℝ → ℂ) : ℂ :=
