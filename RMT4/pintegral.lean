@@ -15,13 +15,55 @@ structure subdivision (a b : ℝ) where
   toFun : ℕ → ℝ
   first : toFun 0 = a
   last : toFun (n + 1) = b
-  subset : ∀ {i}, i ≤ n + 1 → toFun i ∈ Set.Icc a b
+  mono : MonotoneOn toFun (Set.Iic (n + 1))
 
 namespace subdivision
 
-variable {a b : ℝ} {n : ℕ} {σ : subdivision a b}
-
 instance : CoeFun (subdivision a b) (λ _ => ℕ → ℝ) := ⟨toFun⟩
+
+lemma subset (σ : subdivision a b) (hi : i ≤ σ.n + 1) : σ i ∈ Set.Icc a b := by
+  constructor
+  · simpa only [← σ.first] using σ.mono (zero_le (σ.n + 1)) hi (zero_le _)
+  · simpa only [← σ.last] using σ.mono hi (le_refl (σ.n + 1)) hi
+
+variable {a b c : ℝ} {n : ℕ} {σ : subdivision a b}
+
+lemma le (σ : subdivision a b) : a ≤ b := σ.first ▸ (σ.subset (zero_le _)).2
+
+def append (f g : ℕ → ℝ) (n : ℕ) (_ : f n = g 0) (i : ℕ) : ℝ := if i ≤ n then f i else g (i - n)
+
+@[simp] lemma append_zero : append f g n h 0 = f 0 := by simp [append]
+
+@[simp] lemma append_of_le (hi : n ≤ i) : append f g n h i = g (i - n) := by
+  simp only [append, ite_eq_right_iff]
+  intro hi'
+  simp [le_antisymm hi' hi, h]
+
+@[simp] lemma append_add : append f g n h (n + m) = g m := by
+  rw [append_of_le (n.le_add_right m), Nat.add_sub_cancel_left]
+
+def hAppend (σ : subdivision a b) (τ : subdivision b c) : subdivision a c where
+  n := σ.n + 1 + τ.n
+  toFun := append σ τ (σ.n + 1) (σ.last.trans τ.first.symm)
+  first := by rw [append_zero, σ.first]
+  last := by rw [add_assoc _ τ.n, append_add, τ.last]
+  mono := by
+    intro i hi j hj hij
+    simp only [append]
+    split_ifs with h'i h'j h'j
+    · exact σ.mono h'i h'j hij
+    · simp only [not_le] at h'j
+      refine (σ.subset h'i).2.trans (τ.subset ?_).1
+      simp only [tsub_le_iff_right, Set.mem_Iic] at hj ⊢
+      convert hj using 1; abel
+    · linarith -- impossible case
+    · simp only [not_le] at h'i h'j
+      simp only [Set.mem_Iic] at hi hj
+      refine τ.mono ?_ ?_ (Nat.sub_le_sub_right hij (σ.n + 1))
+      · simp only [ge_iff_le, Set.mem_Iic, tsub_le_iff_right]; convert hi using 1; abel
+      · simp only [ge_iff_le, Set.mem_Iic, tsub_le_iff_right]; convert hj using 1; abel
+
+instance {a b c : ℝ} : HAppend (subdivision a b) (subdivision b c) (subdivision a c) := ⟨hAppend⟩
 
 def Icc (σ : subdivision a b) (i : Fin (σ.n + 1)) : Set ℝ := Set.Icc (σ i) (σ i.succ)
 
@@ -35,14 +77,9 @@ noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
   toFun := λ i => a + i * ((b - a) / (n + 1))
   first := by simp
   last := by field_simp; ring
-  subset := by
-    intro i hi
-    have h0 : 0 ≤ b - a := sub_nonneg.2 hab
-    have h3 : (i : ℝ) ≤ n + 1 := by norm_cast
-    have h4 : b = a + (n + 1) * ((b - a) / (n + 1)) := by field_simp; ring
-    constructor
-    · simp; positivity
-    · nth_rewrite 2 [h4]; simp; gcongr
+  mono := λ i _ j _ hij => by
+    have : 0 ≤ b - a := by linarith;
+    simp; gcongr
 
 @[simp] lemma regular_mesh (hab : a < b) : (regular hab.le n).mesh = (b - a) / (n + 1) := by
   have h1 : 0 ≤ b - a := sub_nonneg.2 hab.le
@@ -89,6 +126,8 @@ noncomputable def sumSubAlong (σ : subdivision a b) (F : Fin (σ.n + 1) → ℂ
 def IsLocDerivOn (U : Set ℂ) (f : ℂ → ℂ) : Prop :=
   ∀ z ∈ U, ∃ ε > 0, ∃ F : ℂ → ℂ, EqOn (deriv F) f (ball z ε)
 
+section pintegral
+
 noncomputable def pintegral (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : (γ '' Set.Icc a b) ⊆ U)
     (hγ : Continuous γ) (hf : IsLocDerivOn U f) : ℂ := by
   choose! ε hε F _ using hf
@@ -113,3 +152,5 @@ lemma isLocDerivOn_deriv : IsLocDerivOn U (deriv F) := by
 lemma telescopic {σ : subdivision a b} : sumSub σ (λ _ => f) = f b - f a := by
   simp only [sumSub, ← σ.first, ← σ.last]
   apply Finset.sum_range_sub (f := f ∘ σ)
+
+end pintegral
