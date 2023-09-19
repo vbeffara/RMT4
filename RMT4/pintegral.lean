@@ -19,7 +19,7 @@ structure subdivision (a b : ℝ) where
 
 namespace subdivision
 
-variable {a b : ℝ} {σ : subdivision a b}
+variable {a b : ℝ} {n : ℕ} {σ : subdivision a b}
 
 instance : CoeFun (subdivision a b) (λ _ => ℕ → ℝ) := ⟨toFun⟩
 
@@ -30,32 +30,26 @@ noncomputable def mesh (σ : subdivision a b) : ℝ := ⨆ i : Fin (σ.n + 1), |
 lemma le_mesh {i : Fin (σ.n + 1)} : |σ (i + 1) - σ i| ≤ σ.mesh :=
   le_ciSup (f := λ i : Fin (σ.n + 1) => |σ i.succ - σ i|) (finite_range _).bddAbove _
 
-lemma le (σ : subdivision a b) : a ≤ b :=
-  (σ.first ▸ σ.subset (zero_le (σ.n + 1))).2
-
 noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
   n := n
-  toFun := λ i => a + i * (b - a) / (n + 1)
+  toFun := λ i => a + i * ((b - a) / (n + 1))
   first := by simp
   last := by field_simp; ring
   subset := by
-    have h0 : 0 ≤ b - a := by linarith
     intro i hi
+    have h0 : 0 ≤ b - a := sub_nonneg.2 hab
     have h3 : (i : ℝ) ≤ n + 1 := by norm_cast
-    have h4 : b = a + (n + 1) * (b - a) / (n + 1) := by field_simp; ring
+    have h4 : b = a + (n + 1) * ((b - a) / (n + 1)) := by field_simp; ring
     constructor
     · simp; positivity
     · nth_rewrite 2 [h4]; simp; gcongr
 
-@[simp] lemma regular_mesh (hab : a < b) {n : ℕ} :
-    (regular hab.le n).mesh = (b - a) / (n + 1) := by
-  have : |(b - a) / (↑n + 1)| = (b - a) / (↑n + 1) := by
-    rw [abs_eq_self]
-    have e1 : 0 ≤ b - a := by linarith
-    positivity
-  have : ∀ i : Fin (n + 1), |(i + 1) * (b - a) / (n + 1) - i * (b - a) / (n + 1)| =
-      (b - a) / (n + 1) := by
-    intro i; rw [← this]; congr; field_simp; ring
+@[simp] lemma regular_mesh (hab : a < b) : (regular hab.le n).mesh = (b - a) / (n + 1) := by
+  have h1 : 0 ≤ b - a := sub_nonneg.2 hab.le
+  have h2 : 0 ≤ (b - a) / (↑n + 1) := div_nonneg h1 n.cast_add_one_pos.le
+  have : ∀ i : Fin (n + 1), |(i + 1) * ((b - a) / (n + 1)) - i * ((b - a) / (n + 1))| =
+      (b - a) / (n + 1) := λ i => by
+    simpa only [add_one_mul (i : ℝ), add_sub_cancel'] using abs_eq_self.2 h2
   simp [mesh, regular, this]
 
 variable {S : ι → Set ℝ}
