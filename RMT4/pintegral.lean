@@ -30,25 +30,24 @@ variable {a b c : ℝ} {n : ℕ} {σ : subdivision a b}
 
 lemma le (σ : subdivision a b) : a ≤ b := σ.first ▸ (σ.subset (zero_le _)).2
 
-def append (f g : ℕ → ℝ) (n : ℕ) (_ : f n = g 0) (i : ℕ) : ℝ := if i ≤ n then f i else g (i - n)
+def append (f g : ℕ → ℝ) (n : ℕ) (i : ℕ) : ℝ := if i ≤ n then f i else g (i - n)
 
-@[simp] lemma append_zero : append f g n h 0 = f 0 := by simp [append]
+@[simp] lemma append_zero : append f g n 0 = f 0 := by simp [append]
 
-@[simp] lemma append_of_le (hi : n ≤ i) : append f g n h i = g (i - n) := by
+@[simp] lemma append_of_le (h : f n = g 0) (hi : n ≤ i) : append f g n i = g (i - n) := by
   simp only [append, ite_eq_right_iff]
   intro hi'
   simp [le_antisymm hi' hi, h]
 
-@[simp] lemma append_add : append f g n h (n + m) = g m := by
-  rw [append_of_le (n.le_add_right m), Nat.add_sub_cancel_left]
+@[simp] lemma append_add (h : f n = g 0) : append f g n (n + m) = g m := by
+  rw [append_of_le h (n.le_add_right m), Nat.add_sub_cancel_left]
 
 def hAppend (σ : subdivision a b) (τ : subdivision b c) : subdivision a c where
   n := σ.n + 1 + τ.n
-  toFun := append σ τ (σ.n + 1) (σ.last.trans τ.first.symm)
+  toFun := append σ τ (σ.n + 1)
   first := by rw [append_zero, σ.first]
-  last := by rw [add_assoc _ τ.n, append_add, τ.last]
-  mono := by
-    intro i hi j hj hij
+  last := by rw [add_assoc _ τ.n, append_add (σ.last.trans τ.first.symm), τ.last]
+  mono := λ i hi j hj hij => by
     simp only [append]
     split_ifs with h'i h'j h'j
     · exact σ.mono h'i h'j hij
@@ -67,10 +66,10 @@ instance {a b c : ℝ} : HAppend (subdivision a b) (subdivision b c) (subdivisio
 
 def Icc (σ : subdivision a b) (i : Fin (σ.n + 1)) : Set ℝ := Set.Icc (σ i) (σ i.succ)
 
-noncomputable def mesh (σ : subdivision a b) : ℝ := ⨆ i : Fin (σ.n + 1), |σ i.succ - σ i|
+noncomputable def mesh (σ : subdivision a b) : ℝ := ⨆ i : Fin (σ.n + 1), (σ i.succ - σ i)
 
-lemma le_mesh {i : Fin (σ.n + 1)} : |σ (i + 1) - σ i| ≤ σ.mesh :=
-  le_ciSup (f := λ i : Fin (σ.n + 1) => |σ i.succ - σ i|) (finite_range _).bddAbove _
+lemma le_mesh {i : Fin (σ.n + 1)} : σ (i + 1) - σ i ≤ σ.mesh :=
+  le_ciSup (f := λ i : Fin (σ.n + 1) => σ i.succ - σ i) (finite_range _).bddAbove _
 
 noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
   n := n
@@ -82,11 +81,8 @@ noncomputable def regular (hab : a ≤ b) (n : ℕ) : subdivision a b where
     simp; gcongr
 
 @[simp] lemma regular_mesh (hab : a < b) : (regular hab.le n).mesh = (b - a) / (n + 1) := by
-  have h1 : 0 ≤ b - a := sub_nonneg.2 hab.le
-  have h2 : 0 ≤ (b - a) / (↑n + 1) := div_nonneg h1 n.cast_add_one_pos.le
-  have : ∀ i : Fin (n + 1), |(i + 1) * ((b - a) / (n + 1)) - i * ((b - a) / (n + 1))| =
-      (b - a) / (n + 1) := λ i => by
-    simpa only [add_one_mul (i : ℝ), add_sub_cancel'] using abs_eq_self.2 h2
+  have : ∀ i, (i + 1) * ((b - a) / (n + 1)) - i * ((b - a) / (n + 1)) = (b - a) / (n + 1) :=
+    λ i => by field_simp; ring
   simp [mesh, regular, this]
 
 variable {S : ι → Set ℝ}
@@ -102,7 +98,10 @@ lemma adapted_of_mesh_lt (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i,
   use i
   refine subset_trans ?_ hi
   refine Set.Icc_subset _ (mem_ball_self hε) ?_
-  exact le_mesh.trans_lt hσ
+  simp
+  convert (le_mesh (i := j)).trans_lt hσ using 1
+  refine abs_eq_self.2 (sub_nonneg.2 (σ.mono j.prop.le ?_ (Nat.le_succ _)))
+  simpa using Nat.lt_succ.1 j.prop
 
 lemma exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
     ∃ σ : subdivision a b, adapted σ S := by
