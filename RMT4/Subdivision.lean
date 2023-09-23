@@ -98,7 +98,15 @@ noncomputable def regular (hab : a ≤ b) (n : ℕ) : Subdivision a b where
 
 variable {S : ι → Set ℝ}
 
+structure adapted_witness (σ : Subdivision a b) (S : ι → Set ℝ) :=
+  I : Fin (σ.n + 1) → ι
+  hI : ∀ k, σ.Icc k ⊆ S (I k)
+
 def adapted (σ : Subdivision a b) (S : ι → Set ℝ) : Prop := ∀ k, ∃ i, σ.Icc k ⊆ S i
+
+noncomputable def adapted.witness (h : adapted σ S) : adapted_witness σ S := by
+  choose I hI using h
+  exact ⟨I, hI⟩
 
 lemma adapted_of_mesh_lt (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → adapted σ S := by

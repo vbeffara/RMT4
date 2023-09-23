@@ -8,21 +8,32 @@ import RMT4.Subdivision
 
 open BigOperators Metric Set Subdivision Topology Filter
 
-def IsLocDerivOn (U : Set ℂ) (f : ℂ → ℂ) := ∀ z ∈ U, ∃ F : ℂ → ℂ, f =ᶠ[𝓝 z] deriv F
+def IsLocDerivOn (U : Set ℂ) (f : ℂ → ℂ) :=
+  ∀ z ∈ U, ∃ F : ℂ → ℂ, ∃ S ∈ 𝓝 z, S.EqOn f (deriv F)
 
-lemma isLocDerivOn_deriv : IsLocDerivOn U (deriv F) := λ _ _ => ⟨F, by rfl⟩
+structure locderivon_witness (U : Set ℂ) (f : ℂ → ℂ) :=
+  F : ℂ → ℂ → ℂ
+  S : ℂ → Set ℂ
+  h1 : ∀ z ∈ U, S z ∈ 𝓝 z
+  h2 : ∀ z ∈ U, EqOn f (deriv (F z)) (S z)
+
+noncomputable def IsLocDerivOn.witness (h : IsLocDerivOn U f) : locderivon_witness U f := by
+  choose! F S H using h
+  exact ⟨F, S, λ z hz => (H z hz).1, λ z hz => (H z hz).2⟩
+
+lemma isLocDerivOn_deriv : IsLocDerivOn U (deriv F) := λ _ _ => ⟨F, by sorry⟩
 
 section pintegral
 
 noncomputable def pintegral (hab : a ≤ b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : (γ '' Set.Icc a b) ⊆ U)
     (hγ : ContinuousOn γ (Set.Icc a b)) (hf : IsLocDerivOn U f) : ℂ := by
-  simp only [IsLocDerivOn, Filter.eventuallyEq_iff_exists_mem] at hf
-  choose F s hs using hf
-  let S (t : Set.Icc a b) := γ ⁻¹' s (γ t) (h2 (mem_image_of_mem _ t.2))
-  have h (t : Set.Icc a b) : ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1 := ⟨t, hγ t t.2 (hs _ _).1⟩
+  let DW := hf.witness
+  let S (t : Set.Icc a b) := γ ⁻¹' DW.S (γ t)
+  have h (t : Set.Icc a b) : ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1 :=
+    ⟨t, hγ t t.2 (DW.h1 _ (h2 (mem_image_of_mem _ t.2)))⟩
   choose σ hσ using exists_adapted' hab h
-  choose I _ using hσ
-  exact σ.sumSubAlong (λ i => F _ (h2 (mem_image_of_mem _ (I i).2))) γ
+  let AW := hσ.witness
+  refine σ.sumSubAlong (λ k => DW.F (γ (AW.I k))) γ
 
 def isPiecewiseDiffAlong (γ : ℝ → ℂ) (σ : Subdivision a b) : Prop :=
   ∀ i, ContDiffOn ℝ 1 γ (σ.Icc i)
@@ -48,3 +59,7 @@ lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) (f : ℂ → ℂ) (h : 
   rw [fderivWithin_eq_fderiv (isOpen_ball.uniqueDiffWithinAt hx)]
   · exact ContinuousLinearMap.ext_ring (hf x (L2 hx))
   · exact h.differentiableAt (hU.mem_nhds (L2 hx))
+
+example : pintegral (U := univ) (hab : a ≤ b) (λ _ => 0) γ h1 h2 h3 = 0 := by
+  simp [pintegral]
+  sorry
