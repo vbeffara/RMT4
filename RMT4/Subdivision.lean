@@ -92,8 +92,8 @@ noncomputable def regular (hab : a ≤ b) (n : ℕ) : Subdivision a b where
     simp; gcongr
 
 @[simp] lemma regular_mesh (hab : a ≤ b) : (regular hab n).mesh = (b - a) / (n + 1) := by
-  have : ∀ i, (i + 1) * ((b - a) / (n + 1)) - i * ((b - a) / (n + 1)) = (b - a) / (n + 1) :=
-    λ i => by field_simp; ring
+  have (i) : (i + 1) * ((b - a) / (n + 1)) - i * ((b - a) / (n + 1)) = (b - a) / (n + 1) :=
+    by field_simp; ring
   simp [mesh, regular, this]
 
 variable {S : ι → Set ℝ}
