@@ -32,6 +32,8 @@ lemma has_deriv_at_integral_of_continuous_of_lip
     (φ_lip : ∀ t ∈ Ioc a b, LipschitzOnWith (Real.nnabs C) (λ x => φ x t) (ball z₀ δ))
     (ψ_cts : ContinuousOn ψ (Ioc a b)) :
     HasDerivAt (λ z => ∫ t in a..b, φ z t) (∫ t in a..b, ψ t) z₀ := by
+  simp only [intervalIntegral, not_lt, hab, Ioc_eq_empty, Measure.restrict_empty,
+    integral_zero_measure, sub_zero]
   let μ : Measure ℝ := volume.restrict (Ioc a b)
   have h1 : ∀ᶠ z in 𝓝 z₀, AEStronglyMeasurable (φ z) μ :=
     φ_cts.mono (λ z h => (h.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc)
@@ -43,9 +45,7 @@ lemma has_deriv_at_integral_of_continuous_of_lip
   have h5 : Integrable (λ _ => C) μ := integrable_const _
   have h6 : ∀ᵐ t ∂μ, HasDerivAt (λ z => φ z t) (ψ t) z₀ :=
     (ae_restrict_iff' measurableSet_Ioc).mpr (eventually_of_forall φ_der)
-
-  simpa [intervalIntegral, hab] using
-    (hasDerivAt_integral_of_dominated_loc_of_lip δ_pos h1 h2 h3 h4 h5 h6).2
+  exact (hasDerivAt_integral_of_dominated_loc_of_lip δ_pos h1 h2 h3 h4 h5 h6).2
 
 section uIoo
 
