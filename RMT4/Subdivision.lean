@@ -2,7 +2,7 @@ import Mathlib.Tactic
 import Mathlib.Order.Monotone.Basic
 import Mathlib.Data.Set.Intervals.Basic
 
-open Set Metric BigOperators
+open Set Metric BigOperators Topology
 
 lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
   cases ha.eq_or_lt with
@@ -74,6 +74,9 @@ instance {a b c : ℝ} : HAppend (Subdivision a b) (Subdivision b c) (Subdivisio
 
 def Icc (σ : Subdivision a b) (i : Fin (σ.n + 1)) : Set ℝ := Set.Icc (σ i) (σ i.succ)
 
+lemma Icc_subset {i} : σ.Icc i ⊆ Set.Icc a b :=
+  Set.Icc_subset_Icc (σ.subset Fin.is_le').1 (σ.subset (Fin.is_le _)).2
+
 noncomputable def mesh (σ : Subdivision a b) : ℝ := ⨆ i : Fin (σ.n + 1), (σ i.succ - σ i)
 
 lemma le_mesh {i : Fin (σ.n + 1)} : σ (i + 1) - σ i ≤ σ.mesh :=
@@ -122,6 +125,15 @@ lemma exists_adapted (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a 
   obtain ⟨n, hn⟩ := exists_div_lt (sub_nonneg_of_le hab) hε
   have : (regular hab n).mesh = (b - a) / (n + 1) := regular_mesh hab
   exact ⟨regular hab n, h _ (by linarith)⟩
+
+lemma exists_adapted' (hab : a ≤ b) (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1) :
+    ∃ σ : Subdivision a b, adapted σ S := by
+  choose I hI using h
+  choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Set.Icc a b)).mem_iff.1 (hI t)
+  have : Set.Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
+  obtain ⟨σ, hσ⟩ := exists_adapted hab (λ t => (h1 t).2) this
+  choose t ht using hσ
+  exact ⟨σ, λ k => ⟨I (t k), (subset_inter (ht k) σ.Icc_subset).trans (h2 (t k))⟩⟩
 
 def sum (σ : Subdivision a b) (f : ℕ → ℝ → ℝ → ℂ) : ℂ :=
   ∑ i in Finset.range (σ.n + 1), f i (σ i) (σ (i + 1))
