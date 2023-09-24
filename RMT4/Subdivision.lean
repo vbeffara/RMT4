@@ -127,21 +127,43 @@ lemma adapted_of_mesh_le (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i,
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt h1 h2
   refine ⟨ε / 2, by positivity, λ σ hσ => h σ (by linarith)⟩
 
-lemma exists_adapted (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ σ : Subdivision a b, adapted σ S := by
-  obtain ⟨ε, hε, h⟩ := adapted_of_mesh_le h1 h2
-  obtain ⟨n, hn⟩ := exists_div_lt (sub_nonneg_of_le hab) hε
+noncomputable def exists_adapted (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+    { σ : Subdivision a b // adapted σ S } := by
+  choose ε hε h using adapted_of_mesh_le h1 h2
+  choose n hn using exists_div_lt (sub_nonneg_of_le hab) hε
   have : (regular hab n).mesh = (b - a) / (n + 1) := regular_mesh hab
   exact ⟨regular hab n, h _ (by linarith)⟩
 
-lemma exists_adapted' (hab : a ≤ b) (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1) :
-    ∃ σ : Subdivision a b, adapted σ S := by
+noncomputable def exists_adapted' (hab : a ≤ b) (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1) :
+    { σ : Subdivision a b // adapted σ S } := by
   choose I hI using h
   choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Set.Icc a b)).mem_iff.1 (hI t)
   have : Set.Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
   obtain ⟨σ, hσ⟩ := exists_adapted hab (λ t => (h1 t).2) this
   choose t ht using hσ
   exact ⟨σ, λ k => ⟨I (t k), (subset_inter (ht k) σ.Icc_subset).trans (h2 (t k))⟩⟩
+
+def reladapted (σ : Subdivision a b) (S : ι → Set ℂ) (γ : ℝ → ℂ) : Prop :=
+  ∀ k, ∃ i, γ '' σ.Icc k ⊆ S i
+
+structure reladapted_witness (σ : Subdivision a b) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
+  I : Fin (σ.n + 1) → ι
+  hI : ∀ k, γ '' σ.Icc k ⊆ S (I k)
+
+lemma reladapted.witness {S : ι → Set ℂ} (h : reladapted σ S γ) : reladapted_witness σ S γ := by
+  choose I hI using h
+  exact ⟨I, hI⟩
+
+noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a ≤ b) (hγ : ContinuousOn γ (Set.Icc a b))
+    (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) :
+    { σ : Subdivision a b // reladapted σ S γ } := by
+  choose I hI using h
+  let S' (t : Set.Icc a b) := γ ⁻¹' S (I t)
+  have h1 (t : Set.Icc a b) : ∃ i, S' i ∈ 𝓝[Set.Icc a b] t.1 := ⟨t, hγ _ t.2 (hI t)⟩
+  obtain ⟨σ, hσ⟩ := exists_adapted' hab h1
+  refine ⟨σ, λ k => ?_⟩
+  obtain ⟨t, ht⟩ := hσ k
+  refine ⟨I t, image_subset_iff.2 ht⟩
 
 def sum (σ : Subdivision a b) (f : ℕ → ℝ → ℝ → ℂ) : ℂ :=
   ∑ i in Finset.range (σ.n + 1), f i (σ i) (σ (i + 1))

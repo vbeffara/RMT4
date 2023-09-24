@@ -21,19 +21,16 @@ noncomputable def IsLocDerivOn.witness (h : IsLocDerivOn U f) : locderivon_witne
   choose! F S H using h
   exact ⟨F, S, λ z hz => (H z hz).1, λ z hz => (H z hz).2⟩
 
-lemma isLocDerivOn_deriv : IsLocDerivOn U (deriv F) := λ _ _ => ⟨F, by sorry⟩
+lemma isLocDerivOn_deriv : IsLocDerivOn U (deriv F) := λ _ _ => ⟨F, _, univ_mem, eqOn_refl ..⟩
 
 section pintegral
 
 noncomputable def pintegral (hab : a ≤ b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : (γ '' Set.Icc a b) ⊆ U)
     (hγ : ContinuousOn γ (Set.Icc a b)) (hf : IsLocDerivOn U f) : ℂ := by
   let DW := hf.witness
-  let S (t : Set.Icc a b) := γ ⁻¹' DW.S (γ t)
-  have h (t : Set.Icc a b) : ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1 :=
-    ⟨t, hγ t t.2 (DW.h1 _ (h2 (mem_image_of_mem _ t.2)))⟩
-  choose σ hσ using exists_adapted' hab h
-  let AW := hσ.witness
-  refine σ.sumSubAlong (λ k => DW.F (γ (AW.I k))) γ
+  obtain ⟨σ, hσ⟩ := exists_reladapted hab hγ (λ t => ⟨γ t, DW.h1 _ (h2 (mem_image_of_mem _ t.2))⟩)
+  obtain RW := hσ.witness
+  exact σ.sumSubAlong (DW.F ∘ RW.I) γ
 
 def isPiecewiseDiffAlong (γ : ℝ → ℂ) (σ : Subdivision a b) : Prop :=
   ∀ i, ContDiffOn ℝ 1 γ (σ.Icc i)
@@ -61,5 +58,4 @@ lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) (f : ℂ → ℂ) (h : 
   · exact h.differentiableAt (hU.mem_nhds (L2 hx))
 
 example : pintegral (U := univ) (hab : a ≤ b) (λ _ => 0) γ h1 h2 h3 = 0 := by
-  simp [pintegral]
   sorry
