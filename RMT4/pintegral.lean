@@ -37,9 +37,8 @@ noncomputable def pintegral (hab : a ≤ b) (f : ℂ → ℂ) (γ : ℝ → ℂ)
   have h1 (t : Set.Icc a b) : ∃ i, hf.S i ∈ 𝓝 (γ t) :=
     let u : U := ⟨γ t, h2 t.2⟩
     ⟨u, hf.nhd u⟩
-  let ⟨σ, hσ⟩ := exists_reladapted hab hγ h1
-  let RW := hσ.witness
-  σ.sumSubAlong (hf.F ∘ RW.I) γ
+  let RW := exists_reladapted hab hγ h1
+  RW.σ.sumSubAlong (hf.F ∘ RW.I) γ
 
 end pintegral
 
@@ -63,23 +62,23 @@ lemma apply_eq_of_path (hab : a ≤ b) (f : ℂ → ℂ) (hf : IsLocallyConstant
   exact @IsLocallyConstant.apply_eq_of_isPreconnected _ _ _ _ (h2) _ isPreconnected_univ
     ⟨b, hab, le_rfl⟩ ⟨a, le_rfl, hab⟩ (mem_univ _) (mem_univ _)
 
-lemma sumSubAlong_eq_zero {σ : Subdivision a b} {DW : IsLocDerivOn U 0}
-  {RW : reladapted_witness σ DW.S γ} (hγ : ContinuousOn γ (Set.Icc a b)) :
-    σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
+lemma sumSubAlong_eq_zero {DW : IsLocDerivOn U 0}
+  {RW : reladapted a b DW.S γ} (hγ : ContinuousOn γ (Set.Icc a b)) :
+    RW.σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
   simp only [sumSubAlong, sumSub, sum]
   apply Finset.sum_eq_zero
   intro k hk
   rw [Finset.mem_range] at hk
   rw [sub_eq_zero]
   apply apply_eq_of_path (U := DW.S (RW.I k))
-  · refine σ.mono hk.le ?_ (Nat.le_succ k)
+  · refine RW.σ.mono hk.le ?_ (Nat.le_succ k)
     simpa only [mem_Iic, add_le_add_iff_right] using Nat.lt_succ.1 hk
   · apply isLocallyConstant_of_deriv_eq_zero (DW.opn _) _ (DW.dif _)
     exact λ _ hz => (DW.eqd (RW.I k) hz).symm
   · apply hγ.mono
-    convert σ.Icc_subset (i := k)
+    convert RW.σ.Icc_subset (i := k)
     simp only [Subdivision.Icc, Fin.coe_ofNat_eq_mod, Fin.val_succ, Nat.mod_eq_of_lt hk]
-  · apply (mapsTo'.2 (RW.hI k)).mono_left
+  · apply (mapsTo'.2 (RW.sub k)).mono_left
     simpa [Subdivision.Icc, Nat.mod_eq_of_lt hk] using subset_rfl
 
 lemma pintegral_zero : pintegral hab 0 γ h2 hγ hf = 0 := by
