@@ -43,7 +43,7 @@ noncomputable def pintegral (hab : a ≤ b) (f : ℂ → ℂ) (γ : ℝ → ℂ)
 end pintegral
 
 lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) (f : ℂ → ℂ) (h : DifferentiableOn ℂ f U)
-    (hf : ∀ z ∈ U, deriv f z = 0) :
+    (hf : U.EqOn (deriv f) 0) :
     IsLocallyConstant (U.restrict f) := by
   refine (IsLocallyConstant.iff_exists_open _).2 (λ ⟨z, hz⟩ => ?_)
   obtain ⟨ε, L1, L2⟩ := isOpen_iff.1 hU z hz
@@ -51,7 +51,7 @@ lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) (f : ℂ → ℂ) (h : 
   refine (convex_ball z ε).is_const_of_fderivWithin_eq_zero (h.mono L2) ?_ hz' (mem_ball_self L1)
   intro x hx
   rw [fderivWithin_eq_fderiv (isOpen_ball.uniqueDiffWithinAt hx)]
-  · exact ContinuousLinearMap.ext_ring (hf x (L2 hx))
+  · exact ContinuousLinearMap.ext_ring (hf (L2 hx))
   · exact h.differentiableAt (hU.mem_nhds (L2 hx))
 
 lemma apply_eq_of_path (hab : a ≤ b) (f : ℂ → ℂ) (hf : IsLocallyConstant (U.restrict f))
@@ -83,3 +83,74 @@ lemma sumSubAlong_eq_zero {DW : IsLocDerivOn U 0}
 
 lemma pintegral_zero : pintegral hab 0 γ h2 hγ hf = 0 := by
   simp only [pintegral, sumSubAlong_eq_zero hγ]
+
+example {hf : IsLocDerivOn U f} {RW RW' : reladapted a b hf.S γ} (h : RW.σ = RW'.σ)
+    (hγ : ContinuousOn γ (Set.Icc a b)) :
+    RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = RW'.σ.sumSubAlong (hf.F ∘ RW'.I) γ := by
+  simp only [h, sumSubAlong, sumSub, sum]
+  apply Finset.sum_congr rfl
+  intro k hk
+
+  set u := RW'.σ k
+  set v := RW'.σ (k + 1)
+  set ff := (hf.F ∘ RW.I) k
+  set gg := (hf.F ∘ RW'.I) k
+
+  rw [sub_eq_sub_iff_sub_eq_sub]
+
+  have huv : u ≤ v := by
+    refine RW'.σ.mono ?_ ?_ k.le_succ
+    · simp at hk ⊢ ; exact hk.le
+    · simp at hk ⊢ ; exact Nat.lt_succ.1 hk
+
+  set Uf : Set ℂ := hf.S (RW.I ⟨k, h ▸ Finset.mem_range.1 hk⟩)
+  set Ug : Set ℂ := hf.S (RW'.I ⟨k, Finset.mem_range.1 hk⟩)
+
+  have Uf' : DifferentiableOn ℂ ff Uf := by
+    convert hf.dif _ ; simp at hk ; simp [h, hk, Nat.mod_eq_of_lt]
+  have Uf'' := Uf'.mono (inter_subset_left Uf Ug)
+
+  have Ug' : DifferentiableOn ℂ gg Ug := by
+    convert hf.dif _ ; simp at hk ; simp [h, hk, Nat.mod_eq_of_lt]
+  have Ug'' := Ug'.mono (inter_subset_right Uf Ug)
+
+  set Ufg : Set ℂ := Uf ∩ Ug
+
+  have hfg : IsLocallyConstant (restrict Ufg (ff - gg)) := by
+    apply isLocallyConstant_of_deriv_eq_zero
+    · exact (hf.opn _).inter (hf.opn _)
+    · exact Uf''.sub Ug''
+    · intro z hz
+      have e1 : DifferentiableAt ℂ ff z := by
+        apply Uf'.differentiableAt
+        apply (hf.opn _).mem_nhds
+        exact hz.1
+      have e2 : DifferentiableAt ℂ gg z := by
+        apply Ug'.differentiableAt
+        apply (hf.opn _).mem_nhds
+        exact hz.2
+      have e3 : deriv (ff - gg) z = deriv ff z - deriv gg z := deriv_sub e1 e2
+      rw [e3]
+      have e4 : f z = deriv (hf.F (RW.I k)) z := by
+        convert hf.eqd (RW.I ⟨k, h ▸ Finset.mem_range.1 hk⟩) ((inter_subset_left Uf Ug) hz)
+        simpa [h] using hk
+      have e5 : f z = deriv (IsLocDerivOn.F hf (reladapted.I RW' ↑k)) z := by
+        convert hf.eqd (RW'.I ⟨k, Finset.mem_range.1 hk⟩) ((inter_subset_right Uf Ug) hz)
+        simpa [h] using hk
+      simp [← e4, ← e5]
+
+  have hIuv : Set.Icc u v ⊆ Set.Icc a b := RW'.σ.Icc_subset (i := ⟨k, Finset.mem_range.1 hk⟩)
+
+  have hγ1 : ContinuousOn γ (Set.Icc u v) := hγ.mono hIuv
+
+  have hγ2 : MapsTo γ (Set.Icc u v) Ufg := by
+    have e1 := RW.sub ⟨k, h ▸ Finset.mem_range.1 hk⟩
+    have e2 := RW'.sub ⟨k, Finset.mem_range.1 hk⟩
+    have : RW.σ.Icc  ⟨k, h ▸ Finset.mem_range.1 hk⟩ = RW'.σ.Icc  ⟨k, Finset.mem_range.1 hk⟩ := by
+      refine congr_arg₂ ?_ ?_ ?_ <;> simp [h]
+    rw [this] at e1
+    simpa only [mapsTo'] using subset_inter e1 e2
+
+  exact apply_eq_of_path huv (ff - gg) hfg γ hγ1 hγ2
+
+
