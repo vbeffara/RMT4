@@ -6,7 +6,7 @@ import Mathlib.Topology.LocallyConstant.Basic
 import Mathlib.Analysis.Calculus.MeanValue
 import RMT4.Subdivision
 
-open BigOperators Metric Set Subdivision Topology Filter
+open BigOperators Metric Set Subdivision Topology Filter Nat
 
 structure IsLocDerivOn (U : Set ℂ) (f : ℂ → ℂ) :=
   F : U → ℂ → ℂ
@@ -84,73 +84,84 @@ lemma sumSubAlong_eq_zero {DW : IsLocDerivOn U 0}
 lemma pintegral_zero : pintegral hab 0 γ h2 hγ hf = 0 := by
   simp only [pintegral, sumSubAlong_eq_zero hγ]
 
-example {hf : IsLocDerivOn U f} {RW RW' : reladapted a b hf.S γ} (h : RW.σ = RW'.σ)
+example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW₁.σ = RW₂.σ)
     (hγ : ContinuousOn γ (Set.Icc a b)) :
-    RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = RW'.σ.sumSubAlong (hf.F ∘ RW'.I) γ := by
-  simp only [h, sumSubAlong, sumSub, sum]
+    RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
+
+  rcases hf with ⟨F, S, Smem, Sopn, Ssub, Sdif, Seqd⟩
+  rcases RW₁ with ⟨σ, I₁, hI₁⟩
+  rcases RW₂ with ⟨σ', I₂, hI₂⟩
+  simp only at hI₁ hI₂ h ⊢
+  subst h
+
+  simp only [sumSubAlong, sumSub, sum]
   apply Finset.sum_congr rfl
   intro k hk
+  simp only [Finset.mem_range] at hk
 
-  set u := RW'.σ k
-  set v := RW'.σ (k + 1)
-  set ff := (hf.F ∘ RW.I) k
-  set gg := (hf.F ∘ RW'.I) k
+  set ff := F (I₁ k)
+  set gg := F (I₂ k)
+  set Iuv := σ.Icc k with hIuv
 
   rw [sub_eq_sub_iff_sub_eq_sub]
 
-  have huv : u ≤ v := by
-    refine RW'.σ.mono ?_ ?_ k.le_succ
-    · simp at hk ⊢ ; exact hk.le
-    · simp at hk ⊢ ; exact Nat.lt_succ.1 hk
+  have huv : σ k ≤ σ (k + 1) := by
+    refine σ.mono ?_ ?_ k.le_succ
+    · exact hk.le
+    · apply Nat.succ_le_succ
+      exact Nat.lt_succ.1 hk
 
-  set Uf : Set ℂ := hf.S (RW.I ⟨k, h ▸ Finset.mem_range.1 hk⟩)
-  set Ug : Set ℂ := hf.S (RW'.I ⟨k, Finset.mem_range.1 hk⟩)
+  set Uf : Set ℂ := S (I₁ ⟨k, hk⟩)
+  set Ug : Set ℂ := S (I₂ ⟨k, hk⟩)
 
   have Uf' : DifferentiableOn ℂ ff Uf := by
-    convert hf.dif _ ; simp at hk ; simp [h, hk, Nat.mod_eq_of_lt]
+    convert Sdif _ ; simp [hk, Nat.mod_eq_of_lt]
   have Uf'' := Uf'.mono (inter_subset_left Uf Ug)
 
   have Ug' : DifferentiableOn ℂ gg Ug := by
-    convert hf.dif _ ; simp at hk ; simp [h, hk, Nat.mod_eq_of_lt]
+    convert Sdif _ ; simp [hk, Nat.mod_eq_of_lt]
   have Ug'' := Ug'.mono (inter_subset_right Uf Ug)
 
   set Ufg : Set ℂ := Uf ∩ Ug
 
   have hfg : IsLocallyConstant (restrict Ufg (ff - gg)) := by
     apply isLocallyConstant_of_deriv_eq_zero
-    · exact (hf.opn _).inter (hf.opn _)
+    · exact (Sopn _).inter (Sopn _)
     · exact Uf''.sub Ug''
     · intro z hz
       have e1 : DifferentiableAt ℂ ff z := by
         apply Uf'.differentiableAt
-        apply (hf.opn _).mem_nhds
+        apply (Sopn _).mem_nhds
         exact hz.1
       have e2 : DifferentiableAt ℂ gg z := by
         apply Ug'.differentiableAt
-        apply (hf.opn _).mem_nhds
+        apply (Sopn _).mem_nhds
         exact hz.2
       have e3 : deriv (ff - gg) z = deriv ff z - deriv gg z := deriv_sub e1 e2
       rw [e3]
-      have e4 : f z = deriv (hf.F (RW.I k)) z := by
-        convert hf.eqd (RW.I ⟨k, h ▸ Finset.mem_range.1 hk⟩) ((inter_subset_left Uf Ug) hz)
-        simpa [h] using hk
-      have e5 : f z = deriv (IsLocDerivOn.F hf (reladapted.I RW' ↑k)) z := by
-        convert hf.eqd (RW'.I ⟨k, Finset.mem_range.1 hk⟩) ((inter_subset_right Uf Ug) hz)
-        simpa [h] using hk
+      have e4 : f z = deriv (F (I₁ k)) z := by
+        convert Seqd (I₁ ⟨k, hk⟩) ((inter_subset_left Uf Ug) hz)
+        simpa using hk
+      have e5 : f z = deriv (F (I₂ k)) z := by
+        convert Seqd (I₂ ⟨k, hk⟩) ((inter_subset_right Uf Ug) hz)
+        simpa using hk
       simp [← e4, ← e5]
 
-  have hIuv : Set.Icc u v ⊆ Set.Icc a b := RW'.σ.Icc_subset (i := ⟨k, Finset.mem_range.1 hk⟩)
+  have hIss : Iuv ⊆ Set.Icc a b := σ.Icc_subset
 
-  have hγ1 : ContinuousOn γ (Set.Icc u v) := hγ.mono hIuv
+  have hγ1 : ContinuousOn γ Iuv := hγ.mono hIss
 
-  have hγ2 : MapsTo γ (Set.Icc u v) Ufg := by
-    have e1 := RW.sub ⟨k, h ▸ Finset.mem_range.1 hk⟩
-    have e2 := RW'.sub ⟨k, Finset.mem_range.1 hk⟩
-    have : RW.σ.Icc  ⟨k, h ▸ Finset.mem_range.1 hk⟩ = RW'.σ.Icc  ⟨k, Finset.mem_range.1 hk⟩ := by
-      refine congr_arg₂ ?_ ?_ ?_ <;> simp [h]
+  have hγ2 : MapsTo γ Iuv Ufg := by
+    have e1 := hI₁ ⟨k, hk⟩
+    have e2 := hI₂ ⟨k, hk⟩
+    have : σ.Icc  ⟨k, hk⟩ = σ.Icc  ⟨k, hk⟩ := by
+      refine congr_arg₂ ?_ ?_ ?_ <;> simp
     rw [this] at e1
-    simpa only [mapsTo'] using subset_inter e1 e2
+    rw [mapsTo']
+    convert subset_inter e1 e2
+    simp [hk]
 
-  exact apply_eq_of_path huv (ff - gg) hfg γ hγ1 hγ2
-
+  refine apply_eq_of_path huv (ff - gg) hfg γ ?_ ?_
+  · convert hγ1 ; simp [hIuv, Subdivision.Icc, Nat.mod_eq_of_lt, hk]
+  · convert hγ2 ; simp [hIuv, Subdivision.Icc, Nat.mod_eq_of_lt, hk]
 
