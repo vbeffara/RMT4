@@ -88,7 +88,7 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
     (hγ : ContinuousOn γ (Set.Icc a b)) :
     RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
 
-  rcases hf with ⟨F, S, Smem, Sopn, Ssub, Sdif, Seqd⟩
+  rcases hf with ⟨F, S, _, Sopn, _, Sdif, Seqd⟩
   rcases RW₁ with ⟨σ, I₁, hI₁⟩
   rcases RW₂ with ⟨σ', I₂, hI₂⟩
   simp only at hI₁ hI₂ h ⊢
@@ -99,12 +99,12 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
   intro k hk
   simp only [Finset.mem_range] at hk
   rw [sub_eq_sub_iff_sub_eq_sub]
-
-  set ff := F (I₁ ⟨k, hk⟩)
-  set gg := F (I₂ ⟨k, hk⟩)
-  set Iuv := σ.Icc ⟨k, hk⟩
-  set Uf := S (I₁ ⟨k, hk⟩)
-  set Ug := S (I₂ ⟨k, hk⟩)
+  set K : Fin (σ.n + 1) := ⟨k, hk⟩
+  set ff := F (I₁ K)
+  set gg := F (I₂ K)
+  set Iuv := σ.Icc K
+  set Uf := S (I₁ K)
+  set Ug := S (I₂ K)
   set Ufg := Uf ∩ Ug
 
   have huv : σ k ≤ σ (k + 1) := σ.mono hk.le (succ_le_succ (lt_succ.1 hk)) k.le_succ
@@ -113,8 +113,8 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
   have Uf' : DifferentiableOn ℂ ff Uf := Sdif _
   have Ug' : DifferentiableOn ℂ gg Ug := Sdif _
 
-  have Uf'' := Uf'.mono (inter_subset_left Uf Ug)
-  have Ug'' := Ug'.mono (inter_subset_right Uf Ug)
+  have Uf'' := (Sdif _).mono (inter_subset_left Uf Ug)
+  have Ug'' := (Sdif _).mono (inter_subset_right Uf Ug)
 
   have hfg : IsLocallyConstant (restrict Ufg (ff - gg)) := by
     apply isLocallyConstant_of_deriv_eq_zero ((Sopn _).inter (Sopn _))
@@ -123,16 +123,14 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
       have e1 : DifferentiableAt ℂ ff z := Uf'.differentiableAt ((Sopn _).mem_nhds hz.1)
       have e2 : DifferentiableAt ℂ gg z := Ug'.differentiableAt ((Sopn _).mem_nhds hz.2)
       have e3 : deriv (ff - gg) z = deriv ff z - deriv gg z := deriv_sub e1 e2
-      have e4 : f z = deriv (F (I₁ ⟨k, hk⟩)) z := by
-        exact Seqd (I₁ ⟨k, hk⟩) ((inter_subset_left Uf Ug) hz)
-      have e5 : f z = deriv (F (I₂ ⟨k, hk⟩)) z := by
-        exact Seqd (I₂ ⟨k, hk⟩) ((inter_subset_right Uf Ug) hz)
-      simp [e3, ← e4, ← e5]
+      have e4 : f z = deriv ff z := Seqd (I₁ K) ((inter_subset_left Uf Ug) hz)
+      have e5 : f z = deriv gg z := Seqd (I₂ K) ((inter_subset_right Uf Ug) hz)
+      simp only [e3, ← e4, ← e5, sub_self, Pi.zero_apply]
 
   have hγ1 : ContinuousOn γ Iuv := hγ.mono σ.Icc_subset
 
   have hγ2 : MapsTo γ Iuv Ufg := by
-    simpa only [mapsTo', hIuv'] using subset_inter (hI₁ ⟨k, hk⟩) (hI₂ ⟨k, hk⟩)
+    simpa only [mapsTo', hIuv'] using subset_inter (hI₁ K) (hI₂ K)
 
   convert apply_eq_of_path huv (ff - gg) hfg γ (hIuv' ▸ hγ1) (hIuv' ▸ hγ2) using 1 <;>
     congr <;> ext <;> simp [hk]
