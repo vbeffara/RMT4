@@ -98,70 +98,43 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
   apply Finset.sum_congr rfl
   intro k hk
   simp only [Finset.mem_range] at hk
-
-  set ff := F (I₁ k)
-  set gg := F (I₂ k)
-  set Iuv := σ.Icc k with hIuv
-
   rw [sub_eq_sub_iff_sub_eq_sub]
 
-  have huv : σ k ≤ σ (k + 1) := by
-    refine σ.mono ?_ ?_ k.le_succ
-    · exact hk.le
-    · apply Nat.succ_le_succ
-      exact Nat.lt_succ.1 hk
+  set ff := F (I₁ ⟨k, hk⟩)
+  set gg := F (I₂ ⟨k, hk⟩)
+  set Iuv := σ.Icc ⟨k, hk⟩
+  set Uf := S (I₁ ⟨k, hk⟩)
+  set Ug := S (I₂ ⟨k, hk⟩)
+  set Ufg := Uf ∩ Ug
 
-  set Uf : Set ℂ := S (I₁ ⟨k, hk⟩)
-  set Ug : Set ℂ := S (I₂ ⟨k, hk⟩)
+  have huv : σ k ≤ σ (k + 1) := σ.mono hk.le (succ_le_succ (lt_succ.1 hk)) k.le_succ
+  have hIuv' : Iuv = Set.Icc (σ k) (σ (k + 1)) := by simp only [Subdivision.Icc, Fin.succ_mk]
 
-  have Uf' : DifferentiableOn ℂ ff Uf := by
-    convert Sdif _ ; simp [hk, Nat.mod_eq_of_lt]
+  have Uf' : DifferentiableOn ℂ ff Uf := Sdif _
+  have Ug' : DifferentiableOn ℂ gg Ug := Sdif _
+
   have Uf'' := Uf'.mono (inter_subset_left Uf Ug)
-
-  have Ug' : DifferentiableOn ℂ gg Ug := by
-    convert Sdif _ ; simp [hk, Nat.mod_eq_of_lt]
   have Ug'' := Ug'.mono (inter_subset_right Uf Ug)
 
-  set Ufg : Set ℂ := Uf ∩ Ug
-
   have hfg : IsLocallyConstant (restrict Ufg (ff - gg)) := by
-    apply isLocallyConstant_of_deriv_eq_zero
-    · exact (Sopn _).inter (Sopn _)
+    apply isLocallyConstant_of_deriv_eq_zero ((Sopn _).inter (Sopn _))
     · exact Uf''.sub Ug''
     · intro z hz
-      have e1 : DifferentiableAt ℂ ff z := by
-        apply Uf'.differentiableAt
-        apply (Sopn _).mem_nhds
-        exact hz.1
-      have e2 : DifferentiableAt ℂ gg z := by
-        apply Ug'.differentiableAt
-        apply (Sopn _).mem_nhds
-        exact hz.2
+      have e1 : DifferentiableAt ℂ ff z := Uf'.differentiableAt ((Sopn _).mem_nhds hz.1)
+      have e2 : DifferentiableAt ℂ gg z := Ug'.differentiableAt ((Sopn _).mem_nhds hz.2)
       have e3 : deriv (ff - gg) z = deriv ff z - deriv gg z := deriv_sub e1 e2
-      rw [e3]
-      have e4 : f z = deriv (F (I₁ k)) z := by
-        convert Seqd (I₁ ⟨k, hk⟩) ((inter_subset_left Uf Ug) hz)
-        simpa using hk
-      have e5 : f z = deriv (F (I₂ k)) z := by
-        convert Seqd (I₂ ⟨k, hk⟩) ((inter_subset_right Uf Ug) hz)
-        simpa using hk
-      simp [← e4, ← e5]
+      have e4 : f z = deriv (F (I₁ ⟨k, hk⟩)) z := by
+        exact Seqd (I₁ ⟨k, hk⟩) ((inter_subset_left Uf Ug) hz)
+      have e5 : f z = deriv (F (I₂ ⟨k, hk⟩)) z := by
+        exact Seqd (I₂ ⟨k, hk⟩) ((inter_subset_right Uf Ug) hz)
+      simp [e3, ← e4, ← e5]
 
-  have hIss : Iuv ⊆ Set.Icc a b := σ.Icc_subset
-
-  have hγ1 : ContinuousOn γ Iuv := hγ.mono hIss
+  have hγ1 : ContinuousOn γ Iuv := hγ.mono σ.Icc_subset
 
   have hγ2 : MapsTo γ Iuv Ufg := by
-    have e1 := hI₁ ⟨k, hk⟩
-    have e2 := hI₂ ⟨k, hk⟩
-    have : σ.Icc  ⟨k, hk⟩ = σ.Icc  ⟨k, hk⟩ := by
-      refine congr_arg₂ ?_ ?_ ?_ <;> simp
-    rw [this] at e1
-    rw [mapsTo']
-    convert subset_inter e1 e2
-    simp [hk]
+    simpa only [mapsTo', hIuv'] using subset_inter (hI₁ ⟨k, hk⟩) (hI₂ ⟨k, hk⟩)
 
-  refine apply_eq_of_path huv (ff - gg) hfg γ ?_ ?_
-  · convert hγ1 ; simp [hIuv, Subdivision.Icc, Nat.mod_eq_of_lt, hk]
-  · convert hγ2 ; simp [hIuv, Subdivision.Icc, Nat.mod_eq_of_lt, hk]
+  convert apply_eq_of_path huv (ff - gg) hfg γ (hIuv' ▸ hγ1) (hIuv' ▸ hγ2) using 1 <;>
+    congr <;> ext <;> simp [hk]
+
 
