@@ -98,23 +98,19 @@ noncomputable def regular (hab : a ≤ b) (n : ℕ) : Subdivision a b where
 
 variable {S : ι → Set ℝ}
 
-structure adapted_witness (σ : Subdivision a b) (S : ι → Set ℝ) :=
+structure adapted (σ : Subdivision a b) (S : ι → Set ℝ) :=
   I : Fin (σ.n + 1) → ι
-  hI : ∀ k, σ.Icc k ⊆ S (I k)
-
-def adapted (σ : Subdivision a b) (S : ι → Set ℝ) : Prop := ∀ k, ∃ i, σ.Icc k ⊆ S i
-
-noncomputable def adapted.witness (h : adapted σ S) : adapted_witness σ S := by
-  choose I hI using h
-  exact ⟨I, hI⟩
+  hI k : σ.Icc k ⊆ S (I k)
 
 lemma adapted_of_mesh_lt (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → adapted σ S := by
+    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → Nonempty (adapted σ S) := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
-  refine ⟨ε, hε, λ σ hσ j => ?_⟩
-  obtain ⟨i, hi⟩ := l1 (σ j.castSucc) (σ.subset j.prop.le)
+  refine ⟨ε, hε, λ σ hσ => ?_⟩
+  choose I hI using l1
+  refine ⟨λ j => I (σ j.castSucc) (σ.subset j.prop.le), ?_⟩
+  intro j
+  have hi := hI (σ j.castSucc) (σ.subset j.prop.le)
   have : Set.OrdConnected (ball (σ j.castSucc) ε) := (convex_ball ..).ordConnected
-  use i
   refine subset_trans ?_ hi
   refine Set.Icc_subset _ (mem_ball_self hε) ?_
   simp
@@ -123,25 +119,28 @@ lemma adapted_of_mesh_lt (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i,
   simpa using Nat.lt_succ.1 j.prop
 
 lemma adapted_of_mesh_le (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → adapted σ S := by
+    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → Nonempty (adapted σ S) := by
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt h1 h2
   refine ⟨ε / 2, by positivity, λ σ hσ => h σ (by linarith)⟩
 
+structure adapted_subdivision (a b : ℝ) (S : ι → Set ℝ) :=
+  σ : Subdivision a b
+  h : adapted σ S
+
 noncomputable def exists_adapted (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
-    { σ : Subdivision a b // adapted σ S } := by
+    adapted_subdivision a b S := by
   choose ε hε h using adapted_of_mesh_le h1 h2
   choose n hn using exists_div_lt (sub_nonneg_of_le hab) hε
   have : (regular hab n).mesh = (b - a) / (n + 1) := regular_mesh hab
-  exact ⟨regular hab n, h _ (by linarith)⟩
+  exact ⟨_, (h (regular hab n) (by linarith)).some⟩
 
 noncomputable def exists_adapted' (hab : a ≤ b) (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1) :
-    { σ : Subdivision a b // adapted σ S } := by
+    adapted_subdivision a b S := by
   choose I hI using h
   choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Set.Icc a b)).mem_iff.1 (hI t)
   have : Set.Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
-  obtain ⟨σ, hσ⟩ := exists_adapted hab (λ t => (h1 t).2) this
-  choose t ht using hσ
-  exact ⟨σ, λ k => ⟨I (t k), (subset_inter (ht k) σ.Icc_subset).trans (h2 (t k))⟩⟩
+  obtain ⟨σ, hσ1, hσ2⟩ := exists_adapted hab (λ t => (h1 t).2) this
+  exact ⟨σ, I ∘ hσ1, λ k => (subset_inter (hσ2 k) σ.Icc_subset).trans (h2 (hσ1 k))⟩
 
 structure reladapted (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
   σ : Subdivision a b
@@ -151,8 +150,7 @@ structure reladapted (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
 noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a ≤ b) (hγ : ContinuousOn γ (Set.Icc a b))
     (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) : reladapted a b S γ := by
   choose I hI using h
-  obtain ⟨σ, hσ⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
-  choose K hK using hσ
+  obtain ⟨σ, K, hK⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
   exact ⟨σ, I ∘ K, λ k => image_subset_iff.2 (hK k)⟩
 
 def sum (σ : Subdivision a b) (f : ℕ → ℝ → ℝ → ℂ) : ℂ :=
