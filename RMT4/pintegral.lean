@@ -117,15 +117,14 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
   have Ug'' := (Sdif _).mono (inter_subset_right Uf Ug)
 
   have hfg : IsLocallyConstant (restrict Ufg (ff - gg)) := by
-    apply isLocallyConstant_of_deriv_eq_zero ((Sopn _).inter (Sopn _))
-    · exact Uf''.sub Ug''
-    · intro z hz
-      have e1 : DifferentiableAt ℂ ff z := Uf'.differentiableAt ((Sopn _).mem_nhds hz.1)
-      have e2 : DifferentiableAt ℂ gg z := Ug'.differentiableAt ((Sopn _).mem_nhds hz.2)
-      have e3 : deriv (ff - gg) z = deriv ff z - deriv gg z := deriv_sub e1 e2
-      have e4 : f z = deriv ff z := Seqd (I₁ K) ((inter_subset_left Uf Ug) hz)
-      have e5 : f z = deriv gg z := Seqd (I₂ K) ((inter_subset_right Uf Ug) hz)
-      simp only [e3, ← e4, ← e5, sub_self, Pi.zero_apply]
+    refine isLocallyConstant_of_deriv_eq_zero ((Sopn _).inter (Sopn _)) _ (Uf''.sub Ug'') ?_
+    intro z hz
+    have e1 : DifferentiableAt ℂ ff z := Uf'.differentiableAt ((Sopn _).mem_nhds hz.1)
+    have e2 : DifferentiableAt ℂ gg z := Ug'.differentiableAt ((Sopn _).mem_nhds hz.2)
+    have e3 : deriv (ff - gg) z = deriv ff z - deriv gg z := deriv_sub e1 e2
+    have e4 : f z = deriv ff z := Seqd (I₁ K) ((inter_subset_left Uf Ug) hz)
+    have e5 : f z = deriv gg z := Seqd (I₂ K) ((inter_subset_right Uf Ug) hz)
+    simp only [e3, ← e4, ← e5, sub_self, Pi.zero_apply]
 
   have hγ1 : ContinuousOn γ Iuv := hγ.mono σ.Icc_subset
 
