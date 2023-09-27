@@ -65,18 +65,14 @@ lemma apply_eq_of_path (hab : a ≤ b) {f : ℂ → ℂ} (hf : IsLocallyConstant
 lemma sumSubAlong_eq_zero {DW : IsLocDerivOn U 0}
   {RW : reladapted a b DW.S γ} (hγ : ContinuousOn γ (Set.Icc a b)) :
     RW.σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
-  simp only [sumSubAlong, sumSub, sum]
-  apply Finset.sum_eq_zero
-  intro k _
-  rw [sub_eq_zero]
-  refine apply_eq_of_path (U := DW.S (RW.I k)) RW.σ.mono' ?_ ?_ ?_
+  refine Subdivision.sum_eq_zero (λ k => (sub_eq_zero.2 ?_))
+  apply apply_eq_of_path RW.σ.mono'
   · apply isLocallyConstant_of_deriv_eq_zero (DW.opn _) (DW.dif _)
     exact λ _ hz => (DW.eqd (RW.I k) hz).symm
   · exact hγ.mono RW.σ.Icc_subset
   · exact mapsTo'.2 (RW.sub k)
 
-lemma pintegral_zero : pintegral hab 0 γ h2 hγ hf = 0 := by
-  simp only [pintegral, sumSubAlong_eq_zero hγ]
+lemma pintegral_zero : pintegral hab 0 γ h2 hγ hf = 0 := by simp [pintegral, sumSubAlong_eq_zero hγ]
 
 lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
     {γ : ℝ → ℂ} (hγ₁ : ContinuousOn γ (Set.Icc a b)) (hγ₂ : MapsTo γ (Set.Icc a b) U)
@@ -92,21 +88,16 @@ lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
   have h3 : deriv (f - g) z = deriv f z - deriv g z := deriv_sub h1 h2
   simp [hfg z hz, h3]
 
-example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW₁.σ = RW₂.σ)
-    (hγ : ContinuousOn γ (Set.Icc a b)) :
+lemma sumSubAlong_eq_of_sigma {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ}
+    (h : RW₁.σ = RW₂.σ) (hγ : ContinuousOn γ (Set.Icc a b)) :
     RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
   rcases hf with ⟨F, S, _, Sopn, _, Sdif, Seqd⟩
   rcases RW₁ with ⟨σ, I₁, hI₁⟩
   rcases RW₂ with ⟨σ', I₂, hI₂⟩
   subst h
-  simp only [sumSubAlong, sumSub, sum]
-  refine Finset.sum_congr rfl (λ k _ => ?_)
-  apply sub_eq_sub_of_deriv_eq_deriv
-  · exact σ.mono'
-  · exact (Sopn (I₁ k)).inter (Sopn (I₂ k))
-  · exact hγ.mono σ.Icc_subset
+  refine Subdivision.sum_congr (λ k => ?_)
+  apply sub_eq_sub_of_deriv_eq_deriv σ.mono' ((Sopn _).inter (Sopn _)) (hγ.mono σ.Icc_subset)
   · simpa only [mapsTo'] using subset_inter (hI₁ k) (hI₂ k)
   · exact (Sdif _).mono (inter_subset_left _ _)
   · exact (Sdif _).mono (inter_subset_right _ _)
-  · intro z ⟨hz₁, hz₂⟩
-    exact (Seqd _ hz₁).symm.trans (Seqd _ hz₂)
+  · exact λ z hz => (Seqd _ hz.1).symm.trans (Seqd _ hz.2)

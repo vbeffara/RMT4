@@ -2,7 +2,7 @@ import Mathlib.Tactic
 import Mathlib.Order.Monotone.Basic
 import Mathlib.Data.Set.Intervals.Basic
 
-open Set Metric BigOperators Topology Finset
+open Set Metric BigOperators Topology Finset Nat
 
 lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
   cases ha.eq_or_lt with
@@ -43,6 +43,30 @@ namespace Subdivision
 variable {a b c : ℝ} {n : ℕ} {σ : Subdivision a b}
 
 instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.n + 2) → ℝ) := ⟨toFun⟩
+
+noncomputable def ofList (l : List ℝ) (hl : 2 ≤ l.length) (hl' : l.Sorted (· ≤ ·)):
+    Subdivision (l.get ⟨0, (zero_lt_two.trans_le hl)⟩)
+      (l.get ⟨l.length - 1, Nat.sub_one_sub_lt (zero_lt_two.trans_le hl)⟩) := by
+    let n := l.length - 2
+    have l1 : n + 2 = l.length := Nat.sub_add_cancel hl
+    have l2 : l.length - 2 + 1 = l.length - 1 := eq_tsub_of_add_eq l1
+    refine ⟨n, λ i => l.get (Fin.cast l1 i), rfl, by simp [Fin.cast, l2], ?_⟩
+    exact Monotone.comp hl'.get_mono (λ i j => id)
+
+noncomputable def ofFinset (s : Finset ℝ) (hs : 2 ≤ s.card) :
+    Subdivision
+      (s.min' (Finset.card_pos.1 (zero_lt_two.trans_le hs)))
+      (s.max' (Finset.card_pos.1 (zero_lt_two.trans_le hs))) :=
+  let l := s.sort (· ≤ ·)
+  have l0 := Finset.card_pos.1 (zero_lt_two.trans_le hs)
+  have l1 : 2 ≤ List.length l := by rwa [Finset.length_sort]
+  have l2 : 0 < l.length := zero_lt_two.trans_le l1
+  have l3 : l.get ⟨_, l2⟩ = s.min' l0 := by simp [Finset.min'_eq_sorted_zero] ; rfl
+  have l4 : l.length - 1 < l.length := Nat.sub_one_sub_lt l2
+  have l5 : l.get ⟨_, l4⟩ = s.max' l0 := by simp [Finset.max'_eq_sorted_last] ;  rfl
+  l3 ▸ l5 ▸ ofList l l1 (Finset.sort_sorted _ _)
+
+noncomputable def toFinset (σ : Subdivision a b) : Finset ℝ := Finset.image σ univ
 
 lemma subset {σ : Subdivision a b} {i : Fin (σ.n + 2)} : σ i ∈ Set.Icc a b := by
   constructor
@@ -160,14 +184,25 @@ noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a ≤ b) (hγ : 
   obtain ⟨σ, K, hK⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
   exact ⟨σ, I ∘ K, λ k => image_subset_iff.2 (hK k)⟩
 
-def sum (σ : Subdivision a b) (f : Fin (σ.n + 1) → ℝ → ℝ → ℂ) : ℂ :=
-  ∑ i : Fin (σ.n + 1), f i (σ i.castSucc) (σ i.succ)
+section sum
 
-noncomputable def sumSub (σ : Subdivision a b) (F : Fin (σ.n + 1) -> ℝ -> ℂ) : ℂ :=
+def sum (σ : Subdivision a b) (f : Fin (σ.n + 1) → ℝ → ℝ → ℂ) : ℂ :=
+  ∑ i : _, f i (σ i.castSucc) (σ i.succ)
+
+noncomputable abbrev sumSub (σ : Subdivision a b) (F : Fin (σ.n + 1) -> ℝ -> ℂ) : ℂ :=
   σ.sum (λ i x y => F i y - F i x)
 
-noncomputable def sumSubAlong (σ : Subdivision a b) (F : Fin (σ.n + 1) → ℂ → ℂ)
+noncomputable abbrev sumSubAlong (σ : Subdivision a b) (F : Fin (σ.n + 1) → ℂ → ℂ)
     (γ : ℝ → ℂ) : ℂ :=
   sumSub σ (λ i => F i ∘ γ)
+
+lemma sum_eq_zero (h : ∀ i, F i (σ i.castSucc) (σ i.succ) = 0) : σ.sum F = 0 :=
+  Finset.sum_eq_zero (λ i _ => h i)
+
+lemma sum_congr {F G : Fin (σ.n + 1) → ℝ → ℝ → ℂ}
+    (h : ∀ i, F i (σ i.castSucc) (σ i.succ) = G i (σ i.castSucc) (σ i.succ)) : σ.sum F = σ.sum G :=
+  Finset.sum_congr rfl (λ i _ => h i)
+
+end sum
 
 end Subdivision
