@@ -2,7 +2,7 @@ import Mathlib.Tactic
 import Mathlib.Order.Monotone.Basic
 import Mathlib.Data.Set.Intervals.Basic
 
-open Set Metric BigOperators Topology
+open Set Metric BigOperators Topology Finset
 
 lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
   cases ha.eq_or_lt with
@@ -33,68 +33,75 @@ lemma splice_eq_splice' (h : f n = g 0) : splice f g n = splice' f g n := by
 
 structure Subdivision (a b : ℝ) where
   n : ℕ
-  toFun : ℕ → ℝ
+  toFun : Fin (n + 2) → ℝ
   first : toFun 0 = a
-  last : toFun (n + 1) = b
-  mono : MonotoneOn toFun (Set.Iic (n + 1))
+  last : toFun (Fin.last _) = b
+  mono : Monotone toFun
 
 namespace Subdivision
 
 variable {a b c : ℝ} {n : ℕ} {σ : Subdivision a b}
 
-instance : CoeFun (Subdivision a b) (λ _ => ℕ → ℝ) := ⟨toFun⟩
+instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.n + 2) → ℝ) := ⟨toFun⟩
 
-lemma subset (σ : Subdivision a b) (hi : i ≤ σ.n + 1) : σ i ∈ Set.Icc a b := by
+lemma subset {σ : Subdivision a b} {i : Fin (σ.n + 2)} : σ i ∈ Set.Icc a b := by
   constructor
-  · simpa only [← σ.first] using σ.mono (zero_le (σ.n + 1)) hi (zero_le _)
-  · simpa only [← σ.last] using σ.mono hi (le_refl (σ.n + 1)) hi
+  · simpa only [← σ.first] using σ.mono (Fin.zero_le _)
+  · simpa only [← σ.last] using σ.mono (Fin.le_last _)
 
-lemma le (σ : Subdivision a b) : a ≤ b := σ.first ▸ (σ.subset (zero_le _)).2
+lemma le (σ : Subdivision a b) : a ≤ b := by
+  simpa only [← σ.first, ← σ.last] using σ.mono (Fin.zero_le _)
 
-def hsplice (σ : Subdivision a b) (τ : Subdivision b c) : Subdivision a c where
-  n := σ.n + 1 + τ.n
-  toFun := splice σ τ (σ.n + 1)
-  first := by rw [splice_zero, σ.first]
-  last := by rw [add_assoc _ τ.n, splice_add (σ.last.trans τ.first.symm), τ.last]
-  mono i hi j hj hij := by
-    have hb : σ (σ.n + 1) = τ 0 := σ.last.trans τ.first.symm
-    have hh : τ.n + 1 + (σ.n + 1) = σ.n + 1 + τ.n + 1 := by abel
-    cases' le_total i (σ.n + 1) with h1 h1 <;> cases' le_total j (σ.n + 1) with h2 h2
-    · simpa [splice, h1, h2] using σ.mono h1 h2 hij
-    · rw [splice, splice_eq_splice' hb, splice']
-      simp only [h1, h2, ite_true]
-      refine (σ.subset h1).2.trans (τ.subset ?_).1
-      simpa only [tsub_le_iff_right, hh]
-    · rw [(by linarith : i = j)]
-    · simp only [splice_eq_splice' hb, splice', h1, h2, ite_true]
-      refine τ.mono ?_ ?_ (Nat.sub_le_sub_right hij (σ.n + 1)) <;>
-        simpa only [Set.mem_Iic, tsub_le_iff_right, hh]
+lemma mono' (σ : Subdivision a b) {i : Fin (σ.n + 1)} : σ i.castSucc ≤ σ i.succ :=
+  Fin.monotone_iff_le_succ.1 σ.mono i
 
-instance {a b c : ℝ} : HAppend (Subdivision a b) (Subdivision b c) (Subdivision a c) := ⟨hsplice⟩
+-- def hsplice (σ : Subdivision a b) (τ : Subdivision b c) : Subdivision a c where
+--   n := σ.n + 1 + τ.n
+--   toFun := splice σ τ (σ.n + 1)
+--   first := by rw [splice_zero, σ.first]
+--   last := by rw [add_assoc _ τ.n, splice_add (σ.last.trans τ.first.symm), τ.last]
+--   mono i hi j hj hij := by
+--     have hb : σ (σ.n + 1) = τ 0 := σ.last.trans τ.first.symm
+--     have hh : τ.n + 1 + (σ.n + 1) = σ.n + 1 + τ.n + 1 := by abel
+--     cases' le_total i (σ.n + 1) with h1 h1 <;> cases' le_total j (σ.n + 1) with h2 h2
+--     · simpa [splice, h1, h2] using σ.mono h1 h2 hij
+--     · rw [splice, splice_eq_splice' hb, splice']
+--       simp only [h1, h2, ite_true]
+--       refine (σ.subset h1).2.trans (τ.subset ?_).1
+--       simpa only [tsub_le_iff_right, hh]
+--     · rw [(by linarith : i = j)]
+--     · simp only [splice_eq_splice' hb, splice', h1, h2, ite_true]
+--       refine τ.mono ?_ ?_ (Nat.sub_le_sub_right hij (σ.n + 1)) <;>
+--         simpa only [Set.mem_Iic, tsub_le_iff_right, hh]
 
-def Icc (σ : Subdivision a b) (i : Fin (σ.n + 1)) : Set ℝ := Set.Icc (σ i) (σ i.succ)
+-- instance {a b c : ℝ} : HAppend (Subdivision a b) (Subdivision b c) (Subdivision a c) := ⟨hsplice⟩
 
-lemma Icc_subset {i} : σ.Icc i ⊆ Set.Icc a b :=
-  Set.Icc_subset_Icc (σ.subset Fin.is_le').1 (σ.subset (Fin.is_le _)).2
+def Icc (σ : Subdivision a b) (i : Fin (σ.n + 1)) : Set ℝ := Set.Icc (σ i.castSucc) (σ i.succ)
 
-noncomputable def mesh (σ : Subdivision a b) : ℝ := ⨆ i : Fin (σ.n + 1), (σ i.succ - σ i)
+lemma Icc_subset : σ.Icc i ⊆ Set.Icc a b := Set.Icc_subset_Icc subset.1 subset.2
 
-lemma le_mesh {i : Fin (σ.n + 1)} : σ (i + 1) - σ i ≤ σ.mesh :=
-  le_ciSup (f := λ i : Fin (σ.n + 1) => σ i.succ - σ i) (finite_range _).bddAbove _
+def length (σ : Subdivision a b) (i : Fin (σ.n + 1)) : ℝ := σ i.succ - σ i.castSucc
+
+noncomputable def lengths (σ : Subdivision a b) : Finset ℝ := Finset.image σ.length Finset.univ
+
+noncomputable def mesh (σ : Subdivision a b) : ℝ := σ.lengths.max' (Finset.univ_nonempty.image _)
+
+lemma le_mesh {i : Fin (σ.n + 1)} : σ i.succ - σ i.castSucc ≤ σ.mesh := by
+  apply le_max' _ _ (Finset.mem_image_of_mem _ (Finset.mem_univ i))
 
 noncomputable def regular (hab : a ≤ b) (n : ℕ) : Subdivision a b where
   n := n
   toFun i := a + i * ((b - a) / (n + 1))
   first := by simp
   last := by field_simp; ring
-  mono i _ j _ hij := by
-    have : 0 ≤ b - a := by linarith;
-    simp; gcongr
+  mono i j hij := by
+    have : 0 ≤ b - a := sub_nonneg_of_le hab
+    have : 0 ≤ (b - a) / (↑n + 1) := by positivity
+    simp ; gcongr ; exact hij
 
 @[simp] lemma regular_mesh (hab : a ≤ b) : (regular hab n).mesh = (b - a) / (n + 1) := by
-  have (i) : (i + 1) * ((b - a) / (n + 1)) - i * ((b - a) / (n + 1)) = (b - a) / (n + 1) :=
-    by field_simp; ring
-  simp [mesh, regular, this]
+  have (i x : ℝ) : (i + 1) * x - i * x = x := by ring
+  simp [mesh, lengths, length, regular, this, Finset.image_const, Finset.univ_nonempty]
 
 variable {S : ι → Set ℝ}
 
@@ -107,16 +114,16 @@ lemma adapted_of_mesh_lt (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i,
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε, hε, λ σ hσ => ?_⟩
   choose I hI using l1
-  refine ⟨λ j => I (σ j.castSucc) (σ.subset j.prop.le), ?_⟩
-  intro j
-  have hi := hI (σ j.castSucc) (σ.subset j.prop.le)
+  refine ⟨λ j => I (σ j.castSucc) σ.subset, λ j => ?_⟩
+  have hi := hI (σ j.castSucc) σ.subset
   have : Set.OrdConnected (ball (σ j.castSucc) ε) := (convex_ball ..).ordConnected
   refine subset_trans ?_ hi
   refine Set.Icc_subset _ (mem_ball_self hε) ?_
   simp
   convert (le_mesh (i := j)).trans_lt hσ using 1
-  refine abs_eq_self.2 (sub_nonneg.2 (σ.mono j.prop.le ?_ (Nat.le_succ _)))
-  simpa using Nat.lt_succ.1 j.prop
+  refine abs_eq_self.2 (sub_nonneg.2 (σ.mono ?_))
+  rw [Fin.le_def]
+  simp
 
 lemma adapted_of_mesh_le (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → Nonempty (adapted σ S) := by
@@ -140,7 +147,7 @@ noncomputable def exists_adapted' (hab : a ≤ b) (h : ∀ t : Set.Icc a b, ∃ 
   choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Set.Icc a b)).mem_iff.1 (hI t)
   have : Set.Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
   obtain ⟨σ, hσ1, hσ2⟩ := exists_adapted hab (λ t => (h1 t).2) this
-  exact ⟨σ, I ∘ hσ1, λ k => (subset_inter (hσ2 k) σ.Icc_subset).trans (h2 (hσ1 k))⟩
+  exact ⟨σ, I ∘ hσ1, λ k => (Set.subset_inter (hσ2 k) σ.Icc_subset).trans (h2 (hσ1 k))⟩
 
 structure reladapted (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
   σ : Subdivision a b
@@ -153,8 +160,8 @@ noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a ≤ b) (hγ : 
   obtain ⟨σ, K, hK⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
   exact ⟨σ, I ∘ K, λ k => image_subset_iff.2 (hK k)⟩
 
-def sum (σ : Subdivision a b) (f : ℕ → ℝ → ℝ → ℂ) : ℂ :=
-  ∑ i in Finset.range (σ.n + 1), f i (σ i) (σ (i + 1))
+def sum (σ : Subdivision a b) (f : Fin (σ.n + 1) → ℝ → ℝ → ℂ) : ℂ :=
+  ∑ i : Fin (σ.n + 1), f i (σ i.castSucc) (σ i.succ)
 
 noncomputable def sumSub (σ : Subdivision a b) (F : Fin (σ.n + 1) -> ℝ -> ℂ) : ℂ :=
   σ.sum (λ i x y => F i y - F i x)
@@ -162,8 +169,5 @@ noncomputable def sumSub (σ : Subdivision a b) (F : Fin (σ.n + 1) -> ℝ -> �
 noncomputable def sumSubAlong (σ : Subdivision a b) (F : Fin (σ.n + 1) → ℂ → ℂ)
     (γ : ℝ → ℂ) : ℂ :=
   sumSub σ (λ i => F i ∘ γ)
-
-lemma telescopic : sumSub σ (λ _ => f) = f b - f a := by
-  simpa only [← σ.first, ← σ.last] using Finset.sum_range_sub (f ∘ σ) _
 
 end Subdivision

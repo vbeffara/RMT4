@@ -67,19 +67,13 @@ lemma sumSubAlong_eq_zero {DW : IsLocDerivOn U 0}
     RW.σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
   simp only [sumSubAlong, sumSub, sum]
   apply Finset.sum_eq_zero
-  intro k hk
-  rw [Finset.mem_range] at hk
+  intro k _
   rw [sub_eq_zero]
-  apply apply_eq_of_path (U := DW.S (RW.I k))
-  · refine RW.σ.mono hk.le ?_ (Nat.le_succ k)
-    simpa only [mem_Iic, add_le_add_iff_right] using Nat.lt_succ.1 hk
+  refine apply_eq_of_path (U := DW.S (RW.I k)) RW.σ.mono' ?_ ?_ ?_
   · apply isLocallyConstant_of_deriv_eq_zero (DW.opn _) (DW.dif _)
     exact λ _ hz => (DW.eqd (RW.I k) hz).symm
-  · apply hγ.mono
-    convert RW.σ.Icc_subset (i := k)
-    simp only [Subdivision.Icc, Fin.coe_ofNat_eq_mod, Fin.val_succ, Nat.mod_eq_of_lt hk]
-  · apply (mapsTo'.2 (RW.sub k)).mono_left
-    simpa [Subdivision.Icc, Nat.mod_eq_of_lt hk] using subset_rfl
+  · exact hγ.mono RW.σ.Icc_subset
+  · exact mapsTo'.2 (RW.sub k)
 
 lemma pintegral_zero : pintegral hab 0 γ h2 hγ hf = 0 := by
   simp only [pintegral, sumSubAlong_eq_zero hγ]
@@ -106,17 +100,13 @@ example {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ} (h : RW�
   rcases RW₂ with ⟨σ', I₂, hI₂⟩
   subst h
   simp only [sumSubAlong, sumSub, sum]
-  refine Finset.sum_congr rfl (λ k hk => ?_)
-  simp only [Finset.mem_range] at hk
-  let K : Fin (σ.n + 1) := ⟨k, hk⟩
-  have h1 : K = k := by simp ; congr ; exact (Nat.mod_eq_of_lt hk).symm
-  have h2 : σ.Icc K = Set.Icc (σ k) (σ (k + 1)) := by simp only [Subdivision.Icc, Fin.succ_mk]
+  refine Finset.sum_congr rfl (λ k _ => ?_)
   apply sub_eq_sub_of_deriv_eq_deriv
-  · exact σ.mono hk.le (succ_le_succ (lt_succ.1 hk)) k.le_succ
-  · exact (Sopn (I₁ K)).inter (Sopn (I₂ K))
-  · exact h2 ▸ hγ.mono σ.Icc_subset
-  · simpa only [mapsTo'] using subset_inter (hI₁ K) (hI₂ K)
-  · exact h1 ▸ (Sdif _).mono (inter_subset_left _ _)
-  · exact h1 ▸ (Sdif _).mono (inter_subset_right _ _)
+  · exact σ.mono'
+  · exact (Sopn (I₁ k)).inter (Sopn (I₂ k))
+  · exact hγ.mono σ.Icc_subset
+  · simpa only [mapsTo'] using subset_inter (hI₁ k) (hI₂ k)
+  · exact (Sdif _).mono (inter_subset_left _ _)
+  · exact (Sdif _).mono (inter_subset_right _ _)
   · intro z ⟨hz₁, hz₂⟩
-    exact h1 ▸ (Seqd _ hz₁).symm.trans (Seqd _ hz₂)
+    exact (Seqd _ hz₁).symm.trans (Seqd _ hz₂)
