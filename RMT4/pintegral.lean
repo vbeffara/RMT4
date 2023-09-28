@@ -4,7 +4,7 @@ import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
 import Mathlib.Topology.LocallyConstant.Basic
 import Mathlib.Analysis.Calculus.MeanValue
-import RMT4.Subdivision2
+import RMT4.Subdivision
 
 open BigOperators Metric Set Subdivision Topology Filter Nat
 
