@@ -103,3 +103,34 @@ lemma sumSubAlong_eq_of_sigma (hab : a ≤ b) {hf : IsLocDerivOn U f} {RW₁ RW�
   · exact (Sdif _).mono (inter_subset_left _ _)
   · exact (Sdif _).mono (inter_subset_right _ _)
   · exact λ z hz => (Seqd _ hz.1).symm.trans (Seqd _ hz.2)
+
+lemma telescopic (f : Fin (n + 1) → ℂ) :
+    ∑ i : Fin n, (f i.succ - f i.castSucc) = f (Fin.last n) - f 0 := by
+  have l1 : ∑ i : Fin n, f (Fin.succ i) = ∑ i : Fin (n + 1), f i - f 0 := by
+    simp [Fin.sum_univ_succ f]
+  have l2 : ∑ i : Fin n, f (Fin.castSucc i) = ∑ i : Fin (n + 1), f i - f (Fin.last n) := by
+    simp [Fin.sum_univ_castSucc f]
+  simp [l1, l2]
+
+lemma sumSubAlong_eq_sub (hab : a ≤ b) (hF : DifferentiableOn ℂ F U) (hf : IsLocDerivOn U (deriv F))
+    (hγ : ContinuousOn γ (Set.Icc a b)) (RW : reladapted a b hf.S γ) :
+    RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
+  have key (x : Fin (RW.σ.size + 1)) :
+      ((hf.F ∘ RW.I) x ∘ γ) (RW.σ (x.succ)) - ((hf.F ∘ RW.I) x ∘ γ) (RW.σ (x.castSucc)) =
+      F (γ (RW.σ x.succ)) - F (γ (RW.σ x.castSucc)) := by
+    apply sub_eq_sub_of_deriv_eq_deriv
+    · exact RW.σ.mono hab (Fin.castSucc_lt_succ _).le
+    · exact hf.opn (RW.I x)
+    · exact hγ.mono (RW.σ.Icc_subset hab)
+    · exact Set.mapsTo'.2 (RW.sub _)
+    · exact hf.dif (RW.I x)
+    · exact hF.mono (hf.sub (RW.I x))
+    · exact λ z hz => (hf.eqd (RW.I x) hz).symm
+  simp only [sumSubAlong, sumSub, sum, key]
+  convert telescopic (F ∘ γ ∘ RW.σ)
+  simp
+
+lemma pintegral_deriv (hab : a < b) (hγ : ContinuousOn γ (Set.Icc a b))
+    (h2 : MapsTo γ (Set.Icc a b) U) (hF : DifferentiableOn ℂ F U) :
+    pintegral hab (deriv F) γ h2 hγ hf = F (γ b) - F (γ a) :=
+  sumSubAlong_eq_sub hab.le hF _ hγ _

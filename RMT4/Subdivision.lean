@@ -37,9 +37,9 @@ noncomputable def toFun (σ : Subdivision a b) : Fin (σ.size + 2) → ℝ :=
 
 noncomputable instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.size + 2) → ℝ) := ⟨toFun⟩
 
-lemma first : σ 0 = a := rfl
+@[simp] lemma first : σ 0 = a := rfl
 
-lemma last : σ (Fin.last _) = b := by convert List.get_last _ ; simp
+@[simp] lemma last : σ (Fin.last _) = b := by convert List.get_last _ ; simp
 
 lemma mono (hab : a ≤ b) : Monotone σ.toFun :=
   (toList_sorted hab).get_mono.comp (λ _ _ => id)
@@ -220,7 +220,7 @@ section sum
 noncomputable def sum (σ : Subdivision a b) (f : Fin (σ.size + 1) → ℝ → ℝ → ℂ) : ℂ :=
   ∑ i : _, f i (σ i.castSucc) (σ i.succ)
 
-noncomputable abbrev sumSub (σ : Subdivision a b) (F : Fin (σ.size + 1) -> ℝ -> ℂ) : ℂ :=
+noncomputable abbrev sumSub (σ : Subdivision a b) (F : Fin (σ.size + 1) → ℝ → ℂ) : ℂ :=
   σ.sum (λ i x y => F i y - F i x)
 
 noncomputable abbrev sumSubAlong (σ : Subdivision a b) (F : Fin (σ.size + 1) → ℂ → ℂ)
