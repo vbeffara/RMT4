@@ -172,3 +172,11 @@ theorem integral_eq_sub'' (h : ContDiffOn ℝ 1 f (Icc a b)) (hab : a ≤ b) (ht
   simp [uIcc, hab]
 
 end ContDiffOn
+
+lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
+  cases ha.eq_or_lt with
+  | inl h => simp [← h, hε]
+  | inr h =>
+    obtain ⟨n, hn⟩ := exists_nat_one_div_lt (div_pos hε h)
+    use n
+    convert (@strictMono_mul_left_of_pos ℝ _ a h).lt_iff_lt.2 hn using 1 <;> field_simp; ring

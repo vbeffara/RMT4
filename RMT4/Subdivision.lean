@@ -1,16 +1,9 @@
 import Mathlib.Tactic
 import Mathlib.Order.Monotone.Basic
 import Mathlib.Data.Set.Intervals.Basic
+import RMT4.to_mathlib
 
 open Set Metric BigOperators Topology Finset Nat
-
-lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
-  cases ha.eq_or_lt with
-  | inl h => simp [← h, hε]
-  | inr h =>
-    obtain ⟨n, hn⟩ := exists_nat_one_div_lt (div_pos hε h)
-    use n
-    convert (@strictMono_mul_left_of_pos ℝ _ a h).lt_iff_lt.2 hn using 1 <;> field_simp; ring
 
 def splice (f g : ℕ → ℝ) (n : ℕ) (i : ℕ) : ℝ := if i ≤ n then f i else g (i - n)
 
