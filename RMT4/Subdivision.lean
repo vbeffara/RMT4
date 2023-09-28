@@ -46,14 +46,13 @@ lemma mono (hab : a ≤ b) : Monotone σ.toFun :=
 
 lemma toFinset_subset (hab : a ≤ b) (ht : t ∈ σ.toList.toFinset) : t ∈ Icc a b := by
   simp [toList] at ht
-  rcases ht with rfl | h | rfl
+  rcases ht with rfl | ⟨h, _⟩ | rfl
   · exact left_mem_Icc.2 hab
-  · obtain ⟨u₁, _⟩ := h ; exact ⟨u₁.1.le, u₁.2.le⟩
+  · exact ⟨h.1.le, h.2.le⟩
   · exact right_mem_Icc.2 hab
 
-lemma subset (hab : a ≤ b) : σ i ∈ Icc a b := by
-  have : σ i ∈ σ.toList.toFinset := by simpa [toFun] using List.get_mem _ _ _
-  exact toFinset_subset hab this
+lemma subset (hab : a ≤ b) : σ i ∈ Icc a b :=
+  toFinset_subset hab (by simpa [toFun] using List.get_mem _ _ _)
 
 lemma mono' (hab : a ≤ b) {i : Fin (σ.size + 1)} : σ i.castSucc ≤ σ i.succ :=
   Fin.monotone_iff_le_succ.1 (σ.mono hab) i
@@ -77,11 +76,10 @@ namespace regular
 noncomputable def aux (a b : ℝ) (n i : ℕ) : ℝ := a + i * ((b - a)/(n + 1))
 
 lemma aux_mono (hab : a < b) : StrictMono (aux a b n) := by
+  have := sub_pos.2 hab
   intro i j hij
   simp only [aux, add_lt_add_iff_left]
-  have := sub_pos.2 hab
-  gcongr
-  simp [hij]
+  gcongr ; simp [hij]
 
 lemma aux_mem_Ioo (hab : a < b) (h : i < n) : aux a b n (i + 1) ∈ Ioo a b := by
   constructor
@@ -141,17 +139,17 @@ lemma eq_aux (hab : a < b) {i : Fin _} :
   convert l2
   simp [toFinset_card_of_nodup, (list'_sorted hab).nodup]
 
-@[simp] lemma regular_length (hab : a < b) {i : Fin _} :
+@[simp] lemma length_eq (hab : a < b) {i : Fin _} :
     length (regular hab n) i = (b - a) / (n + 1) := by
   have (i x : ℝ) : (i + 1) * x - i * x = x := by ring
   simp [length, aux, this]
 
-@[simp] lemma regular_lengths (hab : a < b) : lengths (regular hab n) = { (b - a) / (n + 1) } := by
+@[simp] lemma lengths_eq (hab : a < b) : lengths (regular hab n) = { (b - a) / (n + 1) } := by
   have : length (regular hab n) = λ (i : Fin _) => (b - a) / (n + 1) := by ext; simp
   rw [lengths, this]
   apply Finset.image_const Finset.univ_nonempty
 
-@[simp] lemma regular_mesh (hab : a < b) : (regular hab n).mesh = (b - a) / (n + 1) := by
+@[simp] lemma mesh_eq (hab : a < b) : (regular hab n).mesh = (b - a) / (n + 1) := by
   simp [mesh, hab]
 
 end regular
