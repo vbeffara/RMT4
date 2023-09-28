@@ -180,3 +180,20 @@ lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a 
     obtain ⟨n, hn⟩ := exists_nat_one_div_lt (div_pos hε h)
     use n
     convert (@strictMono_mul_left_of_pos ℝ _ a h).lt_iff_lt.2 hn using 1 <;> field_simp; ring
+
+section sort_finset
+
+variable [LinearOrder α] {l l1 l2 : List α} {s : Finset α}
+
+lemma List.Sorted.ext (h1 : l1.Sorted (. ≤ .)) (h2 : l2.Sorted (. ≤ .))
+    (h'1 : l1.Nodup) (h'2 : l2.Nodup) (h : ∀ x, x ∈ l1 ↔ x ∈ l2) : l1 = l2 :=
+  List.eq_of_perm_of_sorted ((List.perm_ext h'1 h'2).2 h) h1 h2
+
+lemma List.Sorted.ext' (h1 : l1.Sorted (. < .)) (h2 : l2.Sorted (. < .))
+    (h4 : ∀ x, x ∈ l1 ↔ x ∈ l2) : l1 = l2 :=
+  List.Sorted.ext h1.le_of_lt h2.le_of_lt h1.nodup h2.nodup h4
+
+@[simp] lemma List.Sorted.toFinset_sort (hl : l.Sorted (· < ·)) : (l.toFinset).sort (· ≤ ·) = l :=
+  List.Sorted.ext' (l.toFinset).sort_sorted_lt hl (by simp)
+
+end sort_finset

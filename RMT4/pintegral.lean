@@ -32,7 +32,7 @@ noncomputable def isLocDerivOn_deriv (hU : IsOpen U) (hF : DifferentiableOn ℂ 
 
 section pintegral
 
-noncomputable def pintegral (hab : a ≤ b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : MapsTo γ (Set.Icc a b) U)
+noncomputable def pintegral (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : MapsTo γ (Set.Icc a b) U)
     (hγ : ContinuousOn γ (Set.Icc a b)) (hf : IsLocDerivOn U f) : ℂ :=
   have h1 (t : Set.Icc a b) : ∃ i, hf.S i ∈ 𝓝 (γ t) :=
     let u : U := ⟨γ t, h2 t.2⟩
@@ -72,8 +72,8 @@ lemma sumSubAlong_eq_zero (hab : a ≤ b) {DW : IsLocDerivOn U 0}
   · exact hγ.mono (RW.σ.Icc_subset hab)
   · exact mapsTo'.2 (RW.sub k)
 
-lemma pintegral_zero (hab : a ≤ b) : pintegral hab 0 γ h2 hγ hf = 0 := by
-  simp [pintegral, sumSubAlong_eq_zero hab hγ]
+lemma pintegral_zero (hab : a < b) : pintegral hab 0 γ h2 hγ hf = 0 := by
+  simp [pintegral, sumSubAlong_eq_zero hab.le hγ]
 
 lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
     {γ : ℝ → ℂ} (hγ₁ : ContinuousOn γ (Set.Icc a b)) (hγ₂ : MapsTo γ (Set.Icc a b) U)
