@@ -119,62 +119,37 @@ section order
 
 variable {τ : Subdivision a b}
 
+lemma aux (h : σ ≤ τ) : map Subtype.val (Finset.sort (· ≤ ·) σ) ⊆
+    map Subtype.val (Finset.sort (· ≤ ·) τ) := by
+  apply List.map_subset
+  intro t ht
+  rw [Finset.mem_sort] at ht ⊢
+  exact h ht
+
 lemma toList_le_of_le (h : σ ≤ τ) : σ.toList ⊆ τ.toList := by
   simp [toList]
-  intro t ht
-  simp at ht
-  rcases ht with ⟨x, hx⟩
-  simp
-  right
-  left
-  use x
-  apply h
-  exact hx
+  apply (aux h).trans
+  apply subset_cons_of_subset
+  apply subset_append_left
 
-/-
-  So, given an index `j` into `τ` :
-  - `[u,v]` is the piece number `j` in `tau`
-  - `t` is the midpoint of `[u,v]`
-  - `i` is the piece number in `σ` that contains `t`
-  - `[u₀,v₀]` is the piece number `i` in `σ`
-  - `u₀` is element `k` in `τ`
--/
 lemma piece_subset_of_le (hab : a < b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece j ⊆ σ.piece i := by
-  let u := τ.x j
-  let v := τ.y j
-  let t := (1/2) * u + (1/2) * v
-  have l4 : u < v := mono' hab
-  have l3 : t ∈ τ.piece j := (Convex.mem_Icc l4.le).2 ⟨1/2, 1/2, by norm_num⟩
-  have l8 : t ∈ Ioo u v := (Convex.mem_Ioo l4).2 ⟨1/2, 1/2, by norm_num⟩
-  have l5 : t ∈ Icc a b := τ.piece_subset hab.le l3
-  obtain ⟨i, (hi : t ∈ σ.piece i)⟩ := cover' (σ := σ) hab ⟨t, l5⟩
-  use i
-  set u₀ := σ.x i with hu₀
-  have l9 : u₀ ∈ σ.toList := by rw [σ.mem_iff] ; use i.castSucc
-  have l10 : u₀ ∈ τ.toList := toList_le_of_le hστ l9
-  obtain ⟨k, l11⟩ := τ.mem_iff.1 l10
-  set v₀ := σ.y i with hv₀
-  have l12 : v₀ ∈ σ.toList := by rw [σ.mem_iff] ; use i.succ
-  have l13 : v₀ ∈ τ.toList := toList_le_of_le hστ l12
-  obtain ⟨l, l14⟩ := τ.mem_iff.1 l13
-
-  have l15 : u₀ < y τ j := hi.1.trans_lt l8.2
-  rw [← l11, y] at l15
-  have l16 : k < j.succ := (mono hab).lt_iff_lt.1 l15
-
-  have l17 : x τ j < v₀ := l8.1.trans_le hi.2
-  rw [← l14, x] at l17
-
-  apply Icc_subset_Icc
-  · rw [← hu₀, ← l11, x]
+  let t := (1/2) * τ.x j + (1/2) * τ.y j
+  have l8 : t ∈ Ioo (τ.x j) (τ.y j) := (Convex.mem_Ioo (mono' hab)).2 ⟨1/2, 1/2, by norm_num⟩
+  have l5 : t ∈ Icc a b := τ.piece_subset hab.le (Ioo_subset_Icc_self l8)
+  obtain ⟨i, hi⟩ := cover' hab ⟨t, l5⟩
+  refine ⟨i, Icc_subset_Icc ?_ ?_⟩
+  · have : σ.x i ∈ σ.toList := σ.mem_iff.2 ⟨_, rfl⟩
+    obtain ⟨k, l11⟩ := τ.mem_iff.1 (toList_le_of_le hστ this)
+    rw [← l11]
     apply (mono hab).monotone
-    rw [Fin.le_castSucc_iff]
-    exact l16
-  · rw [← hv₀, ← l14, y]
+    rw [Fin.le_castSucc_iff, (mono hab).lt_iff_lt.symm, l11]
+    exact hi.1.trans_lt l8.2
+  · have l12 : σ.y i ∈ σ.toList := σ.mem_iff.2 ⟨i.succ, rfl⟩
+    obtain ⟨l, l14⟩ := τ.mem_iff.1 (toList_le_of_le hστ l12)
+    rw [← l14]
     apply (mono hab).monotone
-    rw [← Fin.castSucc_lt_iff_succ_le]
-    rw [(mono hab).lt_iff_lt.symm]
-    exact l17
+    rw [← Fin.castSucc_lt_iff_succ_le, (mono hab).lt_iff_lt.symm, l14]
+    exact l8.1.trans_le hi.2
 
 end order
 
