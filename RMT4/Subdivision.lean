@@ -151,6 +151,16 @@ lemma piece_subset_of_le (hab : a < b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece
     rw [← Fin.castSucc_lt_iff_succ_le, (mono hab).lt_iff_lt.symm, l14]
     exact l8.1.trans_le hi.2
 
+lemma sub_le_sub_of_Icc (hab : a ≤ b) (h : Icc a b ⊆ Icc c d) : b - a ≤ d - c := by
+  linarith [(Icc_subset_Icc_iff hab).1 h]
+
+lemma mesh_mono (hab : a < b) (hστ : σ ≤ τ) : τ.mesh ≤ σ.mesh := by
+  apply Finset.max'_le
+  intro ℓ hℓ
+  obtain ⟨i, _, rfl⟩ := Finset.mem_image.1 hℓ
+  obtain ⟨j, hj⟩ := piece_subset_of_le hab hστ i
+  exact (sub_le_sub_of_Icc (mono' hab).le hj).trans le_mesh
+
 end order
 
 namespace regular
