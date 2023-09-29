@@ -32,9 +32,9 @@ noncomputable def isLocDerivOn_deriv (hU : IsOpen U) (hF : DifferentiableOn ℂ 
 
 section pintegral
 
-noncomputable def pintegral (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : MapsTo γ (Set.Icc a b) U)
-    (hγ : ContinuousOn γ (Set.Icc a b)) (hf : IsLocDerivOn U f) : ℂ :=
-  have h1 (t : Set.Icc a b) : ∃ i, hf.S i ∈ 𝓝 (γ t) :=
+noncomputable def pintegral (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : MapsTo γ (Icc a b) U)
+    (hγ : ContinuousOn γ (Icc a b)) (hf : IsLocDerivOn U f) : ℂ :=
+  have h1 (t : Icc a b) : ∃ i, hf.S i ∈ 𝓝 (γ t) :=
     let u : U := ⟨γ t, h2 t.2⟩
     ⟨u, hf.nhd u⟩
   let RW := exists_reladapted hab hγ h1
@@ -55,15 +55,15 @@ lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) {f : ℂ → ℂ} (h : 
   · exact h.differentiableAt (hU.mem_nhds (L2 hx))
 
 lemma apply_eq_of_path (hab : a ≤ b) {f : ℂ → ℂ} (hf : IsLocallyConstant (U.restrict f))
-    {γ : ℝ → ℂ} (hγ : ContinuousOn γ (Set.Icc a b)) (h : MapsTo γ (Set.Icc a b) U) :
+    {γ : ℝ → ℂ} (hγ : ContinuousOn γ (Icc a b)) (h : MapsTo γ (Icc a b) U) :
     f (γ b) = f (γ a) := by
-  haveI : PreconnectedSpace (Set.Icc a b) := isPreconnected_iff_preconnectedSpace.1 isPreconnected_Icc
+  haveI : PreconnectedSpace (Icc a b) := isPreconnected_iff_preconnectedSpace.1 isPreconnected_Icc
   have h2 := hf.comp_continuous (hγ.restrict_mapsTo h)
   exact @IsLocallyConstant.apply_eq_of_isPreconnected _ _ _ _ (h2) _ isPreconnected_univ
     ⟨b, hab, le_rfl⟩ ⟨a, le_rfl, hab⟩ (mem_univ _) (mem_univ _)
 
 lemma sumSubAlong_eq_zero (hab : a ≤ b) {DW : IsLocDerivOn U 0}
-  {RW : reladapted a b DW.S γ} (hγ : ContinuousOn γ (Set.Icc a b)) :
+  {RW : reladapted a b DW.S γ} (hγ : ContinuousOn γ (Icc a b)) :
     RW.σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
   refine Subdivision.sum_eq_zero (λ k => (sub_eq_zero.2 ?_))
   apply apply_eq_of_path (RW.σ.mono' hab)
@@ -76,7 +76,7 @@ lemma pintegral_zero (hab : a < b) : pintegral hab 0 γ h2 hγ hf = 0 := by
   simp [pintegral, sumSubAlong_eq_zero hab.le hγ]
 
 lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
-    {γ : ℝ → ℂ} (hγ₁ : ContinuousOn γ (Set.Icc a b)) (hγ₂ : MapsTo γ (Set.Icc a b) U)
+    {γ : ℝ → ℂ} (hγ₁ : ContinuousOn γ (Icc a b)) (hγ₂ : MapsTo γ (Icc a b) U)
     {f g : ℂ → ℂ} (hf : DifferentiableOn ℂ f U) (hg : DifferentiableOn ℂ g U)
     (hfg : ∀ z ∈ U, deriv f z = deriv g z) :
     f (γ b) - f (γ a) = g (γ b) - g (γ a) := by
@@ -90,7 +90,7 @@ lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
   simp [hfg z hz, h3]
 
 lemma sumSubAlong_eq_of_sigma (hab : a ≤ b) {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ}
-    (h : RW₁.σ = RW₂.σ) (hγ : ContinuousOn γ (Set.Icc a b)) :
+    (h : RW₁.σ = RW₂.σ) (hγ : ContinuousOn γ (Icc a b)) :
     RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
   rcases hf with ⟨F, S, _, Sopn, _, Sdif, Seqd⟩
   rcases RW₁ with ⟨σ, I₁, hI₁⟩
@@ -113,7 +113,7 @@ lemma telescopic (f : Fin (n + 1) → ℂ) :
   simp [l1, l2]
 
 lemma sumSubAlong_eq_sub (hab : a ≤ b) (hF : DifferentiableOn ℂ F U) (hf : IsLocDerivOn U (deriv F))
-    (hγ : ContinuousOn γ (Set.Icc a b)) (RW : reladapted a b hf.S γ) :
+    (hγ : ContinuousOn γ (Icc a b)) (RW : reladapted a b hf.S γ) :
     RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
   have key (x : Fin (RW.σ.size + 1)) :
       ((hf.F ∘ RW.I) x ∘ γ) (RW.σ (x.succ)) - ((hf.F ∘ RW.I) x ∘ γ) (RW.σ (x.castSucc)) =
@@ -130,7 +130,7 @@ lemma sumSubAlong_eq_sub (hab : a ≤ b) (hF : DifferentiableOn ℂ F U) (hf : I
   convert telescopic (F ∘ γ ∘ RW.σ)
   simp
 
-lemma pintegral_deriv (hab : a < b) (hγ : ContinuousOn γ (Set.Icc a b))
-    (h2 : MapsTo γ (Set.Icc a b) U) (hF : DifferentiableOn ℂ F U) :
+lemma pintegral_deriv (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
+    (h2 : MapsTo γ (Icc a b) U) (hF : DifferentiableOn ℂ F U) :
     pintegral hab (deriv F) γ h2 hγ hf = F (γ b) - F (γ a) :=
   sumSubAlong_eq_sub hab.le hF _ hγ _

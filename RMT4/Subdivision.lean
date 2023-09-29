@@ -3,24 +3,20 @@ import RMT4.to_mathlib
 
 open Set Function List Topology BigOperators Nat
 
-def Subdivision (a b : ℝ) := Finset (Ioo a b)
+abbrev Subdivision (a b : ℝ) := Finset (Ioo a b)
 
 namespace Subdivision
 
 variable {a b : ℝ} {σ : Subdivision a b}
 
+section basic
+
 def size (σ : Subdivision a b) : ℕ := Finset.card σ
-
-def extend : Subdivision a b → Finset ℝ := Finset.map (Embedding.subtype _)
-
-def extend_mem_Ioo (ht : t ∈ σ.extend) : t ∈ Ioo a b := by
-  rcases Finset.mem_map.1 ht with ⟨⟨u, hu⟩, _, rfl⟩
-  assumption
 
 noncomputable def toList (σ : Subdivision a b) : List ℝ :=
   a :: (Finset.sort (· ≤ ·) σ).map Subtype.val ++ [b]
 
-@[simp] lemma toList_length : σ.toList.length = σ.size + 2 := by simp [toList, extend, size]
+@[simp] lemma toList_length : σ.toList.length = σ.size + 2 := by simp [toList, size]
 
 lemma toList_sorted (hab : a ≤ b) : σ.toList.Sorted (· ≤ ·) := by
   simp only [toList, cons_append, sorted_cons, mem_append, Finset.mem_sort, List.mem_singleton]
@@ -37,14 +33,17 @@ noncomputable def toFun (σ : Subdivision a b) : Fin (σ.size + 2) → ℝ :=
 
 noncomputable instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.size + 2) → ℝ) := ⟨toFun⟩
 
+lemma mono (hab : a ≤ b) : Monotone σ.toFun :=
+  (toList_sorted hab).get_mono.comp (λ _ _ => id)
+
+lemma mono' (hab : a ≤ b) {i : Fin (σ.size + 1)} : σ i.castSucc ≤ σ i.succ :=
+  Fin.monotone_iff_le_succ.1 (σ.mono hab) i
+
 @[simp] lemma first : σ 0 = a := rfl
 
 @[simp] lemma last : σ (Fin.last _) = b := by convert List.get_last _ ; simp
 
-lemma mono (hab : a ≤ b) : Monotone σ.toFun :=
-  (toList_sorted hab).get_mono.comp (λ _ _ => id)
-
-lemma toFinset_subset (hab : a ≤ b) (ht : t ∈ σ.toList.toFinset) : t ∈ Icc a b := by
+lemma toList_subset (hab : a ≤ b) (ht : t ∈ σ.toList) : t ∈ Icc a b := by
   simp [toList] at ht
   rcases ht with rfl | ⟨h, _⟩ | rfl
   · exact left_mem_Icc.2 hab
@@ -52,28 +51,35 @@ lemma toFinset_subset (hab : a ≤ b) (ht : t ∈ σ.toList.toFinset) : t ∈ Ic
   · exact right_mem_Icc.2 hab
 
 lemma subset (hab : a ≤ b) : σ i ∈ Icc a b :=
-  toFinset_subset hab (by simpa [toFun] using List.get_mem _ _ _)
+  toList_subset hab (by simpa [toFun] using List.get_mem _ _ _)
 
-lemma mono' (hab : a ≤ b) {i : Fin (σ.size + 1)} : σ i.castSucc ≤ σ i.succ :=
-  Fin.monotone_iff_le_succ.1 (σ.mono hab) i
+end basic
 
-def Icc (σ : Subdivision a b) (i : Fin (σ.size + 1)) : Set ℝ := Set.Icc (σ i.castSucc) (σ i.succ)
+section pieces
 
-lemma Icc_subset (hab : a ≤ b) : σ.Icc i ⊆ Set.Icc a b :=
-  Set.Icc_subset_Icc (subset hab).1 (subset hab).2
+def piece (σ : Subdivision a b) (i : Fin (σ.size + 1)) : Set ℝ := Icc (σ i.castSucc) (σ i.succ)
+
+lemma piece_subset (hab : a ≤ b) : σ.piece i ⊆ Icc a b :=
+  Icc_subset_Icc (subset hab).1 (subset hab).2
 
 noncomputable def length (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.succ - σ i.castSucc
 
-noncomputable def lengths (σ : Subdivision a b) : Finset ℝ := Finset.image σ.length Finset.univ
+noncomputable def lengths (σ : Subdivision a b) : Finset ℝ := Finset.univ.image σ.length
 
 noncomputable def mesh (σ : Subdivision a b) : ℝ := σ.lengths.max' (Finset.univ_nonempty.image _)
 
 lemma le_mesh {i : Fin (σ.size + 1)} : σ i.succ - σ i.castSucc ≤ σ.mesh := by
   apply Finset.le_max' _ _ (Finset.mem_image_of_mem _ (Finset.mem_univ i))
 
+end pieces
+
 namespace regular
 
-noncomputable def aux (a b : ℝ) (n i : ℕ) : ℝ := a + i * ((b - a)/(n + 1))
+noncomputable def aux (a b : ℝ) (n i : ℕ) : ℝ := a + i * ((b - a) / (n + 1))
+
+@[simp] lemma aux_zero : aux a b n 0 = a := by simp [aux]
+
+@[simp] lemma aux_last : aux a b n (n + 1) = b := by field_simp [aux] ; ring
 
 lemma aux_mono (hab : a < b) : StrictMono (aux a b n) := by
   have := sub_pos.2 hab
@@ -83,8 +89,8 @@ lemma aux_mono (hab : a < b) : StrictMono (aux a b n) := by
 
 lemma aux_mem_Ioo (hab : a < b) (h : i < n) : aux a b n (i + 1) ∈ Ioo a b := by
   constructor
-  · convert aux_mono hab (succ_pos i) ; simp [aux]
-  · convert aux_mono hab (succ_lt_succ h) ; field_simp [aux] ; ring
+  · convert aux_mono hab (succ_pos i) ; simp
+  · convert aux_mono hab (succ_lt_succ h) ; simp
 
 noncomputable def list (a b : ℝ) (n : ℕ) : List ℝ :=
   (List.range n).map (λ i => aux a b n (i + 1))
@@ -109,33 +115,31 @@ noncomputable def _root_.Subdivision.regular (hab : a < b) (n : ℕ) : Subdivisi
   simp [regular, Subdivision.size, toFinset_card_of_nodup, (list'_sorted hab).nodup]
   simp [list', list]
 
-lemma eq_aux (hab : a < b) {i : Fin _} :
+@[simp] lemma eq_aux (hab : a < b) {i : Fin _} :
     List.get (a :: (map Subtype.val (list' hab n) ++ [b])) i = aux a b n i := by
-  apply Fin.cases (motive := λ i => List.get (a :: (map Subtype.val (list' hab n) ++ [b])) i = aux a b n ↑i)
-  · simp [aux]
-  · intro i
-    simp
-    by_cases i < (map Subtype.val (list' hab n)).length
-    · rcases i with ⟨i, hi⟩
-      simp [List.get_append i h]
-      simp [list', List.get_pmap, list]
-    · field_simp [List.get_last h, aux]
-      rcases i with ⟨i, h'i⟩
-      simp [list', list] at h h'i
-      have : i = n := by linarith
-      subst i
-      ring
+  apply Fin.cases (motive := λ i => _ = _) (by simp)
+  intro i
+  simp only [List.get, add_eq, add_zero, Fin.eta, length_cons, Fin.val_succ]
+  by_cases i < (map Subtype.val (list' hab n)).length
+  · rcases i with ⟨i, hi⟩
+    simp only [List.get_append i h, get_map]
+    simp [list', List.get_pmap, list]
+  · simp only [List.get_last h]
+    convert aux_last.symm
+    rcases i with ⟨i, h'i⟩
+    simp [list', list] at h h'i
+    linarith
 
 @[simp] lemma eq (hab : a < b) {i} : regular hab n i = aux a b n i := by
   rcases i with ⟨i, hi⟩
   have l1 : Finset.sort (· ≤ ·) (List.toFinset (list' hab n)) = list' hab n := by
     apply List.Sorted.toFinset_sort
     exact list'_sorted hab
-  simp [toFun, toList, regular]
   have l3 : i < (a :: (map Subtype.val (list' hab n) ++ [b])).length := by
     simpa [list', list] using hi
   have l2 : List.get (a :: (map Subtype.val (list' hab n) ++ [b])) ⟨_, l3⟩ = aux a b n i := by
     exact eq_aux hab
+  simp only [toFun, regular, toList, cons_append, length_cons, comp_apply]
   convert l2
   simp [toFinset_card_of_nodup, (list'_sorted hab).nodup]
 
@@ -160,17 +164,16 @@ variable {S : ι → Set ℝ}
 
 structure adapted (σ : Subdivision a b) (S : ι → Set ℝ) :=
   I : Fin (σ.size + 1) → ι
-  hI k : σ.Icc k ⊆ S (I k)
+  hI k : σ.piece k ⊆ S (I k)
 
-lemma adapted_of_mesh_lt (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+lemma adapted_of_mesh_lt (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → Nonempty (adapted σ S) := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε, hε, λ σ hσ => ?_⟩
   choose I hI using l1
   refine ⟨λ j => I (σ j.castSucc) (σ.subset hab), λ j => ?_⟩
-  have hi := hI (σ j.castSucc) (σ.subset hab)
   have : Set.OrdConnected (Metric.ball (σ j.castSucc) ε) := (convex_ball ..).ordConnected
-  refine subset_trans ?_ hi
+  refine subset_trans ?_ (hI (σ j.castSucc) (σ.subset hab))
   refine Set.Icc_subset _ (Metric.mem_ball_self hε) ?_
   simp
   convert (le_mesh (i := j)).trans_lt hσ using 1
@@ -178,7 +181,7 @@ lemma adapted_of_mesh_lt (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Ic
   rw [Fin.le_def]
   simp
 
-lemma adapted_of_mesh_le (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+lemma adapted_of_mesh_le (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → Nonempty (adapted σ S) := by
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
   refine ⟨ε / 2, by positivity, λ σ hσ => h σ (by linarith)⟩
@@ -187,28 +190,28 @@ structure adapted_subdivision (a b : ℝ) (S : ι → Set ℝ) :=
   σ : Subdivision a b
   h : adapted σ S
 
-noncomputable def exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Set.Icc a b ⊆ ⋃ i, S i) :
+noncomputable def exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     adapted_subdivision a b S := by
   choose ε hε h using adapted_of_mesh_le hab.le h1 h2
   choose n hn using exists_div_lt (sub_nonneg_of_le hab.le) hε
   have : (regular hab n).mesh = (b - a) / (n + 1) := by simp
   exact ⟨_, (h (regular hab n) (by linarith)).some⟩
 
-noncomputable def exists_adapted' (hab : a < b) (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝[Set.Icc a b] t.1) :
+noncomputable def exists_adapted' (hab : a < b) (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝[Icc a b] t.1) :
     adapted_subdivision a b S := by
   choose I hI using h
-  choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Set.Icc a b)).mem_iff.1 (hI t)
-  have : Set.Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
+  choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Icc a b)).mem_iff.1 (hI t)
+  have : Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
   obtain ⟨σ, hσ1, hσ2⟩ := exists_adapted hab (λ t => (h1 t).2) this
-  exact ⟨σ, I ∘ hσ1, λ k => (Set.subset_inter (hσ2 k) (σ.Icc_subset hab.le)).trans (h2 (hσ1 k))⟩
+  exact ⟨σ, I ∘ hσ1, λ k => (Set.subset_inter (hσ2 k) (σ.piece_subset hab.le)).trans (h2 (hσ1 k))⟩
 
 structure reladapted (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
   σ : Subdivision a b
   I : Fin (σ.size + 1) → ι
-  sub k : γ '' σ.Icc k ⊆ S (I k)
+  sub k : γ '' σ.piece k ⊆ S (I k)
 
-noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a < b) (hγ : ContinuousOn γ (Set.Icc a b))
-    (h : ∀ t : Set.Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) : reladapted a b S γ := by
+noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
+    (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) : reladapted a b S γ := by
   choose I hI using h
   obtain ⟨σ, K, hK⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
   exact ⟨σ, I ∘ K, λ k => image_subset_iff.2 (hK k)⟩

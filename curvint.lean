@@ -51,7 +51,7 @@ noncomputable def circlePath (c : ℂ) (R : ℝ) : Path (c + R) (c + R) where
   source' := by simp [circleMap]
   target' := by simp [circleMap]
 
-noncomputable def toPath (t₁ t₂ : ℝ) (γ : ℝ → 𝕜) (h1 : ContinuousOn γ (Set.Icc t₁ t₂)) (h2 : t₁ < t₂) :
+noncomputable def toPath (t₁ t₂ : ℝ) (γ : ℝ → 𝕜) (h1 : ContinuousOn γ (Icc t₁ t₂)) (h2 : t₁ < t₂) :
     Path (γ t₁) (γ t₂) where
   toFun := λ t => γ ((iccHomeoI t₁ t₂ h2).symm t)
   continuous_toFun := by
