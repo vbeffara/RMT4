@@ -69,7 +69,7 @@ lemma sumSubAlong_eq_zero (hab : a ≤ b) {DW : IsLocDerivOn U 0}
   apply apply_eq_of_path (RW.σ.mono' hab)
   · apply isLocallyConstant_of_deriv_eq_zero (DW.opn _) (DW.dif _)
     exact λ _ hz => (DW.eqd (RW.I k) hz).symm
-  · exact hγ.mono (RW.σ.Icc_subset hab)
+  · exact hγ.mono (RW.σ.piece_subset hab)
   · exact mapsTo'.2 (RW.sub k)
 
 lemma pintegral_zero (hab : a < b) : pintegral hab 0 γ h2 hγ hf = 0 := by
@@ -98,7 +98,7 @@ lemma sumSubAlong_eq_of_sigma (hab : a ≤ b) {hf : IsLocDerivOn U f} {RW₁ RW�
   subst h
   refine Subdivision.sum_congr (λ k => ?_)
   apply sub_eq_sub_of_deriv_eq_deriv (σ.mono' hab) ((Sopn _).inter (Sopn _))
-  · exact (hγ.mono (σ.Icc_subset hab))
+  · exact (hγ.mono (σ.piece_subset hab))
   · simpa only [mapsTo'] using subset_inter (hI₁ k) (hI₂ k)
   · exact (Sdif _).mono (inter_subset_left _ _)
   · exact (Sdif _).mono (inter_subset_right _ _)
@@ -106,31 +106,31 @@ lemma sumSubAlong_eq_of_sigma (hab : a ≤ b) {hf : IsLocDerivOn U f} {RW₁ RW�
 
 lemma telescopic (f : Fin (n + 1) → ℂ) :
     ∑ i : Fin n, (f i.succ - f i.castSucc) = f (Fin.last n) - f 0 := by
-  have l1 : ∑ i : Fin n, f (Fin.succ i) = ∑ i : Fin (n + 1), f i - f 0 := by
+  have l1 : ∑ i : Fin n, f (i.succ) = ∑ i : Fin (n + 1), f i - f 0 := by
     simp [Fin.sum_univ_succ f]
-  have l2 : ∑ i : Fin n, f (Fin.castSucc i) = ∑ i : Fin (n + 1), f i - f (Fin.last n) := by
+  have l2 : ∑ i : Fin n, f (i.castSucc) = ∑ i : Fin (n + 1), f i - f (Fin.last n) := by
     simp [Fin.sum_univ_castSucc f]
   simp [l1, l2]
 
 lemma sumSubAlong_eq_sub (hab : a ≤ b) (hF : DifferentiableOn ℂ F U) (hf : IsLocDerivOn U (deriv F))
     (hγ : ContinuousOn γ (Icc a b)) (RW : reladapted a b hf.S γ) :
     RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
-  have key (x : Fin (RW.σ.size + 1)) :
-      ((hf.F ∘ RW.I) x ∘ γ) (RW.σ (x.succ)) - ((hf.F ∘ RW.I) x ∘ γ) (RW.σ (x.castSucc)) =
-      F (γ (RW.σ x.succ)) - F (γ (RW.σ x.castSucc)) := by
+  have key (i : Fin (RW.σ.size + 1)) :
+      ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.y i) - ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.x i) =
+      F (γ (RW.σ.y i)) - F (γ (RW.σ.x i)) := by
     apply sub_eq_sub_of_deriv_eq_deriv
-    · exact RW.σ.mono hab (Fin.castSucc_lt_succ _).le
-    · exact hf.opn (RW.I x)
-    · exact hγ.mono (RW.σ.Icc_subset hab)
+    · exact RW.σ.mono' hab
+    · exact hf.opn (RW.I i)
+    · exact hγ.mono (RW.σ.piece_subset hab)
     · exact Set.mapsTo'.2 (RW.sub _)
-    · exact hf.dif (RW.I x)
-    · exact hF.mono (hf.sub (RW.I x))
-    · exact λ z hz => (hf.eqd (RW.I x) hz).symm
+    · exact hf.dif (RW.I i)
+    · exact hF.mono (hf.sub (RW.I i))
+    · exact λ z hz => (hf.eqd (RW.I i) hz).symm
   simp only [sumSubAlong, sumSub, sum, key]
   convert telescopic (F ∘ γ ∘ RW.σ)
   simp
 
-lemma pintegral_deriv (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
+lemma pintegral_deriv (hab : a < b) (hU : IsOpen U) (hγ : ContinuousOn γ (Icc a b))
     (h2 : MapsTo γ (Icc a b) U) (hF : DifferentiableOn ℂ F U) :
-    pintegral hab (deriv F) γ h2 hγ hf = F (γ b) - F (γ a) :=
+    pintegral hab (deriv F) γ h2 hγ (isLocDerivOn_deriv hU hF) = F (γ b) - F (γ a) :=
   sumSubAlong_eq_sub hab.le hF _ hγ _

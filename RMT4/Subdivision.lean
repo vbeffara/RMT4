@@ -11,6 +11,8 @@ variable {a b : ℝ} {σ : Subdivision a b}
 
 section basic
 
+def cast (σ : Subdivision a b) (ha : a = a') (hb : b = b') : Subdivision a' b' := ha ▸ hb ▸ σ
+
 def size (σ : Subdivision a b) : ℕ := Finset.card σ
 
 noncomputable def toList (σ : Subdivision a b) : List ℝ :=
@@ -33,10 +35,14 @@ noncomputable def toFun (σ : Subdivision a b) : Fin (σ.size + 2) → ℝ :=
 
 noncomputable instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.size + 2) → ℝ) := ⟨toFun⟩
 
+noncomputable abbrev x (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.castSucc
+
+noncomputable abbrev y (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.succ
+
 lemma mono (hab : a ≤ b) : Monotone σ.toFun :=
   (toList_sorted hab).get_mono.comp (λ _ _ => id)
 
-lemma mono' (hab : a ≤ b) {i : Fin (σ.size + 1)} : σ i.castSucc ≤ σ i.succ :=
+lemma mono' (hab : a ≤ b) {i : Fin (σ.size + 1)} : σ.x i ≤ σ.y i :=
   Fin.monotone_iff_le_succ.1 (σ.mono hab) i
 
 @[simp] lemma first : σ 0 = a := rfl
@@ -57,18 +63,18 @@ end basic
 
 section pieces
 
-def piece (σ : Subdivision a b) (i : Fin (σ.size + 1)) : Set ℝ := Icc (σ i.castSucc) (σ i.succ)
+def piece (σ : Subdivision a b) (i : Fin (σ.size + 1)) : Set ℝ := Icc (σ.x i) (σ.y i)
 
 lemma piece_subset (hab : a ≤ b) : σ.piece i ⊆ Icc a b :=
   Icc_subset_Icc (subset hab).1 (subset hab).2
 
-noncomputable def length (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.succ - σ i.castSucc
+noncomputable def length (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ.y i - σ.x i
 
 noncomputable def lengths (σ : Subdivision a b) : Finset ℝ := Finset.univ.image σ.length
 
 noncomputable def mesh (σ : Subdivision a b) : ℝ := σ.lengths.max' (Finset.univ_nonempty.image _)
 
-lemma le_mesh {i : Fin (σ.size + 1)} : σ i.succ - σ i.castSucc ≤ σ.mesh := by
+lemma le_mesh {i : Fin (σ.size + 1)} : σ.y i - σ.x i ≤ σ.mesh := by
   apply Finset.le_max' _ _ (Finset.mem_image_of_mem _ (Finset.mem_univ i))
 
 end pieces
@@ -146,7 +152,7 @@ noncomputable def _root_.Subdivision.regular (hab : a < b) (n : ℕ) : Subdivisi
 @[simp] lemma length_eq (hab : a < b) {i : Fin _} :
     length (regular hab n) i = (b - a) / (n + 1) := by
   have (i x : ℝ) : (i + 1) * x - i * x = x := by ring
-  simp [length, aux, this]
+  simp [length, aux, this, x, y]
 
 @[simp] lemma lengths_eq (hab : a < b) : lengths (regular hab n) = { (b - a) / (n + 1) } := by
   have : length (regular hab n) = λ (i : Fin _) => (b - a) / (n + 1) := by ext; simp
@@ -171,15 +177,14 @@ lemma adapted_of_mesh_lt (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a 
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε, hε, λ σ hσ => ?_⟩
   choose I hI using l1
-  refine ⟨λ j => I (σ j.castSucc) (σ.subset hab), λ j => ?_⟩
-  have : Set.OrdConnected (Metric.ball (σ j.castSucc) ε) := (convex_ball ..).ordConnected
-  refine subset_trans ?_ (hI (σ j.castSucc) (σ.subset hab))
+  refine ⟨λ j => I (σ.x j) (σ.subset hab), λ j => ?_⟩
+  have : Set.OrdConnected (Metric.ball (σ.x j) ε) := (convex_ball ..).ordConnected
+  refine subset_trans ?_ (hI (σ.x j) (σ.subset hab))
   refine Set.Icc_subset _ (Metric.mem_ball_self hε) ?_
-  simp
+  simp only [Metric.mem_ball]
   convert (le_mesh (i := j)).trans_lt hσ using 1
   refine abs_eq_self.2 (sub_nonneg.2 (σ.mono hab ?_))
-  rw [Fin.le_def]
-  simp
+  simp [Fin.le_def]
 
 lemma adapted_of_mesh_le (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → Nonempty (adapted σ S) := by
@@ -221,7 +226,7 @@ end adapted
 section sum
 
 noncomputable def sum (σ : Subdivision a b) (f : Fin (σ.size + 1) → ℝ → ℝ → ℂ) : ℂ :=
-  ∑ i : _, f i (σ i.castSucc) (σ i.succ)
+  ∑ i : _, f i (σ.x i) (σ.y i)
 
 noncomputable abbrev sumSub (σ : Subdivision a b) (F : Fin (σ.size + 1) → ℝ → ℂ) : ℂ :=
   σ.sum (λ i x y => F i y - F i x)
@@ -230,11 +235,11 @@ noncomputable abbrev sumSubAlong (σ : Subdivision a b) (F : Fin (σ.size + 1) �
     (γ : ℝ → ℂ) : ℂ :=
   sumSub σ (λ i => F i ∘ γ)
 
-lemma sum_eq_zero (h : ∀ i, F i (σ i.castSucc) (σ i.succ) = 0) : σ.sum F = 0 :=
+lemma sum_eq_zero (h : ∀ i, F i (σ.x i) (σ.y i) = 0) : σ.sum F = 0 :=
   Finset.sum_eq_zero (λ i _ => h i)
 
-lemma sum_congr {F G : Fin (σ.size + 1) → ℝ → ℝ → ℂ}
-    (h : ∀ i, F i (σ i.castSucc) (σ i.succ) = G i (σ i.castSucc) (σ i.succ)) : σ.sum F = σ.sum G :=
+lemma sum_congr (h : ∀ i, F i (σ.x i) (σ.y i) = G i (σ.x i) (σ.y i)) :
+    σ.sum F = σ.sum G :=
   Finset.sum_congr rfl (λ i _ => h i)
 
 end sum
