@@ -20,30 +20,32 @@ noncomputable def toList (σ : Subdivision a b) : List ℝ :=
 
 @[simp] lemma toList_length : σ.toList.length = σ.size + 2 := by simp [toList, size]
 
-lemma toList_sorted (hab : a ≤ b) : σ.toList.Sorted (· ≤ ·) := by
+lemma toList_sorted (hab : a < b) : σ.toList.Sorted (· < ·) := by
   simp only [toList, cons_append, sorted_cons, mem_append, Finset.mem_sort, List.mem_singleton]
   constructor
   · intro t ht ; cases ht with
-    | inl h => obtain ⟨u₁, _, rfl⟩ := List.mem_map.1 h ; exact u₁.prop.1.le
+    | inl h => obtain ⟨u₁, _, rfl⟩ := List.mem_map.1 h ; exact u₁.prop.1
     | inr h => linarith
   . simp [Sorted, pairwise_append] ; constructor
-    · apply (Finset.sort_sorted _ _).map ; exact fun _ _ => id
-    · rintro t ⟨h₁, h₂⟩ _ ; exact h₂.le
+    · apply (Finset.sort_sorted_lt _).map ; exact fun _ _ => id
+    · rintro t ⟨_, h₂⟩ _ ; exact h₂
 
 noncomputable def toFun (σ : Subdivision a b) : Fin (σ.size + 2) → ℝ :=
   σ.toList.get ∘ Fin.cast toList_length.symm
 
 noncomputable instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.size + 2) → ℝ) := ⟨toFun⟩
 
+lemma mem_iff (σ : Subdivision a b) : t ∈ σ.toList ↔ ∃ i, σ i = t := sorry
+
 noncomputable abbrev x (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.castSucc
 
 noncomputable abbrev y (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.succ
 
-lemma mono (hab : a ≤ b) : Monotone σ.toFun :=
-  (toList_sorted hab).get_mono.comp (λ _ _ => id)
+lemma mono (hab : a < b) : StrictMono σ.toFun :=
+  (toList_sorted hab).get_strictMono.comp (λ _ _ => id)
 
-lemma mono' (hab : a ≤ b) {i : Fin (σ.size + 1)} : σ.x i ≤ σ.y i :=
-  Fin.monotone_iff_le_succ.1 (σ.mono hab) i
+lemma mono' (hab : a < b) {i : Fin (σ.size + 1)} : σ.x i < σ.y i :=
+  Fin.strictMono_iff_lt_succ.1 (σ.mono hab) i
 
 @[simp] lemma first : σ 0 = a := rfl
 
@@ -101,13 +103,12 @@ lemma cover_aux (n : ℕ) (f : Fin (n + 2) → ℝ) (hf : Monotone f) :
     ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) = Icc (f 0) (f (Fin.last (n + 1))) :=
   subset_antisymm (cover1 n f hf) (cover2 n f)
 
-lemma cover (hab : a ≤ b) : ⋃ i : _, σ.piece i = Icc a b := by
+lemma cover (hab : a < b) : ⋃ i : _, σ.piece i = Icc a b := by
   simp only [piece, x, y]
-  convert cover_aux _ _ (mono hab)
+  convert cover_aux _ _ (mono hab).monotone
   simp
 
-lemma cover' (t : Icc a b) : ∃ i, ↑t ∈ σ.piece i := by
-  have hab : a ≤ b := nonempty_Icc.1 ⟨t, t.prop⟩
+lemma cover' (hab : a < b) (t : Icc a b) : ∃ i, ↑t ∈ σ.piece i := by
   rcases t with ⟨t, ht⟩
   rw [← cover (σ := σ) hab, mem_iUnion] at ht
   exact ht
@@ -118,22 +119,62 @@ section order
 
 variable {τ : Subdivision a b}
 
-lemma piece_subset_of_le (hab : a ≤ b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece j ⊆ σ.piece i := by
+lemma toList_le_of_le (h : σ ≤ τ) : σ.toList ⊆ τ.toList := by
+  simp [toList]
+  intro t ht
+  simp at ht
+  rcases ht with ⟨x, hx⟩
+  simp
+  right
+  left
+  use x
+  apply h
+  exact hx
+
+/-
+  So, given an index `j` into `τ` :
+  - `[u,v]` is the piece number `j` in `tau`
+  - `t` is the midpoint of `[u,v]`
+  - `i` is the piece number in `σ` that contains `t`
+  - `[u₀,v₀]` is the piece number `i` in `σ`
+  - `u₀` is element `k` in `τ`
+-/
+lemma piece_subset_of_le (hab : a < b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece j ⊆ σ.piece i := by
   let u := τ.x j
   let v := τ.y j
   let t := (1/2) * u + (1/2) * v
-  have l1 : u ∈ Icc a b := subset hab
-  have l2 : v ∈ Icc a b := subset hab
-  have l4 : u ≤ v := mono' hab
-  have l3 : t ∈ τ.piece j := (Convex.mem_Icc l4).2 ⟨1/2, 1/2, by norm_num⟩
-  have l5 : t ∈ Icc a b := τ.piece_subset hab l3
-  have l6 := l3.1
-  have l7 := l3.2
-  obtain ⟨i, (hi : t ∈ σ.piece i)⟩ := cover' (σ := σ) ⟨t, l5⟩
+  have l4 : u < v := mono' hab
+  have l3 : t ∈ τ.piece j := (Convex.mem_Icc l4.le).2 ⟨1/2, 1/2, by norm_num⟩
+  have l8 : t ∈ Ioo u v := (Convex.mem_Ioo l4).2 ⟨1/2, 1/2, by norm_num⟩
+  have l5 : t ∈ Icc a b := τ.piece_subset hab.le l3
+  obtain ⟨i, (hi : t ∈ σ.piece i)⟩ := cover' (σ := σ) hab ⟨t, l5⟩
   use i
+  set u₀ := σ.x i with hu₀
+  have l9 : u₀ ∈ σ.toList := by rw [σ.mem_iff] ; use i.castSucc
+  have l10 : u₀ ∈ τ.toList := toList_le_of_le hστ l9
+  obtain ⟨k, l11⟩ := τ.mem_iff.1 l10
+  set v₀ := σ.y i with hv₀
+  have l12 : v₀ ∈ σ.toList := by rw [σ.mem_iff] ; use i.succ
+  have l13 : v₀ ∈ τ.toList := toList_le_of_le hστ l12
+  obtain ⟨l, l14⟩ := τ.mem_iff.1 l13
+
+  have l15 : u₀ < y τ j := hi.1.trans_lt l8.2
+  rw [← l11, y] at l15
+  have l16 : k < j.succ := (mono hab).lt_iff_lt.1 l15
+
+  have l17 : x τ j < v₀ := l8.1.trans_le hi.2
+  rw [← l14, x] at l17
+
   apply Icc_subset_Icc
-  · sorry
-  · sorry
+  · rw [← hu₀, ← l11, x]
+    apply (mono hab).monotone
+    rw [Fin.le_castSucc_iff]
+    exact l16
+  · rw [← hv₀, ← l14, y]
+    apply (mono hab).monotone
+    rw [← Fin.castSucc_lt_iff_succ_le]
+    rw [(mono hab).lt_iff_lt.symm]
+    exact l17
 
 end order
 
