@@ -77,21 +77,21 @@ noncomputable def mesh (σ : Subdivision a b) : ℝ := σ.lengths.max' (Finset.u
 lemma le_mesh {i : Fin (σ.size + 1)} : σ.y i - σ.x i ≤ σ.mesh := by
   apply Finset.le_max' _ _ (Finset.mem_image_of_mem _ (Finset.mem_univ i))
 
+@[simp] lemma union0 {s : Fin 1 → Set α} : ⋃ i : Fin 1, s i = s 0 := ciSup_unique
+
 lemma cover1 (n : ℕ) (f : Fin (n + 2) → ℝ) (hf : Monotone f) :
     ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) ⊆ Icc (f 0) (f (Fin.last (n + 1))) := by
   apply iUnion_subset
   rintro i t ⟨h1, h2⟩
   constructor <;> linarith [hf (Fin.zero_le (Fin.castSucc i)), hf (Fin.le_last (Fin.succ i))]
 
-@[simp] lemma union0 {s : Fin 1 → Set ℝ} : ⋃ i : Fin 1, s i = s 0 := by simp [iUnion]
-
-lemma cover2 (n : ℕ) (f : Fin (n + 2) → ℝ) :
-    Icc (f 0) (f (Fin.last (n + 1))) ⊆ ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) := by
+lemma cover2 (n : ℕ) (f : Fin (n + 2) → ℝ) : Icc (f 0) (f (Fin.last (n + 1))) ⊆
+    ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) := by
   induction n with
   | zero => rw [union0] ; rfl
   | succ n ih =>
     intro t ht
-    cases Icc_subset_Icc_union_Icc (b := f (Fin.last (succ n)).castSucc) ht with
+    cases Icc_subset_Icc_union_Icc (b := f (Fin.last n.succ).castSucc) ht with
     | inl h =>
       obtain ⟨i, hi⟩ := mem_iUnion.1 (ih (f ∘ Fin.castSucc) h)
       exact mem_iUnion.2 ⟨_, hi⟩
@@ -113,6 +113,29 @@ lemma cover' (t : Icc a b) : ∃ i, ↑t ∈ σ.piece i := by
   exact ht
 
 end pieces
+
+section order
+
+variable {τ : Subdivision a b}
+
+lemma piece_subset_of_le (hab : a ≤ b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece j ⊆ σ.piece i := by
+  let u := τ.x j
+  let v := τ.y j
+  let t := (1/2) * u + (1/2) * v
+  have l1 : u ∈ Icc a b := subset hab
+  have l2 : v ∈ Icc a b := subset hab
+  have l4 : u ≤ v := mono' hab
+  have l3 : t ∈ τ.piece j := (Convex.mem_Icc l4).2 ⟨1/2, 1/2, by norm_num⟩
+  have l5 : t ∈ Icc a b := τ.piece_subset hab l3
+  have l6 := l3.1
+  have l7 := l3.2
+  obtain ⟨i, (hi : t ∈ σ.piece i)⟩ := cover' (σ := σ) ⟨t, l5⟩
+  use i
+  apply Icc_subset_Icc
+  · sorry
+  · sorry
+
+end order
 
 namespace regular
 
