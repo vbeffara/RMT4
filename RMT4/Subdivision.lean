@@ -1,7 +1,7 @@
 import Mathlib.Tactic
 import RMT4.to_mathlib
 
-open Set Function List Topology BigOperators Nat
+open Set Function List Topology BigOperators Nat Filter
 
 abbrev Subdivision (a b : ℝ) := Finset (Ioo a b)
 
@@ -154,7 +154,8 @@ lemma piece_subset_of_le (hab : a < b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece
 lemma sub_le_sub_of_Icc (hab : a ≤ b) (h : Icc a b ⊆ Icc c d) : b - a ≤ d - c := by
   linarith [(Icc_subset_Icc_iff hab).1 h]
 
-lemma mesh_mono (hab : a < b) (hστ : σ ≤ τ) : τ.mesh ≤ σ.mesh := by
+lemma mesh_antitone (hab : a < b) : Antitone (mesh (a := a) (b := b)) := by
+  intro σ τ hστ
   apply Finset.max'_le
   intro ℓ hℓ
   obtain ⟨i, _, rfl⟩ := Finset.mem_image.1 hℓ
@@ -189,7 +190,7 @@ lemma list_sorted (hab : a < b) : (list a b n).Sorted (· < ·) :=
   (pairwise_lt_range n).map _ (λ _ _ hij => aux_mono hab (succ_lt_succ hij))
 
 lemma list_mem_Ioo (hab : a < b) : ∀ x ∈ list a b n, x ∈ Ioo a b := by
-  simp only [list, mem_map, List.mem_range, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
+  simp only [list, List.mem_map, List.mem_range, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂]
   exact λ i hi => aux_mem_Ioo hab hi
 
 noncomputable def list' (hab : a < b) (n : ℕ) : List (Ioo a b) :=
@@ -256,21 +257,20 @@ structure adapted (σ : Subdivision a b) (S : ι → Set ℝ) :=
   I : Fin (σ.size + 1) → ι
   hI k : σ.piece k ⊆ S (I k)
 
-lemma adapted_of_mesh_lt (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
+lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → Nonempty (adapted σ S) := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε, hε, λ σ hσ => ?_⟩
   choose I hI using l1
-  refine ⟨λ j => I (σ.x j) (σ.subset hab), λ j => ?_⟩
+  refine ⟨λ j => I (σ.x j) (σ.subset hab.le), λ j => ?_⟩
   have : Set.OrdConnected (Metric.ball (σ.x j) ε) := (convex_ball ..).ordConnected
-  refine subset_trans ?_ (hI (σ.x j) (σ.subset hab))
+  refine subset_trans ?_ (hI (σ.x j) (σ.subset hab.le))
   refine Set.Icc_subset _ (Metric.mem_ball_self hε) ?_
   simp only [Metric.mem_ball]
   convert (le_mesh (i := j)).trans_lt hσ using 1
-  refine abs_eq_self.2 (sub_nonneg.2 (σ.mono hab ?_))
-  simp [Fin.le_def]
+  refine abs_eq_self.2 (sub_nonneg.2 (σ.mono hab Fin.lt_succ).le)
 
-lemma adapted_of_mesh_le (hab : a ≤ b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
+lemma adapted_of_mesh_le (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → Nonempty (adapted σ S) := by
   obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
   refine ⟨ε / 2, by positivity, λ σ hσ => h σ (by linarith)⟩
@@ -281,7 +281,7 @@ structure adapted_subdivision (a b : ℝ) (S : ι → Set ℝ) :=
 
 noncomputable def exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     adapted_subdivision a b S := by
-  choose ε hε h using adapted_of_mesh_le hab.le h1 h2
+  choose ε hε h using adapted_of_mesh_le hab h1 h2
   choose n hn using exists_div_lt (sub_nonneg_of_le hab.le) hε
   have : (regular hab n).mesh = (b - a) / (n + 1) := by simp
   exact ⟨_, (h (regular hab n) (by linarith)).some⟩

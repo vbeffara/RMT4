@@ -62,18 +62,18 @@ lemma apply_eq_of_path (hab : a ≤ b) {f : ℂ → ℂ} (hf : IsLocallyConstant
   exact @IsLocallyConstant.apply_eq_of_isPreconnected _ _ _ _ (h2) _ isPreconnected_univ
     ⟨b, hab, le_rfl⟩ ⟨a, le_rfl, hab⟩ (mem_univ _) (mem_univ _)
 
-lemma sumSubAlong_eq_zero (hab : a ≤ b) {DW : IsLocDerivOn U 0}
+lemma sumSubAlong_eq_zero (hab : a < b) {DW : IsLocDerivOn U 0}
   {RW : reladapted a b DW.S γ} (hγ : ContinuousOn γ (Icc a b)) :
     RW.σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
   refine Subdivision.sum_eq_zero (λ k => (sub_eq_zero.2 ?_))
-  apply apply_eq_of_path (RW.σ.mono' hab)
+  apply apply_eq_of_path (RW.σ.mono' hab).le
   · apply isLocallyConstant_of_deriv_eq_zero (DW.opn _) (DW.dif _)
     exact λ _ hz => (DW.eqd (RW.I k) hz).symm
-  · exact hγ.mono (RW.σ.piece_subset hab)
+  · exact hγ.mono (RW.σ.piece_subset hab.le)
   · exact mapsTo'.2 (RW.sub k)
 
 lemma pintegral_zero (hab : a < b) : pintegral hab 0 γ h2 hγ hf = 0 := by
-  simp [pintegral, sumSubAlong_eq_zero hab.le hγ]
+  simp [pintegral, sumSubAlong_eq_zero hab hγ]
 
 lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
     {γ : ℝ → ℂ} (hγ₁ : ContinuousOn γ (Icc a b)) (hγ₂ : MapsTo γ (Icc a b) U)
@@ -89,7 +89,7 @@ lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
   have h3 : deriv (f - g) z = deriv f z - deriv g z := deriv_sub h1 h2
   simp [hfg z hz, h3]
 
-lemma sumSubAlong_eq_of_sigma (hab : a ≤ b) {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ}
+lemma sumSubAlong_eq_of_sigma (hab : a < b) {hf : IsLocDerivOn U f} {RW₁ RW₂ : reladapted a b hf.S γ}
     (h : RW₁.σ = RW₂.σ) (hγ : ContinuousOn γ (Icc a b)) :
     RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
   rcases hf with ⟨F, S, _, Sopn, _, Sdif, Seqd⟩
@@ -97,8 +97,8 @@ lemma sumSubAlong_eq_of_sigma (hab : a ≤ b) {hf : IsLocDerivOn U f} {RW₁ RW�
   rcases RW₂ with ⟨σ', I₂, hI₂⟩
   subst h
   refine Subdivision.sum_congr (λ k => ?_)
-  apply sub_eq_sub_of_deriv_eq_deriv (σ.mono' hab) ((Sopn _).inter (Sopn _))
-  · exact (hγ.mono (σ.piece_subset hab))
+  apply sub_eq_sub_of_deriv_eq_deriv (σ.mono' hab).le ((Sopn _).inter (Sopn _))
+  · exact (hγ.mono (σ.piece_subset hab.le))
   · simpa only [mapsTo'] using subset_inter (hI₁ k) (hI₂ k)
   · exact (Sdif _).mono (inter_subset_left _ _)
   · exact (Sdif _).mono (inter_subset_right _ _)
@@ -112,16 +112,16 @@ lemma telescopic (f : Fin (n + 1) → ℂ) :
     simp [Fin.sum_univ_castSucc f]
   simp [l1, l2]
 
-lemma sumSubAlong_eq_sub (hab : a ≤ b) (hF : DifferentiableOn ℂ F U) (hf : IsLocDerivOn U (deriv F))
+lemma sumSubAlong_eq_sub (hab : a < b) (hF : DifferentiableOn ℂ F U) (hf : IsLocDerivOn U (deriv F))
     (hγ : ContinuousOn γ (Icc a b)) (RW : reladapted a b hf.S γ) :
     RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
   have key (i : Fin (RW.σ.size + 1)) :
       ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.y i) - ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.x i) =
       F (γ (RW.σ.y i)) - F (γ (RW.σ.x i)) := by
     apply sub_eq_sub_of_deriv_eq_deriv
-    · exact RW.σ.mono' hab
+    · exact (RW.σ.mono' hab).le
     · exact hf.opn (RW.I i)
-    · exact hγ.mono (RW.σ.piece_subset hab)
+    · exact hγ.mono (RW.σ.piece_subset hab.le)
     · exact Set.mapsTo'.2 (RW.sub _)
     · exact hf.dif (RW.I i)
     · exact hF.mono (hf.sub (RW.I i))
@@ -133,4 +133,4 @@ lemma sumSubAlong_eq_sub (hab : a ≤ b) (hF : DifferentiableOn ℂ F U) (hf : I
 lemma pintegral_deriv (hab : a < b) (hU : IsOpen U) (hγ : ContinuousOn γ (Icc a b))
     (h2 : MapsTo γ (Icc a b) U) (hF : DifferentiableOn ℂ F U) :
     pintegral hab (deriv F) γ h2 hγ (isLocDerivOn_deriv hU hF) = F (γ b) - F (γ a) :=
-  sumSubAlong_eq_sub hab.le hF _ hγ _
+  sumSubAlong_eq_sub hab hF _ hγ _
