@@ -77,6 +77,41 @@ noncomputable def mesh (σ : Subdivision a b) : ℝ := σ.lengths.max' (Finset.u
 lemma le_mesh {i : Fin (σ.size + 1)} : σ.y i - σ.x i ≤ σ.mesh := by
   apply Finset.le_max' _ _ (Finset.mem_image_of_mem _ (Finset.mem_univ i))
 
+lemma cover1 (n : ℕ) (f : Fin (n + 2) → ℝ) (hf : Monotone f) :
+    ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) ⊆ Icc (f 0) (f (Fin.last (n + 1))) := by
+  apply iUnion_subset
+  rintro i t ⟨h1, h2⟩
+  constructor <;> linarith [hf (Fin.zero_le (Fin.castSucc i)), hf (Fin.le_last (Fin.succ i))]
+
+@[simp] lemma union0 {s : Fin 1 → Set ℝ} : ⋃ i : Fin 1, s i = s 0 := by simp [iUnion]
+
+lemma cover2 (n : ℕ) (f : Fin (n + 2) → ℝ) :
+    Icc (f 0) (f (Fin.last (n + 1))) ⊆ ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) := by
+  induction n with
+  | zero => rw [union0] ; rfl
+  | succ n ih =>
+    intro t ht
+    cases Icc_subset_Icc_union_Icc (b := f (Fin.last (succ n)).castSucc) ht with
+    | inl h =>
+      obtain ⟨i, hi⟩ := mem_iUnion.1 (ih (f ∘ Fin.castSucc) h)
+      exact mem_iUnion.2 ⟨_, hi⟩
+    | inr h => exact mem_iUnion.2 ⟨_, h⟩
+
+lemma cover_aux (n : ℕ) (f : Fin (n + 2) → ℝ) (hf : Monotone f) :
+    ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) = Icc (f 0) (f (Fin.last (n + 1))) :=
+  subset_antisymm (cover1 n f hf) (cover2 n f)
+
+lemma cover (hab : a ≤ b) : ⋃ i : _, σ.piece i = Icc a b := by
+  simp only [piece, x, y]
+  convert cover_aux _ _ (mono hab)
+  simp
+
+lemma cover' (t : Icc a b) : ∃ i, ↑t ∈ σ.piece i := by
+  have hab : a ≤ b := nonempty_Icc.1 ⟨t, t.prop⟩
+  rcases t with ⟨t, ht⟩
+  rw [← cover (σ := σ) hab, mem_iUnion] at ht
+  exact ht
+
 end pieces
 
 namespace regular
