@@ -8,41 +8,72 @@ import RMT4.Subdivision
 
 open BigOperators Metric Set Subdivision Topology Filter Nat
 
-structure LocalPrimitiveOn (U : Set ℂ) (f : ℂ → ℂ) :=
-  F : U → ℂ → ℂ
-  S : U → Set ℂ
-  mem (z : U) : z.1 ∈ S z
-  opn (z : U) : IsOpen (S z)
-  dif (z : U) : DifferentiableOn ℂ (F z) (S z)
-  eqd (z : U) : (S z).EqOn (deriv (F z)) f
+structure LocalPrimitiveOn (s : Set ℂ) (f : ℂ → ℂ) :=
+  F : s → ℂ → ℂ
+  S : s → Set ℂ
+  mem z : z.1 ∈ S z
+  opn z : IsOpen (S z)
+  dif z : DifferentiableOn ℂ (F z) (S z)
+  eqd z : (S z).EqOn (deriv (F z)) f
 
-lemma LocalPrimitiveOn.nhd (h : LocalPrimitiveOn U f) (z : U) : h.S z ∈ 𝓝 z.1 :=
+namespace LocalPrimitiveOn
+
+lemma nhd (h : LocalPrimitiveOn s f) (z : s) : h.S z ∈ 𝓝 z.1 :=
   (h.opn z).mem_nhds (h.mem z)
 
-noncomputable def LocalPrimitiveOn_deriv (hU : IsOpen U) (hF : DifferentiableOn ℂ F U) :
+def restrict (Λ : LocalPrimitiveOn s f) (h : t ⊆ s) : LocalPrimitiveOn t f where
+  F := Λ.F ∘ inclusion h
+  S := Λ.S ∘ inclusion h
+  mem z := Λ.mem (inclusion h z)
+  opn z := Λ.opn (inclusion h z)
+  dif z := Λ.dif (inclusion h z)
+  eqd z := Λ.eqd (inclusion h z)
+
+def zero : LocalPrimitiveOn univ 0 where
+  F _ := 0
+  S _ := univ
+  mem _ := mem_univ _
+  opn _ := isOpen_univ
+  dif _ := differentiableOn_const _
+  eqd _ := by
+    change EqOn (deriv (λ _ => 0)) 0 univ
+    simpa only [deriv_const'] using eqOn_refl _ _
+
+noncomputable def deriv {{U : Set ℂ}}  (hU : IsOpen U) {{F : ℂ → ℂ}} (hF : DifferentiableOn ℂ F U) :
     LocalPrimitiveOn U (deriv F) where
   F _ := F
   S _ := U
   mem z := z.2
   opn _ := hU
-  eqd _ := eqOn_refl (deriv F) U
+  eqd _ := eqOn_refl _ _
   dif _ := hF
+
+end LocalPrimitiveOn
 
 def HasLocalPrimitiveOn (U : Set ℂ) (f : ℂ → ℂ) : Prop := Nonempty (LocalPrimitiveOn U f)
 
-noncomputable def pintegral_aux (hab : a < b) (f : ℂ → ℂ) (γ : ℝ → ℂ) (h2 : MapsTo γ (Icc a b) U)
-    (hγ : ContinuousOn γ (Icc a b)) (hf : LocalPrimitiveOn U f) : ℂ :=
-  have h1 (t : Icc a b) : ∃ i, hf.S i ∈ 𝓝 (γ t) :=
-    let u : U := ⟨γ t, h2 t.2⟩
-    ⟨u, hf.nhd u⟩
+namespace HasLocalPrimitiveOn
+
+lemma mono (h : HasLocalPrimitiveOn U f) (hVU : V ⊆ U) : HasLocalPrimitiveOn V f :=
+  ⟨h.some.restrict hVU⟩
+
+lemma zero : HasLocalPrimitiveOn s 0 := ⟨LocalPrimitiveOn.zero.restrict (subset_univ _)⟩
+
+end HasLocalPrimitiveOn
+
+section pintegral
+
+variable {a b : ℝ} {γ : ℝ → ℂ} {f : ℂ → ℂ}
+
+noncomputable def pintegral_aux (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
+    (Λ : LocalPrimitiveOn (γ '' Icc a b) f) : ℂ :=
+  have h1 (t : Icc a b) : ∃ i : γ '' Icc a b, Λ.S i ∈ 𝓝 (γ t) := ⟨⟨γ t, t, t.2, rfl⟩, Λ.nhd _⟩
   let RW := exists_reladapted hab hγ h1
-  RW.σ.sumSubAlong (hf.F ∘ RW.I) γ
+  RW.σ.sumSubAlong (Λ.F ∘ RW.I) γ
 
 noncomputable def pintegral (a b : ℝ) (f : ℂ → ℂ) (γ : ℝ → ℂ) : ℂ := by
-  by_cases h : a < b ∧ ContinuousOn γ (Icc a b) ∧ ∃ U : Set ℂ, MapsTo γ (Icc a b) U ∧
-    HasLocalPrimitiveOn U f
-  · choose hab hγ U h2 hf using h
-    exact pintegral_aux hab f γ h2 hγ hf.some
+  by_cases h : a < b ∧ ContinuousOn γ (Icc a b) ∧ HasLocalPrimitiveOn (γ '' Icc a b) f
+  · exact pintegral_aux h.1 h.2.1 h.2.2.some
   · exact 0
 
 lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) {f : ℂ → ℂ} (h : DifferentiableOn ℂ f U)
@@ -77,16 +108,10 @@ lemma sumSubAlong_eq_zero (hab : a < b) {DW : LocalPrimitiveOn U 0}
 
 @[simp] lemma pintegral_zero (hab : a < b) (hγ : ContinuousOn γ (Icc a b)) :
     pintegral a b 0 γ = 0 := by
-  have h : ∃ U, MapsTo γ (Icc a b) U ∧ HasLocalPrimitiveOn U 0 := by
-    refine ⟨univ, mapsTo_univ _ _, ?_⟩
-    refine ⟨λ _ => 0, λ _ => univ, λ _ => mem_univ _, λ _ => isOpen_univ,
-        ?_, ?_⟩
-    · intro z
-      apply differentiableOn_const
-    · intro z u _
-      change deriv (λ _ => 0) u = 0
-      simp only [deriv_const]
-  simp [pintegral, hab, hγ, h, pintegral_aux, sumSubAlong_eq_zero]
+  have : HasLocalPrimitiveOn (γ '' Icc a b) 0 := ⟨LocalPrimitiveOn.zero.restrict (subset_univ _)⟩
+  simp [pintegral, hab, hγ, this, pintegral_aux, sumSubAlong_eq_zero]
+
+end pintegral
 
 lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
     {γ : ℝ → ℂ} (hγ₁ : ContinuousOn γ (Icc a b)) (hγ₂ : MapsTo γ (Icc a b) U)
@@ -126,9 +151,14 @@ lemma telescopic (f : Fin (n + 1) → ℂ) :
   simp [l1, l2]
 
 -- missing : DifferentiableOn.inter
-lemma sumSubAlong_eq_sub (hab : a < b) (hF : DifferentiableOn ℂ F U) (hf : LocalPrimitiveOn U (deriv F))
-    (hγ : ContinuousOn γ (Icc a b)) (RW : reladapted a b hf.S γ) (hU : IsOpen U)
-    (hh : MapsTo γ (Icc a b) U):
+lemma sumSubAlong_eq_sub
+    (hab : a < b)
+    (hF : DifferentiableOn ℂ F U)
+    (hf : LocalPrimitiveOn U (deriv F))
+    (hγ : ContinuousOn γ (Icc a b))
+    (RW : reladapted a b hf.S γ)
+    (hU : IsOpen U)
+    (hh : MapsTo γ (Icc a b) U) :
     RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
   have key (i : Fin (RW.σ.size + 1)) :
       ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.y i) - ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.x i) =
@@ -152,7 +182,12 @@ lemma sumSubAlong_eq_sub (hab : a < b) (hF : DifferentiableOn ℂ F U) (hf : Loc
   convert telescopic (F ∘ γ ∘ RW.σ)
   simp
 
--- lemma pintegral_deriv (hab : a < b) (hU : IsOpen U) (hγ : ContinuousOn γ (Icc a b))
---     (h2 : MapsTo γ (Icc a b) U) (hF : DifferentiableOn ℂ F U) :
+lemma pintegral_deriv {F : ℂ → ℂ} {γ : ℝ → ℂ} (hab : a < b) (hU : IsOpen U)
+    (hγ : ContinuousOn γ (Icc a b)) (h2 : MapsTo γ (Icc a b) U) (hF : DifferentiableOn ℂ F U) :
+  pintegral a b (deriv F) γ = F (γ b) - F (γ a) := by
+  have : HasLocalPrimitiveOn (γ '' Icc a b) (deriv F) := sorry
+  simp [pintegral, hab, hγ, this, pintegral_aux]
+  refine sumSubAlong_eq_sub hab ?_ ?_ hγ ?_ ?_ ?_
+  sorry
 --     pintegral_aux hab (deriv F) γ h2 hγ (LocalPrimitiveOn_deriv hU hF) = F (γ b) - F (γ a) :=
 --   sumSubAlong_eq_sub hab hF _ hγ _
