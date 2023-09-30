@@ -69,10 +69,10 @@ section pintegral
 variable {a b : ℝ} {γ : ℝ → ℂ} {f : ℂ → ℂ}
 
 noncomputable def pintegral_aux (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
-    (Λ : LocalPrimitiveOn (γ '' Icc a b) f) : ℂ :=
+    (Λ : LocalPrimitiveOn (γ '' Icc a b) f) : ℂ := by
   have h1 (t : Icc a b) : ∃ i : γ '' Icc a b, Λ.S i ∈ 𝓝 (γ t) := ⟨⟨γ t, t, t.2, rfl⟩, Λ.nhd _⟩
-  let RW := exists_reladapted hab hγ h1
-  RW.σ.sumSubAlong (Λ.F ∘ RW.I) γ
+  obtain RW := (exists_reladapted hab hγ h1).some
+  exact RW.σ.sumSubAlong (Λ.F ∘ RW.I) γ
 
 noncomputable def pintegral (a b : ℝ) (f : ℂ → ℂ) (γ : ℝ → ℂ) : ℂ := by
   by_cases h : a < b ∧ ContinuousOn γ (Icc a b) ∧ HasLocalPrimitiveOn (γ '' Icc a b) f
@@ -99,13 +99,13 @@ lemma apply_eq_of_path (hab : a ≤ b) {f : ℂ → ℂ} (hf : IsLocallyConstant
   exact @IsLocallyConstant.apply_eq_of_isPreconnected _ _ _ _ (h2) _ isPreconnected_univ
     ⟨b, hab, le_rfl⟩ ⟨a, le_rfl, hab⟩ (mem_univ _) (mem_univ _)
 
-lemma sumSubAlong_eq_zero (hab : a < b) {DW : LocalPrimitiveOn U 0}
-  {RW : reladapted a b DW.S γ} (hγ : ContinuousOn γ (Icc a b)) :
-    RW.σ.sumSubAlong (DW.F ∘ RW.I) γ = 0 := by
+lemma sumSubAlong_eq_zero (hab : a < b) (Λ : LocalPrimitiveOn U 0)
+    (RW : RelAdaptedSubdivision a b Λ.S γ) (hγ : ContinuousOn γ (Icc a b)) :
+    RW.σ.sumSubAlong (Λ.F ∘ RW.I) γ = 0 := by
   refine Subdivision.sum_eq_zero (λ k => (sub_eq_zero.2 ?_))
   apply apply_eq_of_path (RW.σ.mono' hab).le
-  · apply isLocallyConstant_of_deriv_eq_zero (DW.opn _) (DW.dif _)
-    exact λ _ hz => DW.eqd (RW.I k) hz
+  · apply isLocallyConstant_of_deriv_eq_zero (Λ.opn _) (Λ.dif _)
+    exact λ _ hz => Λ.eqd (RW.I k) hz
   · exact hγ.mono (RW.σ.piece_subset hab.le)
   · exact mapsTo'.2 (RW.sub k)
 
@@ -123,15 +123,16 @@ lemma sub_eq_sub_of_deriv_eq_deriv (hab : a ≤ b) (hU : IsOpen U)
     f (γ b) - f (γ a) = g (γ b) - g (γ a) := by
   rw [sub_eq_sub_iff_sub_eq_sub]
   change (f - g) (γ b) = (f - g) (γ a)
-  refine apply_eq_of_path (U := U) hab ?_ hγ₁ hγ₂
+  refine apply_eq_of_path hab ?_ hγ₁ hγ₂
   refine isLocallyConstant_of_deriv_eq_zero hU (hf.sub hg) (λ z hz => ?_)
   have h1 : DifferentiableAt ℂ f z := hf.differentiableAt (hU.mem_nhds hz)
   have h2 : DifferentiableAt ℂ g z := hg.differentiableAt (hU.mem_nhds hz)
   have h3 : deriv (f - g) z = deriv f z - deriv g z := deriv_sub h1 h2
   simp [hfg z hz, h3]
 
-lemma sumSubAlong_eq_of_sigma (hab : a < b) {hf : LocalPrimitiveOn U f} {RW₁ RW₂ : reladapted a b hf.S γ}
-    (h : RW₁.σ = RW₂.σ) (hγ : ContinuousOn γ (Icc a b)) :
+lemma sumSubAlong_eq_of_sigma (hab : a < b) {hf : LocalPrimitiveOn U f}
+    {RW₁ RW₂ : RelAdaptedSubdivision a b hf.S γ} (h : RW₁.σ = RW₂.σ)
+    (hγ : ContinuousOn γ (Icc a b)) :
     RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
   rcases hf with ⟨F, S, _, Sopn, Sdif, Seqd⟩
   rcases RW₁ with ⟨σ, I₁, hI₁⟩
@@ -158,13 +159,13 @@ lemma sumSubAlong_eq_sub
     (hF : DifferentiableOn ℂ F U)
     (hf : LocalPrimitiveOn (γ '' Icc a b) (deriv F))
     (hγ : ContinuousOn γ (Icc a b))
-    (RW : reladapted a b hf.S γ)
+    (RW : RelAdaptedSubdivision a b hf.S γ)
     (hU : IsOpen U)
     (hh : MapsTo γ (Icc a b) U) :
     RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
   have key (i) : ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.y i) - ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.x i) =
       F (γ (RW.σ.y i)) - F (γ (RW.σ.x i)) := by
-    apply sub_eq_sub_of_deriv_eq_deriv (U := hf.S (RW.I i) ∩ U)
+    apply sub_eq_sub_of_deriv_eq_deriv
     · exact (RW.σ.mono' hab).le
     · exact (hf.opn (RW.I i)).inter hU
     · exact hγ.mono (RW.σ.piece_subset hab.le)

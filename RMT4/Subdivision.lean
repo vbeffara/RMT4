@@ -105,14 +105,14 @@ lemma cover_aux (n : ℕ) (f : Fin (n + 2) → ℝ) (hf : Monotone f) :
     ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) = Icc (f 0) (f (Fin.last (n + 1))) :=
   subset_antisymm (cover1 n f hf) (cover2 n f)
 
-lemma cover (hab : a < b) : ⋃ i : _, σ.piece i = Icc a b := by
+lemma cover (σ : Subdivision a b) (hab : a < b) : ⋃ i : _, σ.piece i = Icc a b := by
   simp only [piece, x, y]
   convert cover_aux _ _ (mono hab).monotone
   simp
 
 lemma cover' (hab : a < b) (t : Icc a b) : ∃ i, ↑t ∈ σ.piece i := by
   rcases t with ⟨t, ht⟩
-  rw [← cover (σ := σ) hab, mem_iUnion] at ht
+  rw [← σ.cover hab, mem_iUnion] at ht
   exact ht
 
 end pieces
@@ -123,40 +123,33 @@ variable {τ : Subdivision a b}
 
 lemma aux (h : σ ≤ τ) : map Subtype.val (Finset.sort (· ≤ ·) σ) ⊆
     map Subtype.val (Finset.sort (· ≤ ·) τ) := by
-  apply List.map_subset
-  intro t ht
+  refine map_subset _ (λ t ht => ?_)
   rw [Finset.mem_sort] at ht ⊢
   exact h ht
 
 lemma toList_le_of_le (h : σ ≤ τ) : σ.toList ⊆ τ.toList := by
-  simp [toList]
-  apply (aux h).trans
-  apply subset_cons_of_subset
-  apply subset_append_left
+  simpa [toList] using (aux h).trans (subset_cons_of_subset _ (subset_append_left _ _))
 
 lemma piece_subset_of_le (hab : a < b) (hστ : σ ≤ τ) (j) : ∃ i, τ.piece j ⊆ σ.piece i := by
   let t := (1/2) * τ.x j + (1/2) * τ.y j
-  have l8 : t ∈ Ioo (τ.x j) (τ.y j) := (Convex.mem_Ioo (mono' hab)).2 ⟨1/2, 1/2, by norm_num⟩
-  have l5 : t ∈ Icc a b := τ.piece_subset hab.le (Ioo_subset_Icc_self l8)
-  obtain ⟨i, hi⟩ := cover' hab ⟨t, l5⟩
+  have l1 : t ∈ Ioo (τ.x j) (τ.y j) := (Convex.mem_Ioo (mono' hab)).2 ⟨1/2, 1/2, by norm_num⟩
+  obtain ⟨i, hi⟩ := cover' hab ⟨t, τ.piece_subset hab.le (Ioo_subset_Icc_self l1)⟩
   refine ⟨i, Icc_subset_Icc ?_ ?_⟩
   · have : σ.x i ∈ σ.toList := σ.mem_iff.2 ⟨_, rfl⟩
     obtain ⟨k, l11⟩ := τ.mem_iff.1 (toList_le_of_le hστ this)
-    rw [← l11]
-    apply (mono hab).monotone
+    refine l11 ▸ (mono hab).monotone ?_
     rw [Fin.le_castSucc_iff, (mono hab).lt_iff_lt.symm, l11]
-    exact hi.1.trans_lt l8.2
+    exact hi.1.trans_lt l1.2
   · have l12 : σ.y i ∈ σ.toList := σ.mem_iff.2 ⟨i.succ, rfl⟩
     obtain ⟨l, l14⟩ := τ.mem_iff.1 (toList_le_of_le hστ l12)
-    rw [← l14]
-    apply (mono hab).monotone
+    refine l14 ▸ (mono hab).monotone ?_
     rw [← Fin.castSucc_lt_iff_succ_le, (mono hab).lt_iff_lt.symm, l14]
-    exact l8.1.trans_le hi.2
+    exact l1.1.trans_le hi.2
 
 lemma sub_le_sub_of_Icc (hab : a ≤ b) (h : Icc a b ⊆ Icc c d) : b - a ≤ d - c := by
   linarith [(Icc_subset_Icc_iff hab).1 h]
 
-lemma mesh_antitone (hab : a < b) : Antitone (mesh (a := a) (b := b)) := by
+lemma mesh_antitone (hab : a < b) : Antitone (mesh : Subdivision a b → ℝ) := by
   intro σ τ hστ
   apply Finset.max'_le
   intro ℓ hℓ
@@ -255,12 +248,14 @@ section adapted
 
 variable {S : ι → Set ℝ}
 
-structure adapted (σ : Subdivision a b) (S : ι → Set ℝ) :=
+structure Adaptation (σ : Subdivision a b) (S : ι → Set ℝ) :=
   I : Fin (σ.size + 1) → ι
   hI k : σ.piece k ⊆ S (I k)
 
-lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → Nonempty (adapted σ S) := by
+def IsAdapted (σ : Subdivision a b) (S : ι → Set ℝ) : Prop := Nonempty (Adaptation σ S)
+
+lemma isAdapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
+    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh < ε → IsAdapted σ S := by
   obtain ⟨ε, hε, l1⟩ := lebesgue_number_lemma_of_metric isCompact_Icc h1 h2
   refine ⟨ε, hε, λ σ hσ => ?_⟩
   choose I hI using l1
@@ -272,37 +267,37 @@ lemma adapted_of_mesh_lt (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b 
   convert (le_mesh (i := j)).trans_lt hσ using 1
   refine abs_eq_self.2 (sub_nonneg.2 (σ.mono hab Fin.lt_succ).le)
 
-lemma adapted_of_mesh_le (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
-    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → Nonempty (adapted σ S) := by
-  obtain ⟨ε, hε, h⟩ := adapted_of_mesh_lt hab h1 h2
+lemma isAdapted_of_mesh_le (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
+    ∃ ε > 0, ∀ σ : Subdivision a b, σ.mesh ≤ ε → IsAdapted σ S := by
+  obtain ⟨ε, hε, h⟩ := isAdapted_of_mesh_lt hab h1 h2
   refine ⟨ε / 2, by positivity, λ σ hσ => h σ (by linarith)⟩
 
-structure adapted_subdivision (a b : ℝ) (S : ι → Set ℝ) :=
+structure AdaptedSubdivision (a b : ℝ) (S : ι → Set ℝ) :=
   σ : Subdivision a b
-  h : adapted σ S
+  h : Adaptation σ S
 
 noncomputable def exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
-    adapted_subdivision a b S := by
-  choose ε hε h using adapted_of_mesh_le hab h1 h2
+    Nonempty (AdaptedSubdivision a b S) := by
+  choose ε hε h using isAdapted_of_mesh_le hab h1 h2
   choose n hn using exists_div_lt (sub_nonneg_of_le hab.le) hε
   have : (regular hab n).mesh = (b - a) / (n + 1) := by simp
   exact ⟨_, (h (regular hab n) (by linarith)).some⟩
 
 noncomputable def exists_adapted' (hab : a < b) (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝[Icc a b] t.1) :
-    adapted_subdivision a b S := by
+    Nonempty (AdaptedSubdivision a b S) := by
   choose I hI using h
   choose S' h1 h2 using λ t => (nhdsWithin_basis_open t.1 (Icc a b)).mem_iff.1 (hI t)
   have : Icc a b ⊆ ⋃ t, S' t := λ t ht => mem_iUnion.2 ⟨⟨t, ht⟩, (h1 ⟨t, ht⟩).1⟩
   obtain ⟨σ, hσ1, hσ2⟩ := exists_adapted hab (λ t => (h1 t).2) this
   exact ⟨σ, I ∘ hσ1, λ k => (Set.subset_inter (hσ2 k) (σ.piece_subset hab.le)).trans (h2 (hσ1 k))⟩
 
-structure reladapted (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
+structure RelAdaptedSubdivision (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → ℂ) :=
   σ : Subdivision a b
   I : Fin (σ.size + 1) → ι
   sub k : γ '' σ.piece k ⊆ S (I k)
 
 noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
-    (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) : reladapted a b S γ := by
+    (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) : Nonempty (RelAdaptedSubdivision a b S γ) := by
   choose I hI using h
   obtain ⟨σ, K, hK⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
   exact ⟨σ, I ∘ K, λ k => image_subset_iff.2 (hK k)⟩
