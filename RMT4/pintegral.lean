@@ -59,6 +59,9 @@ lemma mono (h : HasLocalPrimitiveOn U f) (hVU : V ⊆ U) : HasLocalPrimitiveOn V
 
 lemma zero : HasLocalPrimitiveOn s 0 := ⟨LocalPrimitiveOn.zero.restrict (subset_univ _)⟩
 
+lemma deriv (hU : IsOpen U) (hF : DifferentiableOn ℂ F U) : HasLocalPrimitiveOn U (deriv F) :=
+  ⟨LocalPrimitiveOn.deriv hU hF⟩
+
 end HasLocalPrimitiveOn
 
 section pintegral
@@ -150,44 +153,31 @@ lemma telescopic (f : Fin (n + 1) → ℂ) :
     simp [Fin.sum_univ_castSucc f]
   simp [l1, l2]
 
--- missing : DifferentiableOn.inter
 lemma sumSubAlong_eq_sub
     (hab : a < b)
     (hF : DifferentiableOn ℂ F U)
-    (hf : LocalPrimitiveOn U (deriv F))
+    (hf : LocalPrimitiveOn (γ '' Icc a b) (deriv F))
     (hγ : ContinuousOn γ (Icc a b))
     (RW : reladapted a b hf.S γ)
     (hU : IsOpen U)
     (hh : MapsTo γ (Icc a b) U) :
     RW.σ.sumSubAlong (hf.F ∘ RW.I) γ = F (γ b) - F (γ a) := by
-  have key (i : Fin (RW.σ.size + 1)) :
-      ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.y i) - ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.x i) =
+  have key (i) : ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.y i) - ((hf.F ∘ RW.I) i ∘ γ) (RW.σ.x i) =
       F (γ (RW.σ.y i)) - F (γ (RW.σ.x i)) := by
     apply sub_eq_sub_of_deriv_eq_deriv (U := hf.S (RW.I i) ∩ U)
     · exact (RW.σ.mono' hab).le
     · exact (hf.opn (RW.I i)).inter hU
     · exact hγ.mono (RW.σ.piece_subset hab.le)
-    · have e1 := Set.mapsTo'.2 (RW.sub i)
-      have e2 := RW.σ.piece_subset (i := i) hab.le
-      have e3 := hh.mono_left e2
-      exact e1.inter e3
-    · have := (hf.dif (RW.I i))
-      intro z hz
-      apply (differentiableWithinAt_inter ?_).2 (this z hz.1)
-      exact hU.mem_nhds hz.2
-    · apply DifferentiableOn.mono hF
-      exact inter_subset_right _ _
+    · exact (Set.mapsTo'.2 (RW.sub i)).inter (hh.mono_left (RW.σ.piece_subset hab.le))
+    · exact (hf.dif (RW.I i)).mono (inter_subset_left _ _)
+    · exact DifferentiableOn.mono hF (inter_subset_right _ _)
     · exact λ z hz => hf.eqd (RW.I i) hz.1
   simp only [sumSubAlong, sumSub, sum, key]
   convert telescopic (F ∘ γ ∘ RW.σ)
-  simp
+  simp only [← RW.σ.last] ; rfl
 
 lemma pintegral_deriv {F : ℂ → ℂ} {γ : ℝ → ℂ} (hab : a < b) (hU : IsOpen U)
     (hγ : ContinuousOn γ (Icc a b)) (h2 : MapsTo γ (Icc a b) U) (hF : DifferentiableOn ℂ F U) :
-  pintegral a b (deriv F) γ = F (γ b) - F (γ a) := by
-  have : HasLocalPrimitiveOn (γ '' Icc a b) (deriv F) := sorry
-  simp [pintegral, hab, hγ, this, pintegral_aux]
-  refine sumSubAlong_eq_sub hab ?_ ?_ hγ ?_ ?_ ?_
-  sorry
---     pintegral_aux hab (deriv F) γ h2 hγ (LocalPrimitiveOn_deriv hU hF) = F (γ b) - F (γ a) :=
---   sumSubAlong_eq_sub hab hF _ hγ _
+    pintegral a b (deriv F) γ = F (γ b) - F (γ a) := by
+  simpa [pintegral, hab, hγ, (HasLocalPrimitiveOn.deriv hU hF).mono (mapsTo'.1 h2)]
+  using sumSubAlong_eq_sub hab hF _ hγ _ hU h2

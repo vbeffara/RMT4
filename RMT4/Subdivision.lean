@@ -35,7 +35,9 @@ noncomputable def toFun (σ : Subdivision a b) : Fin (σ.size + 2) → ℝ :=
 
 noncomputable instance : CoeFun (Subdivision a b) (λ σ => Fin (σ.size + 2) → ℝ) := ⟨toFun⟩
 
-lemma mem_iff (σ : Subdivision a b) : t ∈ σ.toList ↔ ∃ i, σ i = t := sorry
+lemma mem_iff (σ : Subdivision a b) : t ∈ σ.toList ↔ ∃ i, σ i = t := by
+  rw [mem_iff_get]
+  constructor <;> rintro ⟨i, hi⟩ <;> exact ⟨Fin.cast (by simp) i, hi⟩
 
 noncomputable abbrev x (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ i.castSucc
 
