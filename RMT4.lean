@@ -5,10 +5,12 @@ import RMT4.montel
 import RMT4.etape2
 import RMT4.has_sqrt
 import RMT4.pintegral
+import RMT4.Curvint
 
 open UniformConvergence Topology Filter Set Metric Function
 
 -- Anatole did this for Lean3 at https://github.com/leanprover-community/mathlib/pull/18017
+-- Lean4 port: https://github.com/leanprover-community/mathlib4/pull/6844
 instance : CompleteSpace (ℂ →ᵤ[compacts U] ℂ) := by sorry
 
 namespace RMT
