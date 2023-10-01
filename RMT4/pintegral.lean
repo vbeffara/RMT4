@@ -5,6 +5,7 @@ import Mathlib.MeasureTheory.Integral.IntervalIntegral
 import Mathlib.Topology.LocallyConstant.Basic
 import Mathlib.Analysis.Calculus.MeanValue
 import RMT4.Subdivision
+import RMT4.Primitive
 
 open BigOperators Metric Set Subdivision Topology Filter Nat
 
@@ -39,7 +40,7 @@ def zero : LocalPrimitiveOn univ 0 where
     change EqOn (deriv (λ _ => 0)) 0 univ
     simpa only [deriv_const'] using eqOn_refl _ _
 
-noncomputable def deriv {{U : Set ℂ}}  (hU : IsOpen U) {{F : ℂ → ℂ}} (hF : DifferentiableOn ℂ F U) :
+protected noncomputable def deriv {{U : Set ℂ}}  (hU : IsOpen U) {{F : ℂ → ℂ}} (hF : DifferentiableOn ℂ F U) :
     LocalPrimitiveOn U (deriv F) where
   F _ := F
   S _ := U
@@ -47,6 +48,26 @@ noncomputable def deriv {{U : Set ℂ}}  (hU : IsOpen U) {{F : ℂ → ℂ}} (hF
   opn _ := hU
   eqd _ := eqOn_refl _ _
   dif _ := hF
+
+noncomputable def inradius {U : Set ℂ} (hU : IsOpen U) (hz : z ∈ U) :
+    {ε // 0 < ε ∧ ball z ε ⊆ U} := by
+  choose ε ε_pos hε using isOpen_iff.1 hU z hz
+  exact ⟨ε, ε_pos, hε⟩
+
+lemma hasDerivAt_inradius {U : Set ℂ} (hU : IsOpen U) (hf : DifferentiableOn ℂ f U) (hz₀ : z₀ ∈ U)
+    (hz : z ∈ ball z₀ (inradius hU hz₀)) : HasDerivAt (primitive f z₀) (f z) z := by
+  have l1 : StarConvex ℝ z₀ (ball z₀ (inradius hU hz₀)) :=
+    (convex_ball _ _).starConvex (mem_ball_self (inradius hU hz₀).2.1)
+  exact (hf.mono (inradius hU hz₀).2.2).exists_primitive l1 isOpen_ball hz
+
+noncomputable def of_differentiableOn {U : Set ℂ} (hU : IsOpen U) {f : ℂ → ℂ}
+    (h : DifferentiableOn ℂ f U) : LocalPrimitiveOn U f where
+  F z₀ := primitive f z₀
+  S z₀ := ball z₀ (inradius hU z₀.2)
+  mem z₀ := mem_ball_self (inradius hU z₀.2).2.1
+  opn _ := isOpen_ball
+  dif z₀ _ hz := (hasDerivAt_inradius hU h z₀.2 hz).differentiableAt.differentiableWithinAt
+  eqd z₀ _ hz := (hasDerivAt_inradius hU h z₀.2 hz).deriv
 
 end LocalPrimitiveOn
 
@@ -61,6 +82,9 @@ lemma zero : HasLocalPrimitiveOn s 0 := ⟨LocalPrimitiveOn.zero.restrict (subse
 
 lemma deriv (hU : IsOpen U) (hF : DifferentiableOn ℂ F U) : HasLocalPrimitiveOn U (deriv F) :=
   ⟨LocalPrimitiveOn.deriv hU hF⟩
+
+lemma holo (hU : IsOpen U) (hF : DifferentiableOn ℂ F U) : HasLocalPrimitiveOn U F :=
+  ⟨LocalPrimitiveOn.of_differentiableOn hU hF⟩
 
 end HasLocalPrimitiveOn
 

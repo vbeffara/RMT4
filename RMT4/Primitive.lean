@@ -55,7 +55,7 @@ end detail
 open detail
 
 lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
-    (hU : StarConvex ℝ z₀ U) (hU' : IsOpen U) ⦃z : ℂ⦄ (hz : z ∈ U) :
+    (hU : StarConvex ℝ z₀ U) (hU' : IsOpen U) (hz : z ∈ U) :
     HasDerivAt (primitive f z₀) (f z) z := by
 
   let φ := φ f z₀
@@ -83,8 +83,8 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
       isCompact_segment.exists_cthickening_subset_open hU' (hU.segment_subset hz)
     let K := cthickening δ (segment ℝ z₀ z)
     have hz₀ : z₀ ∈ K := self_subset_cthickening _ ⟨1, 0, zero_le_one, le_rfl, by ring, by simp⟩
-    have K_cpct : IsCompact K := isCompact_of_isClosed_bounded isClosed_cthickening
-      isCompact_segment.bounded.cthickening
+    have K_cpct : IsCompact K := isCompact_of_isClosed_isBounded isClosed_cthickening
+      isCompact_segment.isBounded.cthickening
     have K_conv : Convex ℝ K := (convex_segment _ _).cthickening _
     have K_ball : ball z δ ⊆ K := ball_subset_closedBall.trans
       (closedBall_subset_cthickening (right_mem_segment _ _ _) δ)
@@ -132,7 +132,8 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
         simp
     · simp [detail.φ]
 
-  have : HasDerivAt (primitive f z₀) ((∫ t in (0:ℝ)..1, φ z t) + (z - z₀) * ∫ t in (0:ℝ)..1, ψ z t) z := by
+  have : HasDerivAt (primitive f z₀)
+      ((∫ t in (0:ℝ)..1, φ z t) + (z - z₀) * ∫ t in (0:ℝ)..1, ψ z t) z := by
     convert ((hasDerivAt_id z).sub (hasDerivAt_const z z₀)).mul step1 using 1
     simp
 
