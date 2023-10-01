@@ -28,7 +28,7 @@ lemma UniformlyBoundedOn.deriv (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
   rintro K ⟨hK1, hK2⟩
   obtain ⟨δ, hδ, h⟩ := hK2.exists_cthickening_subset_open hU hK1
   have e1 : cthickening δ K ∈ compacts U :=
-    ⟨h, isCompact_of_isClosed_bounded isClosed_cthickening hK2.bounded.cthickening⟩
+    ⟨h, isCompact_of_isClosed_isBounded isClosed_cthickening hK2.isBounded.cthickening⟩
   obtain ⟨M, hMp, hM⟩ := h1 _ e1
   refine ⟨M / δ, div_pos hMp hδ, ?_⟩
   rintro z₀ hz₀ w ⟨i, rfl⟩

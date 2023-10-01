@@ -117,7 +117,7 @@ lemma 𝓘_subset_𝓙 : 𝓘 U ⊆ 𝓙 U := λ _ hf => ⟨hf.1, Or.inl hf.2⟩
 
 lemma IsCompact_𝓙 [good_domain U] : IsCompact (𝓙 U) := by
   have hU : IsOpen U := good_domain.is_open
-  refine isCompact_of_isClosed_subset (IsCompact_𝓜 hU) ?_ (λ _ hf => hf.1)
+  refine (IsCompact_𝓜 hU).of_isClosed_subset ?_ (λ _ hf => hf.1)
   refine isClosed_iff_clusterPt.2 (λ f hf => ?_)
   set l := 𝓝 f ⊓ 𝓟 (𝓙 U)
   haveI : l.NeBot := hf
