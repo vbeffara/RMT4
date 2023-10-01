@@ -12,10 +12,9 @@ open BigOperators Metric Set Subdivision Topology Filter Nat
 structure LocalPrimitiveOn (s : Set ℂ) (f : ℂ → ℂ) :=
   F : s → ℂ → ℂ
   S : s → Set ℂ
-  mem z : z.1 ∈ S z
-  opn z : IsOpen (S z)
-  dif z : DifferentiableOn ℂ (F z) (S z)
-  eqd z : (S z).EqOn (deriv (F z)) f
+  mem (z : s) : z.1 ∈ S z
+  opn (z : s) : IsOpen (S z)
+  der (z : s) (w : S z) : HasDerivAt (F z) (f w) w
 
 namespace LocalPrimitiveOn
 
@@ -27,27 +26,22 @@ def restrict (Λ : LocalPrimitiveOn s f) (h : t ⊆ s) : LocalPrimitiveOn t f wh
   S := Λ.S ∘ inclusion h
   mem z := Λ.mem (inclusion h z)
   opn z := Λ.opn (inclusion h z)
-  dif z := Λ.dif (inclusion h z)
-  eqd z := Λ.eqd (inclusion h z)
+  der z := Λ.der (inclusion h z)
 
 def zero : LocalPrimitiveOn univ 0 where
   F _ := 0
   S _ := univ
   mem _ := mem_univ _
   opn _ := isOpen_univ
-  dif _ := differentiableOn_const _
-  eqd _ := by
-    change EqOn (deriv (λ _ => 0)) 0 univ
-    simpa only [deriv_const'] using eqOn_refl _ _
+  der _ _ := hasDerivAt_const _ _
 
-protected noncomputable def deriv {{U : Set ℂ}}  (hU : IsOpen U) {{F : ℂ → ℂ}} (hF : DifferentiableOn ℂ F U) :
-    LocalPrimitiveOn U (deriv F) where
+protected noncomputable def deriv {{U : Set ℂ}}  (hU : IsOpen U) {{F : ℂ → ℂ}}
+    (hF : DifferentiableOn ℂ F U) : LocalPrimitiveOn U (deriv F) where
   F _ := F
   S _ := U
   mem z := z.2
   opn _ := hU
-  eqd _ := eqOn_refl _ _
-  dif _ := hF
+  der _ w := DifferentiableAt.hasDerivAt (hF.differentiableAt (hU.mem_nhds w.2))
 
 noncomputable def inradius {U : Set ℂ} (hU : IsOpen U) (hz : z ∈ U) :
     {ε // 0 < ε ∧ ball z ε ⊆ U} := by
@@ -62,12 +56,11 @@ lemma hasDerivAt_inradius {U : Set ℂ} (hU : IsOpen U) (hf : DifferentiableOn �
 
 noncomputable def of_differentiableOn {U : Set ℂ} (hU : IsOpen U) {f : ℂ → ℂ}
     (h : DifferentiableOn ℂ f U) : LocalPrimitiveOn U f where
-  F z₀ := primitive f z₀
-  S z₀ := ball z₀ (inradius hU z₀.2)
-  mem z₀ := mem_ball_self (inradius hU z₀.2).2.1
+  F z := primitive f z
+  S z := ball z (inradius hU z.2)
+  mem z := mem_ball_self (inradius hU z.2).2.1
   opn _ := isOpen_ball
-  dif z₀ _ hz := (hasDerivAt_inradius hU h z₀.2 hz).differentiableAt.differentiableWithinAt
-  eqd z₀ _ hz := (hasDerivAt_inradius hU h z₀.2 hz).deriv
+  der z w := hasDerivAt_inradius hU h z.2 w.2
 
 end LocalPrimitiveOn
 
@@ -128,8 +121,9 @@ lemma sumSubAlong_eq_zero (hab : a < b) (Λ : LocalPrimitiveOn U 0)
     RW.σ.sumSubAlong (Λ.F ∘ RW.I) γ = 0 := by
   refine Subdivision.sum_eq_zero (λ k => (sub_eq_zero.2 ?_))
   apply apply_eq_of_path (RW.σ.mono' hab).le
-  · apply isLocallyConstant_of_deriv_eq_zero (Λ.opn _) (Λ.dif _)
-    exact λ _ hz => Λ.eqd (RW.I k) hz
+  · apply isLocallyConstant_of_deriv_eq_zero (Λ.opn (RW.I k))
+    · exact λ z hz => (Λ.der (RW.I k) ⟨z, hz⟩).differentiableAt.differentiableWithinAt
+    · exact λ z hz => (Λ.der (RW.I k) ⟨z, hz⟩).deriv
   · exact hγ.mono (RW.σ.piece_subset hab.le)
   · exact mapsTo'.2 (RW.sub k)
 
@@ -158,7 +152,7 @@ lemma sumSubAlong_eq_of_sigma (hab : a < b) {hf : LocalPrimitiveOn U f}
     {RW₁ RW₂ : RelAdaptedSubdivision a b hf.S γ} (h : RW₁.σ = RW₂.σ)
     (hγ : ContinuousOn γ (Icc a b)) :
     RW₁.σ.sumSubAlong (hf.F ∘ RW₁.I) γ = RW₂.σ.sumSubAlong (hf.F ∘ RW₂.I) γ := by
-  rcases hf with ⟨F, S, _, Sopn, Sdif, Seqd⟩
+  rcases hf with ⟨F, S, _, Sopn, Sder⟩
   rcases RW₁ with ⟨σ, I₁, hI₁⟩
   rcases RW₂ with ⟨σ', I₂, hI₂⟩
   subst h
@@ -166,9 +160,13 @@ lemma sumSubAlong_eq_of_sigma (hab : a < b) {hf : LocalPrimitiveOn U f}
   apply sub_eq_sub_of_deriv_eq_deriv (σ.mono' hab).le ((Sopn _).inter (Sopn _))
   · exact (hγ.mono (σ.piece_subset hab.le))
   · simpa only [mapsTo'] using subset_inter (hI₁ k) (hI₂ k)
-  · exact (Sdif _).mono (inter_subset_left _ _)
-  · exact (Sdif _).mono (inter_subset_right _ _)
-  · exact λ z hz => (Seqd _ hz.1).trans (Seqd _ hz.2).symm
+  · exact λ z hz => (Sder (I₁ k) ⟨z, hz.1⟩).differentiableAt.differentiableWithinAt
+  · exact λ z hz => (Sder (I₂ k) ⟨z, hz.2⟩).differentiableAt.differentiableWithinAt
+  · intro z hz
+    have l1 := (Sder (I₁ k) ⟨z, hz.1⟩).deriv
+    have l2 := (Sder (I₂ k) ⟨z, hz.2⟩).deriv
+    simp only at l1 l2
+    simp only [Function.comp_apply, l1, l2]
 
 lemma telescopic (f : Fin (n + 1) → ℂ) :
     ∑ i : Fin n, (f i.succ - f i.castSucc) = f (Fin.last n) - f 0 := by
@@ -194,9 +192,9 @@ lemma sumSubAlong_eq_sub
     · exact (hf.opn (RW.I i)).inter hU
     · exact hγ.mono (RW.σ.piece_subset hab.le)
     · exact (Set.mapsTo'.2 (RW.sub i)).inter (hh.mono_left (RW.σ.piece_subset hab.le))
-    · exact (hf.dif (RW.I i)).mono (inter_subset_left _ _)
+    · exact λ z hz => by exact (hf.der (RW.I i) ⟨z, hz.1⟩).differentiableAt.differentiableWithinAt
     · exact DifferentiableOn.mono hF (inter_subset_right _ _)
-    · exact λ z hz => hf.eqd (RW.I i) hz.1
+    · exact λ z hz => (hf.der (RW.I i) ⟨z, hz.1⟩).deriv
   simp only [sumSubAlong, sumSub, sum, key]
   convert telescopic (F ∘ γ ∘ RW.σ)
   simp only [← RW.σ.last] ; rfl
