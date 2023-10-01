@@ -68,6 +68,21 @@ def HasLocalPrimitiveOn (U : Set ℂ) (f : ℂ → ℂ) : Prop := Nonempty (Loca
 
 namespace HasLocalPrimitiveOn
 
+lemma iff : HasLocalPrimitiveOn U f ↔ ∀ z ∈ U, ∃ F, ∀ᶠ w in 𝓝 z, HasDerivAt F (f w) w where
+  mp := by
+    intro ⟨F, S, mem, opn, der⟩ z hz
+    use F ⟨z, hz⟩
+    apply eventually_of_mem ((opn ⟨z, hz⟩).mem_nhds (mem ⟨z, hz⟩))
+    intro x hx
+    exact der ⟨z, hz⟩ ⟨x, hx⟩
+  mpr h := by
+    simp only [eventually_nhds_iff_ball] at h
+    choose! F ε hε h using h
+    refine ⟨λ z => F z, λ z => ball z (ε z), ?_, ?_, ?_⟩
+    · exact λ z => mem_ball_self $ hε z z.2
+    · exact λ z => isOpen_ball
+    · exact λ z w => h z z.2 w w.2
+
 lemma mono (h : HasLocalPrimitiveOn U f) (hVU : V ⊆ U) : HasLocalPrimitiveOn V f :=
   ⟨h.some.restrict hVU⟩
 
