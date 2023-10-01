@@ -8,12 +8,8 @@ import Mathlib.Analysis.Calculus.Deriv.Mul
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
 import Mathlib.Order.Interval
 import RMT4.to_mathlib
--- import curvint
 
 open Set BigOperators Metric Filter MeasureTheory intervalIntegral
-
--- open filter metric measure_theory Set interval_integral affine_map
--- open_locale topological_space big_operators
 
 variable {f : ℂ → ℂ} {z₀ z w : ℂ} {ε δ t a b : ℝ} {K U : Set ℂ}
 
@@ -22,23 +18,19 @@ lemma mem_segment (ht : t ∈ Icc (0 : ℝ) 1) : (1 - t) • z₀ + t • z ∈ 
 
 lemma continuous_bary : Continuous (λ t : ℝ => (1 - t) • z₀ + t • z) := by continuity
 
-lemma differentiable_bary : Differentiable ℂ (λ z : ℂ => (1 - t) • z₀ + t • z) := by
-  apply Differentiable.add
-  simp
-  simp
-  apply Differentiable.const_mul
-  exact differentiable_id'
+lemma differentiable_bary : Differentiable ℂ (λ z : ℂ => (1 - t) • z₀ + t • z) :=
+  (differentiable_const _).add (differentiable_id.const_smul _)
 
 lemma has_deriv_at_bary : HasDerivAt (λ t : ℝ => (1 - t) • z₀ + t • z) (z - z₀) t := by
-  have h0 : HasDerivAt (λ t : ℝ => 1 - t) (-1) t := by
+  have h0 : HasDerivAt (1 - ·) (-1) t := by
     simpa using (hasDerivAt_const t 1).sub (hasDerivAt_id t)
   have h1 : HasDerivAt (λ t : ℝ => (1 - t) • z₀) (-z₀) t := by
     simpa using h0.smul_const z₀
-  have h2 : HasDerivAt (λ t : ℝ => t • z) z t := by
+  have h2 : HasDerivAt (· • z) z t := by
     simpa using (hasDerivAt_id t).smul_const z
   convert h1.add h2 using 1 ; ring
 
-lemma hasDerivAt_bary' : HasDerivAt (λ z : ℂ => (1 - t) • z₀ + t • z) t z := by
+lemma hasDerivAt_bary' : HasDerivAt (λ z => (1 - t) • z₀ + t • z) t z := by
   simpa using (hasDerivAt_const z ((1 - t) • z₀)).add ((hasDerivAt_id z).const_smul t)
 
 lemma StarConvex.bary (hU : StarConvex ℝ z₀ U) (hz : z ∈ U) :
@@ -52,11 +44,22 @@ noncomputable def primitive (f : ℂ → ℂ) (z₀ z : ℂ) : ℂ :=
 -- by simpa only [curvint, has_deriv_at_bary.deriv]
 --   using (interval_integral.integral_const_mul _ _).symm
 
+namespace detail
+
+noncomputable abbrev φ (f : ℂ → ℂ) (z₀ z : ℂ) (t : ℝ) : ℂ := f ((1 - t) • z₀ + t • z)
+
+noncomputable abbrev ψ (f : ℂ → ℂ) (z₀ z : ℂ) (t : ℝ) : ℂ := t • deriv f ((1 - t) • z₀ + t • z)
+
+end detail
+
+open detail
+
 lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
     (hU : StarConvex ℝ z₀ U) (hU' : IsOpen U) ⦃z : ℂ⦄ (hz : z ∈ U) :
     HasDerivAt (primitive f z₀) (f z) z := by
-  let φ (z : ℂ) (t : ℝ) : ℂ := f ((1 - t) • z₀ + t • z)
-  let ψ (z : ℂ) (t : ℝ) : ℂ := t • _root_.deriv f ((1 - t) • z₀ + t • z)
+
+  let φ := φ f z₀
+  let ψ := ψ f z₀
   let I : Set ℝ := Icc 0 1
 
   have f_cont : ContinuousOn f U := f_holo.continuousOn
@@ -64,15 +67,14 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
     λ z hz => f_holo.hasDerivAt (hU'.mem_nhds hz)
   have f_cder : ContinuousOn (_root_.deriv f) U := (f_holo.analyticOn hU').deriv.continuousOn
 
-  have φ_cont : ∀ ⦃z⦄, z ∈ U → ContinuousOn (φ z) I :=
-    λ z hz => f_cont.comp continuous_bary.continuousOn (hU.bary hz)
-  have φ_diff : ∀ ⦃t⦄, t ∈ I → DifferentiableOn ℂ (λ w => φ w t) U :=
-    λ t ht => f_holo.comp differentiable_bary.differentiableOn (λ z hz => hU.bary hz ht)
-  have φ_derz : ∀ ⦃z⦄ (_ : z ∈ U) ⦃t⦄ (_ : t ∈ I), HasDerivAt (λ x => φ x t) (ψ z t) z :=
-    λ z hz t ht => by simpa [mul_comm] using
-      (f_deri (hU.bary hz ht)).comp z hasDerivAt_bary'
-  have φ_dert : ∀ ⦃t⦄ (_ : t ∈ I), HasDerivAt (φ z) ((z - z₀) * _root_.deriv f ((1 - t) • z₀ + t • z)) t :=
-    λ t ht => by simpa [mul_comm] using (f_deri (hU.bary hz ht)).comp t has_deriv_at_bary
+  have φ_cont {z} (hz : z ∈ U) : ContinuousOn (φ z) I :=
+    f_cont.comp continuous_bary.continuousOn (hU.bary hz)
+  have φ_diff {t} (ht : t ∈ I) : DifferentiableOn ℂ (λ w => φ w t) U :=
+    f_holo.comp differentiable_bary.differentiableOn (λ z hz => hU.bary hz ht)
+  have φ_derz {z} (hz : z ∈ U) {t} (ht : t ∈ I) : HasDerivAt (λ x => φ x t) (ψ z t) z := by
+    convert (f_deri (hU.bary hz ht)).comp z hasDerivAt_bary' ; simp ; ring
+  have φ_dert {t} (ht : t ∈ I) : HasDerivAt (φ z) ((z - z₀) * _root_.deriv f ((1 - t) • z₀ + t • z)) t := by
+    convert (f_deri (hU.bary hz ht)).comp t has_deriv_at_bary using 1 ; ring
   have ψ_cont : ContinuousOn (ψ z) I :=
     continuousOn_id.smul (f_cder.comp continuous_bary.continuousOn (hU.bary hz))
 
@@ -89,31 +91,21 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
     obtain ⟨C, hC⟩ := K_cpct.exists_bound_of_continuousOn (f_cder.mono K_subs)
     have C_nonneg : 0 ≤ C := (norm_nonneg _).trans (hC z₀ hz₀)
 
-    have key : ∀ ⦃t⦄ (_ : t ∈ I), LipschitzOnWith (Real.nnabs C) (λ x => φ x t) K := by
+    have key : ∀ t ∈ I, LipschitzOnWith (Real.nnabs C) (φ · t) K := by
       refine λ t ht => lipschitzOnWith_iff_norm_sub_le.mpr (λ x hx y hy => ?_)
       refine K_conv.norm_image_sub_le_of_norm_deriv_le (f := (φ · t)) (λ w hw => ?_) ?_ hy hx
       · exact (φ_diff ht).differentiableAt (hU'.mem_nhds (K_subs hw))
       · rintro w hw
-        have h := (φ_derz (K_subs hw) ht).deriv
-        have h_bary : (1 - t) • z₀ + t • w ∈ K := (K_conv.starConvex hz₀).bary hw ht
-        have f_bary := hC _ h_bary
+        rw [(φ_derz (K_subs hw) ht).deriv]
+        have f_bary := hC _ ((K_conv.starConvex hz₀).bary hw ht)
         have ht' : |t| ≤ 1 := by { rw [abs_le] ; constructor <;> linarith [ht.1, ht.2] }
-        rw [h]
-        simp
-
-        simp at f_bary
-
-        have := mul_le_mul ht' f_bary (by simp) (by simp)
-        simp at this
-        simp [abs_eq_self.2 C_nonneg]
-        exact this
+        simpa [abs_eq_self.2 C_nonneg] using mul_le_mul ht' f_bary (by simp) (by simp)
 
     apply has_deriv_at_integral_of_continuous_of_lip zero_le_one δ_pos
-    · exact eventually_of_mem (hU'.mem_nhds hz) φ_cont
+    · exact eventually_of_mem (hU'.mem_nhds hz) (λ _ => φ_cont)
     · exact λ t ht => φ_derz hz (Ioc_subset_Icc_self ht)
-    · exact λ t ht => (key (Ioc_subset_Icc_self ht)).mono K_ball
+    · exact λ t ht => (key t (Ioc_subset_Icc_self ht)).mono K_ball
     · exact ψ_cont.mono Ioc_subset_Icc_self
-
 
   have step2 : (∫ t in (0:ℝ)..1, φ z t) + (z - z₀) * (∫ t in (0:ℝ)..1, ψ z t) = f z := by
     let g (t : ℝ) : ℂ := t • φ z t
@@ -138,7 +130,7 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
         refine continuousOn_const.mul ?_
         convert ψ_cont
         simp
-    · simp
+    · simp [detail.φ]
 
   have : HasDerivAt (primitive f z₀) ((∫ t in (0:ℝ)..1, φ z t) + (z - z₀) * ∫ t in (0:ℝ)..1, ψ z t) z := by
     convert ((hasDerivAt_id z).sub (hasDerivAt_const z z₀)).mul step1 using 1
