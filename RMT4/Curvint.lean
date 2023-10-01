@@ -114,67 +114,86 @@ theorem cdv
 
 end bla
 
-section holo
+namespace holo
 
-variable (Γ Γ' : ℝ → ℝ → ℂ) (f f' : ℂ → ℂ) (a b u₀ : ℝ)
+noncomputable def f1 (f : ℂ → ℂ) (Γ : ℂ → ℝ → ℂ) (w : ℂ) (t : ℝ) : ℂ :=
+  deriv (Γ w) t * f (Γ w t)
 
-theorem holo
-    (hab : a ≤ b)
-    (hcycle : ∀ u, Γ u b = Γ u a)
-    (hcycle' : ∀ u, Γ' u b = Γ' u a)
-    (hΓ : ∀ᶠ u in 𝓝 u₀, ContDiffOn ℝ 1 (Γ u) (Icc a b))
-    :
-    HasDerivAt (λ u => curvint a b f (Γ u)) 0 u₀
-    := by
+noncomputable def f2 (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) (w : ℂ) (t : ℝ) : ℂ :=
+  deriv (Γ' w) t * f (Γ w t) + Γ' w t * deriv (Γ w) t * f' (Γ w t)
 
-  simp_rw [← curvint'_eq_curvint]
-  simp [curvint', intervalIntegral, hab]
+noncomputable def f3 (f : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) (w : ℂ) (t : ℝ) : ℂ :=
+  Γ' w t * f (Γ w t)
 
-  set μ : Measure ℝ := volume.restrict (Ioc a b)
-  set F : ℝ → ℝ → ℂ := λ u t =>
-    derivWithin (Γ u) (Icc a b) t * f (Γ u t)
-  set F' : ℝ → ℝ → ℂ := λ u t =>
-    derivWithin (Γ' u) (Icc a b) t * f (Γ u t) +
-    derivWithin (Γ u) (Icc a b) t * Γ' u t * f' (Γ u t) with def_F'
-  set G : ℝ → ℂ := λ s => Γ' u₀ s * f (Γ u₀ s) with def_G
-  set C : ℝ → ℝ := sorry
-  set ε : ℝ := sorry
-  have hε : 0 < ε := sorry
+structure setup (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) where
+  df : Differentiable ℂ f
+  dΓ : Differentiable ℝ (Γ w)
+  dΓ' : Differentiable ℝ (Γ' w)
+  dfΓ : Differentiable ℝ (λ t => f (Γ w t))
+  cdΓ : Continuous (deriv (Γ w₀))
+  cdΓ' : Continuous (deriv (Γ' w₀))
+  cfΓ : Continuous (λ t => f (Γ w₀ t))
+  cf'Γ : Continuous (λ t => f' (Γ w₀ t))
+  ff' : f' = deriv f
+  ΓΓ' : deriv (λ w => Γ w t) w = Γ' w t
+  L : LipschitzOnWith 1 (fun x => f1 f Γ x t) (ball w₀ 1)
+  key : HasDerivAt (fun x => f1 f Γ x t) (f2 f f' Γ Γ' w₀ t) w₀
 
-  have F_cont : ∀ᶠ u in 𝓝 u₀, ContinuousOn (F u) (Icc a b) := by
-    filter_upwards [hΓ] with u h
-    sorry
+variable {a b : ℝ} {f f' : ℂ → ℂ} {Γ Γ' : ℂ → ℝ → ℂ}
 
-  have F'_cont : ContinuousOn (F' u₀) (Icc a b) := sorry
+theorem main_step (hab : a ≤ b) (S : setup f f' Γ Γ') :
+    HasDerivAt (fun w => ∫ (t : ℝ) in a..b, f1 f Γ w t)
+      (∫ (t : ℝ) in a..b, f2 f f' Γ Γ' w₀ t) w₀ := by
 
-  have h1 : ∀ᶠ u in 𝓝 u₀, AEStronglyMeasurable (F u) μ := by
-    filter_upwards [F_cont] with u h
-    exact (h.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc
+    apply has_deriv_at_integral_of_continuous_of_lip (C := 1) hab -- or whatever
+    · exact zero_lt_one
+    · apply eventually_of_forall (λ z => Continuous.continuousOn ?_)
+      simp [f1]
+      exact S.cdΓ.mul S.cfΓ
+    · intro t _ ; exact S.key
+    · intro t _ ; convert S.L ; simp
+    · simp [f2]
+      apply Continuous.continuousOn
+      apply Continuous.add
+      · apply Continuous.mul
+        · exact S.cdΓ'
+        · exact S.dfΓ.continuous
+      · apply Continuous.mul
+        · apply Continuous.mul
+          · exact S.dΓ'.continuous
+          · exact S.cdΓ
+        · exact S.cf'Γ
 
-  have h2 : Integrable (F u₀) μ :=
-    F_cont.self_of_nhds.integrableOn_Icc.mono_set Ioc_subset_Icc_self
+lemma identity (S : setup f f' Γ Γ') : deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
+  simp [f2, f3]
+  rw [deriv_mul (S.dΓ').differentiableAt S.dfΓ.differentiableAt]
+  simp only [add_right_inj]
+  change Γ' w t * deriv (f ∘ Γ w) t = Γ' w t * deriv (Γ w) t * f' (Γ w t)
+  rw [S.ff', deriv.comp _ S.df.differentiableAt (S.dΓ).differentiableAt]
+  ring
 
-  have h3 : AEStronglyMeasurable (F' u₀) μ :=
-    (F'_cont.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc
-
-  have h4 : ∀ᵐ t ∂μ, ∀ u ∈ ball u₀ ε, ‖F' u t‖ ≤ C t := sorry
-
-  have h5 : Integrable C μ := sorry
-
-  have h6 : ∀ᵐ t ∂μ, ∀ u ∈ ball u₀ ε, HasDerivAt (F · t) (F' u t) u := by sorry
-
-  convert ← (hasDerivAt_integral_of_dominated_loc_of_deriv_le hε h1 h2 h3 h4 h5 h6).2
-
-  have h7 : ∀ u t, F' u t = deriv G t := sorry
-
-  simp [h7]
-
-  have h8 : ∀ x ∈ uIcc a b, DifferentiableAt ℝ G x := sorry
-
-  have h9 : IntervalIntegrable (deriv G) volume a b := sorry
-
-  have := @integral_deriv_eq_sub ℂ _ _ _ G a b h8 h9
-
-  simpa [def_G, intervalIntegral, hab, hcycle, hcycle'] using this
+theorem holo (hab : a ≤ b) (S : setup f f' Γ Γ') :
+    HasDerivAt (fun w => curvint a b f (Γ w))
+      (Γ' w₀ b * f (Γ w₀ b) - Γ' w₀ a * f (Γ w₀ a)) w₀ := by
+  have : HasDerivAt (fun w => ∫ (t : ℝ) in a..b, f1 f Γ w t)
+    (∫ (t : ℝ) in a..b, f2 f f' Γ Γ' w₀ t) w₀ := main_step hab S
+  convert ← this
+  simp only [← identity S, f3]
+  apply intervalIntegral.integral_deriv_eq_sub' _ rfl
+  · exact λ t _ => (S.dΓ' _).mul (S.dfΓ _)
+  · apply Continuous.continuousOn
+    have : deriv (fun t => Γ' w₀ t * f (Γ w₀ t)) =
+      (λ t => deriv (Γ' w₀) t * f (Γ w₀ t) + Γ' w₀ t * deriv (Γ w₀) t * f' (Γ w₀ t)) := by
+      ext1 t ; exact identity S
+    rw [this]
+    apply Continuous.add
+    · apply Continuous.mul
+      · exact S.cdΓ'
+      · exact S.dfΓ.continuous
+    · apply Continuous.mul
+      · apply Continuous.mul
+        · exact S.dΓ'.continuous
+        · exact S.cdΓ
+      · exact S.cf'Γ
 
 end holo
