@@ -60,7 +60,7 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
   let I : Set ℝ := Icc 0 1
 
   have f_cont : ContinuousOn f U := f_holo.continuousOn
-  have f_deri : ∀ ⦃z⦄ (hz : z ∈ U), HasDerivAt f (_root_.deriv f z) z :=
+  have f_deri : ∀ ⦃z⦄ (_ : z ∈ U), HasDerivAt f (_root_.deriv f z) z :=
     λ z hz => f_holo.hasDerivAt (hU'.mem_nhds hz)
   have f_cder : ContinuousOn (_root_.deriv f) U := (f_holo.analyticOn hU').deriv.continuousOn
 
@@ -68,10 +68,10 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
     λ z hz => f_cont.comp continuous_bary.continuousOn (hU.bary hz)
   have φ_diff : ∀ ⦃t⦄, t ∈ I → DifferentiableOn ℂ (λ w => φ w t) U :=
     λ t ht => f_holo.comp differentiable_bary.differentiableOn (λ z hz => hU.bary hz ht)
-  have φ_derz : ∀ ⦃z⦄ (hz : z ∈ U) ⦃t⦄ (ht : t ∈ I), HasDerivAt (λ x => φ x t) (ψ z t) z :=
+  have φ_derz : ∀ ⦃z⦄ (_ : z ∈ U) ⦃t⦄ (_ : t ∈ I), HasDerivAt (λ x => φ x t) (ψ z t) z :=
     λ z hz t ht => by simpa [mul_comm] using
       (f_deri (hU.bary hz ht)).comp z hasDerivAt_bary'
-  have φ_dert : ∀ ⦃t⦄ (ht : t ∈ I), HasDerivAt (φ z) ((z - z₀) * _root_.deriv f ((1 - t) • z₀ + t • z)) t :=
+  have φ_dert : ∀ ⦃t⦄ (_ : t ∈ I), HasDerivAt (φ z) ((z - z₀) * _root_.deriv f ((1 - t) • z₀ + t • z)) t :=
     λ t ht => by simpa [mul_comm] using (f_deri (hU.bary hz ht)).comp t has_deriv_at_bary
   have ψ_cont : ContinuousOn (ψ z) I :=
     continuousOn_id.smul (f_cder.comp continuous_bary.continuousOn (hU.bary hz))
@@ -89,7 +89,7 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
     obtain ⟨C, hC⟩ := K_cpct.exists_bound_of_continuousOn (f_cder.mono K_subs)
     have C_nonneg : 0 ≤ C := (norm_nonneg _).trans (hC z₀ hz₀)
 
-    have key : ∀ ⦃t⦄ (ht : t ∈ I), LipschitzOnWith (Real.nnabs C) (λ x => φ x t) K := by
+    have key : ∀ ⦃t⦄ (_ : t ∈ I), LipschitzOnWith (Real.nnabs C) (λ x => φ x t) K := by
       refine λ t ht => lipschitzOnWith_iff_norm_sub_le.mpr (λ x hx y hy => ?_)
       refine K_conv.norm_image_sub_le_of_norm_deriv_le (f := (φ · t)) (λ w hw => ?_) ?_ hy hx
       · exact (φ_diff ht).differentiableAt (hU'.mem_nhds (K_subs hw))
@@ -98,10 +98,15 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
         have h_bary : (1 - t) • z₀ + t • w ∈ K := (K_conv.starConvex hz₀).bary hw ht
         have f_bary := hC _ h_bary
         have ht' : |t| ≤ 1 := by { rw [abs_le] ; constructor <;> linarith [ht.1, ht.2] }
-        -- simp
+        rw [h]
+        simp
+
+        simp at f_bary
+
         have := mul_le_mul ht' f_bary (by simp) (by simp)
-        dsimp
-        sorry
+        simp at this
+        simp [abs_eq_self.2 C_nonneg]
+        exact this
 
     apply has_deriv_at_integral_of_continuous_of_lip zero_le_one δ_pos
     · exact eventually_of_mem (hU'.mem_nhds hz) φ_cont
