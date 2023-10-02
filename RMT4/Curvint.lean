@@ -125,6 +125,12 @@ noncomputable def f2 (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) (w : �
 noncomputable def f3 (f : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) (w : ℂ) (t : ℝ) : ℂ :=
   Γ' w t * f (Γ w t)
 
+/-- This gathers a lot of info that is enough to prove `holo.holo`, but it is a real mess and as
+  stated it is not clear that any non-constant function satisfies the assumptions. TODO:
+  - restrict to appropriate domains
+  - use `ContDiffOn` instead of separate assumptions
+  - actually prove `key` and `L` -/
+
 structure setup (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) where
   df : ∀ z, HasDerivAt f (f' z) z
   cf' : Continuous f'
@@ -132,10 +138,8 @@ structure setup (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) where
   dΓ' : ∀ w, Differentiable ℝ (Γ' w)
   cdΓ : ∀ w, Continuous (deriv (Γ w))
   cdΓ' : ∀ w, Continuous (deriv (Γ' w))
-  cf'Γ : Continuous (λ t => f' (Γ w₀ t))
-  ΓΓ' : deriv (λ w => Γ w t) w = Γ' w t
-  L : LipschitzOnWith 1 (fun x => f1 f Γ x t) (ball w₀ 1)
-  key : HasDerivAt (fun x => f1 f Γ x t) (f2 f f' Γ Γ' w₀ t) w₀
+  key : ∀ w, HasDerivAt (fun w => f1 f Γ w t) (f2 f f' Γ Γ' w t) w
+  L : LipschitzOnWith (nnabs 1) (fun x => f1 f Γ x t) (ball w₀ 1)
 
 lemma setup.cfΓ (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f ∘ Γ w) := by
   simpa [continuous_iff_continuousAt]
@@ -148,11 +152,12 @@ lemma setup.dfΓ (S : setup f f' Γ Γ') (w : ℂ) : Differentiable ℝ (λ t =>
 
 lemma setup.continuous_f2 (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f2 f f' Γ Γ' w) := by
   simp [f2]
+  have := S.cf'
+  have := S.cdΓ w
   have := S.cdΓ' w
   have := (S.dfΓ w).continuous
+  have := (S.dΓ w).continuous
   have := (S.dΓ' w).continuous
-  have := S.cdΓ w
-  have := S.cf'Γ (w₀ := w)
   continuity
 
 variable {a b : ℝ} {f f' : ℂ → ℂ} {Γ Γ' : ℂ → ℝ → ℂ}
@@ -160,19 +165,14 @@ variable {a b : ℝ} {f f' : ℂ → ℂ} {Γ Γ' : ℂ → ℝ → ℂ}
 theorem main_step (hab : a ≤ b) (S : setup f f' Γ Γ') :
     HasDerivAt (fun w => ∫ (t : ℝ) in a..b, f1 f Γ w t)
       (∫ (t : ℝ) in a..b, f2 f f' Γ Γ' w₀ t) w₀ := by
-
     apply has_deriv_at_integral_of_continuous_of_lip (C := 1) hab -- or whatever
     · exact zero_lt_one
-    · apply eventually_of_forall (λ z => Continuous.continuousOn ?_)
-      simp [f1]
-      exact (S.cdΓ _).mul (S.cfΓ _)
-    · intro t _ ; exact S.key
-    · intro t _ ; convert S.L ; simp
-    · simp [f2]
-      apply Continuous.continuousOn
-      exact S.continuous_f2 w₀
+    · exact eventually_of_forall (λ z => ((S.cdΓ _).mul (S.cfΓ _)).continuousOn)
+    · exact λ _ _ => S.key w₀
+    · exact λ t _ => S.L
+    · exact (S.continuous_f2 w₀).continuousOn
 
-lemma identity (S : setup f f' Γ Γ') : deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
+lemma identity (S : setup f f' Γ Γ') (w : ℂ) (t : ℝ) : deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
   simp [f2, f3]
   rw [deriv_mul (S.dΓ' _).differentiableAt (S.dfΓ _).differentiableAt]
   simp only [add_right_inj]
@@ -195,9 +195,8 @@ theorem holo (hab : a ≤ b) (S : setup f f' Γ Γ') :
   · apply Continuous.continuousOn
     have : deriv (fun t => Γ' w₀ t * f (Γ w₀ t)) =
       (λ t => deriv (Γ' w₀) t * f (Γ w₀ t) + Γ' w₀ t * deriv (Γ w₀) t * f' (Γ w₀ t)) := by
-      ext1 t ; exact identity S
+      ext1 t ; exact identity S w₀ t
     rw [this]
-    change Continuous (f2 f f' Γ Γ' w₀) --fun t => deriv (Γ' w₀) t * f (Γ w₀ t) + Γ' w₀ t * deriv (Γ w₀) t * f' (Γ w₀ t)
     exact S.continuous_f2 w₀
 
 end holo
