@@ -126,18 +126,34 @@ noncomputable def f3 (f : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) (w : ℂ) 
   Γ' w t * f (Γ w t)
 
 structure setup (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) where
-  df : Differentiable ℂ f
-  dΓ : Differentiable ℝ (Γ w)
-  dΓ' : Differentiable ℝ (Γ' w)
-  dfΓ : Differentiable ℝ (λ t => f (Γ w t))
-  cdΓ : Continuous (deriv (Γ w₀))
-  cdΓ' : Continuous (deriv (Γ' w₀))
-  cfΓ : Continuous (λ t => f (Γ w₀ t))
+  df : ∀ z, HasDerivAt f (f' z) z
+  cf' : Continuous f'
+  dΓ : ∀ w, Differentiable ℝ (Γ w)
+  dΓ' : ∀ w, Differentiable ℝ (Γ' w)
+  cdΓ : ∀ w, Continuous (deriv (Γ w))
+  cdΓ' : ∀ w, Continuous (deriv (Γ' w))
   cf'Γ : Continuous (λ t => f' (Γ w₀ t))
-  ff' : f' = deriv f
   ΓΓ' : deriv (λ w => Γ w t) w = Γ' w t
   L : LipschitzOnWith 1 (fun x => f1 f Γ x t) (ball w₀ 1)
   key : HasDerivAt (fun x => f1 f Γ x t) (f2 f f' Γ Γ' w₀ t) w₀
+
+lemma setup.cfΓ (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f ∘ Γ w) := by
+  simpa [continuous_iff_continuousAt]
+    using λ t => (S.df (Γ w t)).continuousAt.comp (S.dΓ w t).continuousAt
+
+lemma setup.dfΓ (S : setup f f' Γ Γ') (w : ℂ) : Differentiable ℝ (λ t => f (Γ w t)) := by
+  intro t
+  apply ((S.df (Γ w t)).differentiableAt.restrictScalars ℝ).comp
+  exact (S.dΓ w t)
+
+lemma setup.continuous_f2 (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f2 f f' Γ Γ' w) := by
+  simp [f2]
+  have := S.cdΓ' w
+  have := (S.dfΓ w).continuous
+  have := (S.dΓ' w).continuous
+  have := S.cdΓ w
+  have := S.cf'Γ (w₀ := w)
+  continuity
 
 variable {a b : ℝ} {f f' : ℂ → ℂ} {Γ Γ' : ℂ → ℝ → ℂ}
 
@@ -149,27 +165,19 @@ theorem main_step (hab : a ≤ b) (S : setup f f' Γ Γ') :
     · exact zero_lt_one
     · apply eventually_of_forall (λ z => Continuous.continuousOn ?_)
       simp [f1]
-      exact S.cdΓ.mul S.cfΓ
+      exact (S.cdΓ _).mul (S.cfΓ _)
     · intro t _ ; exact S.key
     · intro t _ ; convert S.L ; simp
     · simp [f2]
       apply Continuous.continuousOn
-      apply Continuous.add
-      · apply Continuous.mul
-        · exact S.cdΓ'
-        · exact S.dfΓ.continuous
-      · apply Continuous.mul
-        · apply Continuous.mul
-          · exact S.dΓ'.continuous
-          · exact S.cdΓ
-        · exact S.cf'Γ
+      exact S.continuous_f2 w₀
 
 lemma identity (S : setup f f' Γ Γ') : deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
   simp [f2, f3]
-  rw [deriv_mul (S.dΓ').differentiableAt S.dfΓ.differentiableAt]
+  rw [deriv_mul (S.dΓ' _).differentiableAt (S.dfΓ _).differentiableAt]
   simp only [add_right_inj]
   change Γ' w t * deriv (f ∘ Γ w) t = Γ' w t * deriv (Γ w) t * f' (Γ w t)
-  rw [S.ff', deriv.comp _ S.df.differentiableAt (S.dΓ).differentiableAt]
+  rw [← (S.df (Γ w t)).deriv, deriv.comp _ (S.df _).differentiableAt (S.dΓ _).differentiableAt]
   ring
 
 theorem holo (hab : a ≤ b) (S : setup f f' Γ Γ') :
@@ -180,20 +188,16 @@ theorem holo (hab : a ≤ b) (S : setup f f' Γ Γ') :
   convert ← this
   simp only [← identity S, f3]
   apply intervalIntegral.integral_deriv_eq_sub' _ rfl
-  · exact λ t _ => (S.dΓ' _).mul (S.dfΓ _)
+  · intro t _
+    apply (S.dΓ' _).mul
+    have := S.dfΓ w₀
+    exact S.dfΓ _
   · apply Continuous.continuousOn
     have : deriv (fun t => Γ' w₀ t * f (Γ w₀ t)) =
       (λ t => deriv (Γ' w₀) t * f (Γ w₀ t) + Γ' w₀ t * deriv (Γ w₀) t * f' (Γ w₀ t)) := by
       ext1 t ; exact identity S
     rw [this]
-    apply Continuous.add
-    · apply Continuous.mul
-      · exact S.cdΓ'
-      · exact S.dfΓ.continuous
-    · apply Continuous.mul
-      · apply Continuous.mul
-        · exact S.dΓ'.continuous
-        · exact S.cdΓ
-      · exact S.cf'Γ
+    change Continuous (f2 f f' Γ Γ' w₀) --fun t => deriv (Γ' w₀) t * f (Γ w₀ t) + Γ' w₀ t * deriv (Γ w₀) t * f' (Γ w₀ t)
+    exact S.continuous_f2 w₀
 
 end holo
