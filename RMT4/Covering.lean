@@ -34,7 +34,14 @@ def basic_nhd (h : HasLocalPrimitiveOn U f) (Λ : LocalPrimitiveOn U f) (z : U) 
     Set (holo_covering h) := (λ (w : U) => (w, u + (Λ.F z w - Λ.F z z))) '' U.restrict (Λ.S z)
 
 lemma is_nhd (h : HasLocalPrimitiveOn U f) (Λ : LocalPrimitiveOn U f) (z : holo_covering h) :
-  is_nhd_of h z (basic_nhd h Λ z.1 z.2) := sorry
+    is_nhd_of h z (basic_nhd h Λ z.1 z.2) := by
+  simp [is_nhd_of]
+  use Λ.F z.1
+  constructor
+  · exact eventually_of_mem (Λ.nhd z.1) (Λ.der z.1)
+  · apply eventually_of_mem (Λ.nhd z.1)
+    intro x hx1 hx2
+    simpa [basic_nhd] using ⟨x, ⟨hx2, hx1⟩, rfl, rfl⟩
 
 def nhd (h : HasLocalPrimitiveOn U f) (z : holo_covering h) :
     Filter (holo_covering h) where
