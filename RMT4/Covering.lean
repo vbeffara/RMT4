@@ -37,6 +37,21 @@ lemma mem_nhd' (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) (s : Set
     s ∈ nhd Λ z ↔ ∀ᶠ w in 𝓝 z.1, Λ.map z.1 z.2 w ∈ s := by
     simp only [eventually_iff, nhd] ; rfl
 
+lemma mem_nhd'' (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) (s : Set (holo_covering ⟨Λ⟩))
+    (h : s ∈ nhd Λ z) : ∃ t ∈ 𝓝 z.1, (Subtype.val '' t ⊆ Λ.S z.1) ∧ Λ.map z.1 z.2 '' t ⊆ s := by
+  obtain ⟨t, l1, l2⟩ := (mem_nhd Λ z s).1 h
+  refine ⟨t ∩ U.restrict (Λ.S z.1), ?_, ?_, ?_⟩
+  · apply Filter.inter_mem l1
+    apply IsOpen.mem_nhds
+    · exact isOpen_induced (Λ.opn z.1)
+    · exact Λ.mem z.1
+  · refine (Set.image_inter_subset _ _ _).trans ?_
+    refine (Set.inter_subset_right _ _).trans ?_
+    simp
+    rintro ⟨x, hx⟩ hx'
+    exact hx'
+  · exact (Set.image_subset (Λ.map z.1 z.2) (inter_subset_left _ _)).trans l2
+
 lemma pure_le_nhd {h : HasLocalPrimitiveOn U f} : pure ≤ nhd (h.some) := by
   intro a
   simp only [nhd, le_map_iff, mem_pure]
@@ -82,7 +97,7 @@ lemma main (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (s : Set U) (hs : IsPreco
 lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (hU : IsOpen U)
     (z : holo_covering ⟨Λ⟩) : ∀ S ∈ nhd Λ z, ∃ T ∈ nhd Λ z, T ⊆ S ∧ ∀ a ∈ T, S ∈ nhd Λ a := by
   intro S hS
-  obtain ⟨s, hs1, hs2⟩ := (mem_nhd _ _ _ ).1 hS
+  obtain ⟨s, hs1, hs3, hs2⟩ := mem_nhd'' _ _ _  hS
   obtain ⟨t, ht1, ht2, ht3, ht4⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C z.1 s hs1
   refine ⟨Λ.map z.1 z.2 '' t, image_mem_map (ht2.mem_nhds ht3), (image_subset _ ht1).trans hs2, ?_⟩
   intro a ha
@@ -106,7 +121,8 @@ lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (hU :
     have l6 : a ∈ LocalPrimitiveOn.map Λ z.fst z.snd '' t₀ := by
       rw [mem_map_iff, Prod.ext_iff, LocalPrimitiveOn.map]
       simp [image_eq_of_mem_map _ _ _ _ ha, l4]
-    have l7 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ z.fst := sorry
+    have l7 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ z.fst := by
+      apply (image_subset _ (l2.trans ((inter_subset_left _ _).trans ht1))).trans hs3
     have l8 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ a.fst := sorry
     rw [← @main U f Λ hU t₀ l5.isPreconnected l3 z a l6 l7 l8 w hw]
     exact mem_image_of_mem _ (ht1 (l2 hw).1)
@@ -131,10 +147,10 @@ lemma discreteTopology [LocallyConnectedSpace U] (hU : IsOpen U) (h : HasLocalPr
     simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀, h3] at h4
     rw [← h4]
 
-theorem isCoveringMap [LocallyConnectedSpace U] (hU : IsOpen U) (h : HasLocalPrimitiveOn U f) :
-    IsCoveringMap (p h) := by
-  intro z
-  refine ⟨discreteTopology hU h z, ?_⟩
-  sorry
+-- theorem isCoveringMap [LocallyConnectedSpace U] (hU : IsOpen U) (h : HasLocalPrimitiveOn U f) :
+--     IsCoveringMap (p h) := by
+--   intro z
+--   refine ⟨discreteTopology hU h z, ?_⟩
+--   sorry
 
 end holo_covering
