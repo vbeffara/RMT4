@@ -8,8 +8,19 @@ variable {U : Set ℂ}
 
 def holo_covering (_ : HasLocalPrimitiveOn U f) := U × ℂ
 
+def LocalPrimitiveOn.map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : ℂ → ℂ :=
+  λ w => v + (Λ.F z w - Λ.F z z)
+
+lemma LocalPrimitiveOn.der₀ (Λ : LocalPrimitiveOn U f) (z : U) (v w : ℂ) (hw : w ∈ Λ.S z) :
+    HasDerivAt (Λ.map₀ z v) (f w) w := by
+  simp [map₀]
+  have l1 : HasDerivAt (λ _ => v) 0 w := hasDerivAt_const _ _
+  have l2 : HasDerivAt (λ w => Λ.F z w) (f w) w := Λ.der z w hw
+  have l3 : HasDerivAt (λ _ => Λ.F z z) 0 w := hasDerivAt_const _ _
+  convert HasDerivAt.add l1 (l2.sub l3) using 1 ; simp
+
 def LocalPrimitiveOn.map (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : U → holo_covering ⟨Λ⟩ :=
-  λ w => (w, v + (Λ.F z w - Λ.F z z))
+  λ w => (w, Λ.map₀ z v w)
 
 namespace holo_covering
 
@@ -30,7 +41,8 @@ lemma pure_le_nhd {h : HasLocalPrimitiveOn U f} : pure ≤ nhd (h.some) := by
   intro a
   simp only [nhd, le_map_iff, mem_pure]
   intro s hs
-  apply (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, by simp [LocalPrimitiveOn.map]⟩
+  apply (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs,
+    by simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀]⟩
 
 lemma mem_map_iff (Λ : LocalPrimitiveOn U f) (s : Set U) (x y : holo_covering ⟨Λ⟩) :
     y ∈ Λ.map x.1 x.2 '' s ↔ y.1 ∈ s ∧ y = Λ.map x.1 x.2 y.1 where
@@ -39,10 +51,18 @@ lemma mem_map_iff (Λ : LocalPrimitiveOn U f) (s : Set U) (x y : holo_covering �
     simp [LocalPrimitiveOn.map, hz]
   mpr h := (mem_image _ _ _).2 ⟨y.1, h.1, h.2.symm⟩
 
-lemma main (Λ : LocalPrimitiveOn U f) (s : Set U) (hs : IsConnected s) (hs2 : IsOpen s)
+lemma premain (Λ : LocalPrimitiveOn U f) (s : Set ℂ) (hs : IsPreconnected s) (hs2 : IsOpen s)
+    (x y : holo_covering ⟨Λ⟩) (hxy : y.2 = Λ.map₀ x.1 x.2 y.1) (hy : y.1.1 ∈ s)
+    (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) :
+    EqOn (Λ.map₀ x.1 x.2) (Λ.map₀ y.1 y.2) s := by
+  have l1 (z) (hz : z ∈ s) : HasDerivAt (Λ.map₀ x.1 x.2) (f z) z := Λ.der₀ x.1 x.2 z (hsx hz)
+  have l2 (z) (hz : z ∈ s) : HasDerivAt (Λ.map₀ y.1 y.2) (f z) z := Λ.der₀ y.1 y.2 z (hsy hz)
+  apply hs.apply_eq_of_hasDeriv_eq hs2 hy l1 l2
+  simp [LocalPrimitiveOn.map₀, hxy]
+
+lemma main (Λ : LocalPrimitiveOn U f) (s : Set U) (hs : IsPreconnected s) (hs2 : IsOpen s)
     (x y : holo_covering ⟨Λ⟩) (hy : y ∈ Λ.map x.1 x.2 '' s) :
     EqOn (Λ.map x.1 x.2) (Λ.map y.1 y.2) s := by
-  intro u hu
   sorry
 
 lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) :
@@ -55,7 +75,7 @@ lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (z : 
   refine (mem_nhd _ _ _).2 ⟨t, ht2.mem_nhds ((mem_map_iff _ _ _ _).1 ha).1, ?_⟩
   intro u hu
   obtain ⟨x, hx1, rfl⟩ := (mem_image _ _ _).1 hu
-  rw [← main Λ t ht4 ht2 z a ha hx1]
+  rw [← main Λ t ht4.isPreconnected ht2 z a ha hx1]
   exact hs2 (mem_image_of_mem (Λ.map z.1 z.2) (ht1 hx1))
 
 def p (h : HasLocalPrimitiveOn U f) : holo_covering h → U := λ z => z.1
@@ -75,7 +95,7 @@ lemma discreteTopology [LocallyConnectedSpace U] (h : HasLocalPrimitiveOn U f) (
     rintro z hz _ h2
     obtain ⟨h3, h4⟩ := Prod.ext_iff.1 h2
     simp at h3 h4
-    simp [LocalPrimitiveOn.map, h3] at h4
+    simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀, h3] at h4
     rw [← h4]
 
 theorem isCoveringMap [LocallyConnectedSpace U] (h : HasLocalPrimitiveOn U f) :

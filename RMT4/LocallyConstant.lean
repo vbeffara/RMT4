@@ -5,7 +5,7 @@ import Mathlib.Topology.LocallyConstant.Basic
 
 open Topology Filter Metric
 
-variable [IsROrC 𝕜] {f : 𝕜 → 𝕜} {z : 𝕜}
+variable [IsROrC 𝕜] {f f₁ f₂ : 𝕜 → 𝕜} {z z₀ : 𝕜} {s : Set 𝕜}
 
 lemma isConst_nhds_of_hasDerivAt (h : ∀ᶠ w in 𝓝 z, HasDerivAt f 0 w) : ∀ᶠ w in 𝓝 z, f w = f z := by
   obtain ⟨r, hr, hf⟩ := eventually_nhds_iff_ball.1 h
@@ -25,7 +25,7 @@ lemma eventuallyEq_of_hasDeriv (h1 : ∀ᶠ w in 𝓝 z, HasDerivAt F1 (f w) w)
   filter_upwards [isConst_nhds_of_hasDerivAt this] with w h
   simpa [sub_eq_sub_iff_sub_eq_sub] using h
 
-lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) {f : ℂ → ℂ} (h : DifferentiableOn ℂ f U)
+lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) (h : DifferentiableOn 𝕜 f U)
     (hf : U.EqOn (deriv f) 0) :
     IsLocallyConstant (U.restrict f) := by
   refine (IsLocallyConstant.iff_exists_open _).2 (λ ⟨z, hz⟩ => ?_)
@@ -37,17 +37,24 @@ lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) {f : ℂ → ℂ} (h : 
   · exact ContinuousLinearMap.ext_ring (hf (L2 hx))
   · exact h.differentiableAt (hU.mem_nhds (L2 hx))
 
-lemma isLocallyConstant_of_hasDeriv (f : ℂ → ℂ) (s : Set ℂ) (hs : IsOpen s)
-    (hf : ∀ x ∈ s, HasDerivAt f 0 x) : IsLocallyConstant (s.restrict f) := by
+lemma isLocallyConstant_of_hasDeriv (hs : IsOpen s) (hf : ∀ x ∈ s, HasDerivAt f 0 x) :
+    IsLocallyConstant (s.restrict f) := by
   apply isLocallyConstant_of_deriv_eq_zero hs
   · exact λ x hx => (hf x hx).differentiableAt.differentiableWithinAt
   · exact λ x hx => (hf x hx).deriv
 
-lemma IsPreconnected.apply_eq_of_hasDeriv (f : ℂ → ℂ) (s : Set ℂ) (hs : IsOpen s) (hs' : IsPreconnected s)
+lemma IsPreconnected.apply_eq_of_hasDeriv_zero (hs : IsOpen s) (hs' : IsPreconnected s)
     (hf : ∀ x ∈ s, HasDerivAt f 0 x) : ∀ x ∈ s, ∀ y ∈ s, f x = f y := by
   have l0 : PreconnectedSpace s := isPreconnected_iff_preconnectedSpace.1 hs'
-  have l1 := isLocallyConstant_of_hasDeriv f s hs hf
+  have l1 := isLocallyConstant_of_hasDeriv hs hf
   have l2 : IsPreconnected (Set.univ : Set s) := preconnectedSpace_iff_univ.mp l0
   intro x hx y hy
   simpa using
     l1.apply_eq_of_isPreconnected l2 (x := ⟨x, hx⟩) (y := ⟨y, hy⟩) (Set.mem_univ _) (Set.mem_univ _)
+
+lemma IsPreconnected.apply_eq_of_hasDeriv_eq (hs' : IsPreconnected s) (hs : IsOpen s) (hz₀ : z₀ ∈ s)
+    (hf₁ : ∀ x ∈ s, HasDerivAt f₁ (f x) x) (hf₂ : ∀ x ∈ s, HasDerivAt f₂ (f x) x)
+    (h : f₁ z₀ = f₂ z₀) : Set.EqOn f₁ f₂ s := by
+  have l1 (x) (hx : x ∈ s) : HasDerivAt (f₁ - f₂) 0 x := by simpa using (hf₁ x hx).sub (hf₂ x hx)
+  intro x hx
+  simpa [h, sub_eq_zero] using hs'.apply_eq_of_hasDeriv_zero hs l1 x hx z₀ hz₀
