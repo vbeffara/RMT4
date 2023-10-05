@@ -98,7 +98,7 @@ lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (hU :
     (z : holo_covering ⟨Λ⟩) : ∀ S ∈ nhd Λ z, ∃ T ∈ nhd Λ z, T ⊆ S ∧ ∀ a ∈ T, S ∈ nhd Λ a := by
   intro S hS
   obtain ⟨s, hs1, hs3, hs2⟩ := mem_nhd'' _ _ _  hS
-  obtain ⟨t, ht1, ht2, ht3, ht4⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C z.1 s hs1
+  obtain ⟨t, ht1, ht2, ht3, _⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C z.1 s hs1
   refine ⟨Λ.map z.1 z.2 '' t, image_mem_map (ht2.mem_nhds ht3), (image_subset _ ht1).trans hs2, ?_⟩
   intro a ha
 
@@ -123,7 +123,9 @@ lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (hU :
       simp [image_eq_of_mem_map _ _ _ _ ha, l4]
     have l7 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ z.fst := by
       apply (image_subset _ (l2.trans ((inter_subset_left _ _).trans ht1))).trans hs3
-    have l8 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ a.fst := sorry
+    have l8 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ a.fst := by
+      simp only [image_subset_iff]
+      exact λ _ hx => (inter_subset_right _ _ (l2 hx))
     rw [← @main U f Λ hU t₀ l5.isPreconnected l3 z a l6 l7 l8 w hw]
     exact mem_image_of_mem _ (ht1 (l2 hw).1)
 
