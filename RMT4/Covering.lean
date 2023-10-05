@@ -9,19 +9,21 @@ variable {U : Set ℂ} {f : ℂ → ℂ} {Λ : LocalPrimitiveOn U f}
 
 def holo_covering (_ : HasLocalPrimitiveOn U f) := U × ℂ
 
-def LocalPrimitiveOn.map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : ℂ → ℂ :=
+namespace LocalPrimitiveOn
+
+def map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : ℂ → ℂ :=
   λ w => v + (Λ.F z w - Λ.F z z)
 
-lemma LocalPrimitiveOn.der₀ (Λ : LocalPrimitiveOn U f) {z : U} {v w : ℂ} (hw : w ∈ Λ.S z) :
+lemma der₀ (Λ : LocalPrimitiveOn U f) {z : U} {v w : ℂ} (hw : w ∈ Λ.S z) :
     HasDerivAt (Λ.map₀ z v) (f w) w := by
-  simp [map₀]
-  have l1 : HasDerivAt (λ _ => v) 0 w := hasDerivAt_const _ _
-  have l2 : HasDerivAt (λ w => Λ.F z w) (f w) w := Λ.der z w hw
-  have l3 : HasDerivAt (λ _ => Λ.F z z) 0 w := hasDerivAt_const _ _
-  convert HasDerivAt.add l1 (l2.sub l3) using 1 ; simp
+  convert hasDerivAt_const _ _ |>.add (Λ.der z w hw |>.sub<| hasDerivAt_const _ _) using 1 ; simp
 
-def LocalPrimitiveOn.map (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : U → holo_covering ⟨Λ⟩ :=
+def map (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : U → holo_covering ⟨Λ⟩ :=
   λ w => (w, Λ.map₀ z v w)
+
+@[simp] lemma map_self (a : holo_covering ⟨Λ⟩) : Λ.map a.1 a.2 a.1 = a := by simp [map, map₀]
+
+end LocalPrimitiveOn
 
 namespace holo_covering
 
@@ -37,24 +39,16 @@ lemma mem_nhd (z : holo_covering ⟨Λ⟩) (s : Set (holo_covering ⟨Λ⟩)) :
 lemma mem_nhd' {z : holo_covering ⟨Λ⟩} {s : Set (holo_covering ⟨Λ⟩)} (h : s ∈ nhd Λ z) :
     ∃ t ∈ 𝓝 z.1, (Subtype.val '' t ⊆ Λ.S z.1) ∧ Λ.map z.1 z.2 '' t ⊆ s := by
   obtain ⟨t, l1, l2⟩ := (mem_nhd z s).1 h
-  refine ⟨t ∩ U.restrict (Λ.S z.1), ?_, ?_, ?_⟩
-  · apply Filter.inter_mem l1
-    apply IsOpen.mem_nhds
-    · exact isOpen_induced (Λ.opn z.1)
-    · exact Λ.mem z.1
-  · refine (Set.image_inter_subset _ _ _).trans ?_
-    refine (Set.inter_subset_right _ _).trans ?_
-    simp
-    rintro ⟨x, hx⟩ hx'
-    exact hx'
-  · exact (Set.image_subset (Λ.map z.1 z.2) (inter_subset_left _ _)).trans l2
+  refine ⟨t ∩ Subtype.val ⁻¹' (Λ.S z.1), ?_, ?_, ?_⟩
+  · exact Filter.inter_mem l1 <| IsOpen.mem_nhds (isOpen_induced (Λ.opn z.1)) <| Λ.mem z.1
+  · exact image_inter_subset _ _ _ |>.trans<| inter_subset_right _ _ |>.trans<|
+      image_preimage_subset _ _
+  · exact image_subset (Λ.map z.1 z.2) (inter_subset_left _ _) |>.trans l2
 
 lemma pure_le_nhd : pure ≤ nhd Λ := by
   intro a
   simp only [nhd, le_map_iff, mem_pure]
-  intro s hs
-  apply (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs,
-    by simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀]⟩
+  exact λ s hs => (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, Λ.map_self _⟩
 
 lemma mem_map_iff (s : Set U) (x y : holo_covering ⟨Λ⟩) :
     y ∈ Λ.map x.1 x.2 '' s ↔ y.1 ∈ s ∧ y = Λ.map x.1 x.2 y.1 where
