@@ -51,6 +51,10 @@ lemma mem_map_iff (Λ : LocalPrimitiveOn U f) (s : Set U) (x y : holo_covering �
     simp [LocalPrimitiveOn.map, hz]
   mpr h := (mem_image _ _ _).2 ⟨y.1, h.1, h.2.symm⟩
 
+lemma image_eq_of_mem_map (Λ : LocalPrimitiveOn U f) (s : Set U) (x y : holo_covering ⟨Λ⟩)
+    (h : y ∈ Λ.map x.1 x.2 '' s) : y.2 = Λ.map₀ x.1 x.2 y.1 := by
+  rw [((mem_map_iff _ _ _ _).1 h).2] ; rfl
+
 lemma premain (Λ : LocalPrimitiveOn U f) (s : Set ℂ) (hs : IsPreconnected s) (hs2 : IsOpen s)
     (x y : holo_covering ⟨Λ⟩) (hxy : y.2 = Λ.map₀ x.1 x.2 y.1) (hy : y.1.1 ∈ s)
     (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) :
@@ -99,7 +103,9 @@ lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (hU :
     obtain ⟨w, hw, rfl⟩ := (mem_image _ _ _).1 hu
     apply hs2
 
-    have l6 : a ∈ LocalPrimitiveOn.map Λ z.fst z.snd '' t₀ := sorry
+    have l6 : a ∈ LocalPrimitiveOn.map Λ z.fst z.snd '' t₀ := by
+      rw [mem_map_iff, Prod.ext_iff, LocalPrimitiveOn.map]
+      simp [image_eq_of_mem_map _ _ _ _ ha, l4]
     have l7 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ z.fst := sorry
     have l8 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ a.fst := sorry
     rw [← @main U f Λ hU t₀ l5.isPreconnected l3 z a l6 l7 l8 w hw]
