@@ -1,46 +1,39 @@
 import Mathlib
 import RMT4.pintegral
+import RMT4.LocallyConstant
 
 open Topology Filter Metric TopologicalSpace Set
 
-lemma prekey {f : ℂ → ℂ} {z : ℂ} (h : ∀ᶠ w in 𝓝 z, HasDerivAt f 0 w) : ∀ᶠ w in 𝓝 z, f w = f z := by
-  rw [eventually_nhds_iff_ball] at h ⊢
-  obtain ⟨r, hr, hf⟩ := h
-  refine ⟨r, hr, λ w hw => ?_⟩
-  refine (convex_ball z r).is_const_of_fderivWithin_eq_zero (𝕜 := ℂ) ?_ ?_ hw (mem_ball_self hr)
-  · exact λ w hw => (hf w hw).differentiableAt.differentiableWithinAt
-  · intro w hw
-    have l1 : UniqueDiffWithinAt ℂ (ball z r) w := isOpen_ball.uniqueDiffWithinAt hw
-    convert (hf w hw).hasFDerivAt.hasFDerivWithinAt.fderivWithin l1
-    ext1 ; simp
-
-lemma key {F1 F2 f : ℂ → ℂ}
-    (h1 : ∀ᶠ w in 𝓝 z, HasDerivAt F1 (f w) w)
-    (h2 : ∀ᶠ w in 𝓝 z, HasDerivAt F2 (f w) w) :
-    ∀ᶠ w in 𝓝 z, F2 w - F2 z = F1 w - F1 z := by
-  have : ∀ᶠ w in 𝓝 z, HasDerivAt (F2 - F1) 0 w := by
-    filter_upwards [h1, h2] with w h1 h2 ; simpa using h2.sub h1
-  filter_upwards [prekey this] with w h ; simpa [sub_eq_sub_iff_sub_eq_sub] using h
-
 def holo_covering (_ : HasLocalPrimitiveOn U f) := U × ℂ
+
+def LocalPrimitiveOn.map (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) : U → holo_covering ⟨Λ⟩ :=
+  λ w => (w, v + (Λ.F z w - Λ.F z z))
 
 namespace holo_covering
 
-def lift {U : Set ℂ} (z : U) (u : ℂ) (f : ℂ → ℂ) : U → U × ℂ := λ w => (w, u + (f w - f z))
+def proj {h : HasLocalPrimitiveOn U f} : holo_covering h → U := λ w => w.1
 
-def proj {U : Set ℂ} : U × ℂ → U := λ w => w.1
-
-lemma lemma1 {U : Set ℂ} (z : U) (f : ℂ → ℂ) (w : U) : proj (lift z u f w) = w := rfl
+lemma lemma1 (Λ : LocalPrimitiveOn U f) (z : U) (f : ℂ → ℂ) (w : U) :
+  proj (Λ.map z u w) = w := rfl
 
 def is_a_nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩)
-  (s : Set (holo_covering ⟨Λ⟩)) : Prop := ∃ t ∈ 𝓝 z.1, (lift z.1 z.2 (Λ.F z.1)) '' t ⊆ s
+  (s : Set (holo_covering ⟨Λ⟩)) : Prop := ∃ t ∈ 𝓝 z.1, Λ.map z.1 z.2 '' t ⊆ s
 
 def nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) : Filter (holo_covering ⟨Λ⟩) :=
-  Filter.map (lift z.1 z.2 (Λ.F z.1)) (𝓝 z.1)
+  Filter.map (Λ.map z.1 z.2) (𝓝 z.1)
 
 lemma mem_nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) (s : Set (holo_covering ⟨Λ⟩)) :
-    s ∈ nhd Λ z ↔ ∃ t ∈ 𝓝 z.1, (lift z.1 z.2 (Λ.F z.1)) '' t ⊆ s := by
-  simp [nhd, exists_mem_subset_iff]
+    s ∈ nhd Λ z ↔ ∃ t ∈ 𝓝 z.1, Λ.map z.1 z.2 '' t ⊆ s := by
+  sorry
+
+lemma mem_nhd' (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) (s : Set (holo_covering ⟨Λ⟩)) :
+    s ∈ nhd Λ z ↔ ∀ᶠ w in 𝓝 z.1, Λ.map z.1 z.2 w ∈ s := by
+  -- simp only [eventually_iff, LocalPrimitiveOn.map]
+  -- -- simp only [← exists_mem_subset_iff (s := {w | Λ.map z.1 z.2 w ∈ s})]
+  -- convert mem_nhd Λ z s
+  -- simp
+  -- rfl
+  sorry
 
 instance : TopologicalSpace (holo_covering h) := TopologicalSpace.mkOfNhds (nhd h.some)
 
@@ -52,16 +45,20 @@ lemma pure_le_nhd (h : HasLocalPrimitiveOn U f) : pure ≤ nhd (h.some) := by
   intro s hs
   obtain ⟨t, h1, h2⟩ := mem_map_iff_exists_image.1 hs
   apply h2
-  simp [lift]
-  refine ⟨a.1, a.1.prop, mem_of_mem_nhds h1, by { ring_nf ; rfl }⟩
+  simp
+  refine ⟨a.1, a.1.prop, mem_of_mem_nhds h1, by { simp [LocalPrimitiveOn.map] }⟩
 
 theorem extend (h : HasLocalPrimitiveOn U f) (a : holo_covering h) :
     ∀ S ∈ nhd h.some a, ∃ T ∈ nhd h.some a, T ⊆ S ∧ ∀ a' ∈ T, S ∈ nhd h.some a' := by
   intro S hS
   obtain ⟨t, h1, h2⟩ := (mem_nhd h.some a S).1 hS
+  let s := proj '' S
   let s' := U.restrict (h.some.S a.1)
-  let S' := lift a.1 a.2 (h.some.F a.1) '' s'
-  have hS' : S' ∈ nhd h.some a := sorry
+  let S' := h.some.map a.1 a.2 '' s'
+  have hS' : S' ∈ nhd h.some a := by
+    rw [mem_nhd]
+    refine ⟨s', ?_⟩
+    sorry
   refine ⟨S ∩ S', Filter.inter_mem hS hS', inter_subset_left _ _, ?_⟩
   rintro b ⟨hb1, hb2⟩
   rw [mem_nhd]
@@ -77,17 +74,16 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_mkOfNhds, nhds_induced, p]
   rintro ⟨z, u⟩ rfl
   rw [nhds_mkOfNhds]
-  · refine ⟨(lift z u (Λ.F z)) '' U.restrict (Λ.S z), ?_, ?_⟩
+  · refine ⟨Λ.map z u '' U.restrict (Λ.S z), ?_, ?_⟩
     · apply image_mem_map
       simp only [nhds_induced]
-      refine ⟨_, Λ.nhd z, by rfl⟩
+      exact ⟨_, Λ.nhd z, by rfl⟩
     · rintro ⟨⟨a₁, ha₁⟩, a₂⟩ rfl
-      simp [lift]
-      rintro z hz h1 h2
+      simp [LocalPrimitiveOn.map]
+      rintro z hz _ h2
       obtain ⟨h3, h4⟩ := Prod.ext_iff.1 h2
       simp at h3 h4
-      subst z
-      simp at h4
+      simp [LocalPrimitiveOn.map, h3] at h4
       rw [← h4]
   · refine pure_le_nhd h
   · apply extend
@@ -103,8 +99,8 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
   -- refine Prod.ext rfl ?_
   -- rw [← h2]
   -- rw [Prod.ext_iff] at h2
-  -- simp [lift] at h2
-  -- simp [lift, p, ← h2.1]
+  -- simp at h2
+  -- simp p, ← h2.1]
 
 -- theorem main (h : HasLocalPrimitiveOn U f) : IsCoveringMap (p h) := by
 --   intro z
@@ -113,11 +109,11 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
 
 
 -- def basic_nhd (Λ : LocalPrimitiveOn U f) (z : U) (u : ℂ) : Set (holo_covering ⟨Λ⟩) :=
---   (lift z u (Λ.F z)) '' U.restrict (Λ.S z)
+--   Λ.map z u '' U.restrict (Λ.S z)
 
 -- lemma lemma3 (Λ : LocalPrimitiveOn U f) (z : U) (u : ℂ) (w) :
 --     w ∈ basic_nhd Λ z u ↔ w.1.1 ∈ Λ.S z ∧ w.2 = u + (Λ.F z w.1 - Λ.F z z) := by
---   simp [basic_nhd, lift]
+--   simp [basic_nhd]
 --   constructor
 --   · rintro ⟨a, ha, h1, h2⟩
 --     obtain ⟨h3, h4⟩ := Prod.ext_iff.1 h2
@@ -146,7 +142,7 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
 --   · exact eventually_of_mem (Λ.nhd z.1) (Λ.der z.1)
 --   · apply eventually_of_mem (Λ.nhd z.1)
 --     intro x hx1 hx2
---     simpa [basic_nhd, lift] using ⟨x, ⟨hx2, hx1⟩, rfl, rfl⟩
+--     simpa [basic_nhd] using ⟨x, ⟨hx2, hx1⟩, rfl, rfl⟩
 
 -- def nhd (h : HasLocalPrimitiveOn U f) (z : holo_covering h) :
 --     Filter (holo_covering h) where
@@ -162,7 +158,7 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
 --   inter_sets := by
 --     rintro s1 s2 ⟨F1, hF1⟩ ⟨F2, hF2⟩
 --     use F1
---     filter_upwards [hF1, hF2, key (eventually_and.1 hF1).1 (eventually_and.1 hF2).1]
+--     filter_upwards [hF1, hF2, eventuallyEq_of_hasDeriv (eventually_and.1 hF1).1 (eventually_and.1 hF2).1]
 --       with w ⟨e1, e2⟩ ⟨_, e4⟩ e5 using ⟨e1, λ hw => ⟨e2 hw, e5 ▸ e4 hw⟩⟩
 
 
@@ -216,7 +212,7 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
 --   refine Prod.ext rfl ?_
 --   rw [← h2]
 --   rw [Prod.ext_iff] at h2
---   simp [lift] at h2
+--   simp at h2
 --   simp [lift, p, ← h2.1]
 
 -- theorem main (h : HasLocalPrimitiveOn U f) : IsCoveringMap (p h) := by
