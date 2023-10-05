@@ -39,8 +39,11 @@ lemma mem_map_iff (Λ : LocalPrimitiveOn U f) (s : Set U) (x y : holo_covering �
     simp [LocalPrimitiveOn.map, hz]
   mpr h := (mem_image _ _ _).2 ⟨y.1, h.1, h.2.symm⟩
 
-lemma main (Λ : LocalPrimitiveOn U f) (s : Set U) (hs : IsConnected s) (x y : holo_covering ⟨Λ⟩)
-    (hy : y ∈ Λ.map x.1 x.2 '' s) : EqOn (Λ.map x.1 x.2) (Λ.map y.1 y.2) s := sorry
+lemma main (Λ : LocalPrimitiveOn U f) (s : Set U) (hs : IsConnected s) (hs2 : IsOpen s)
+    (x y : holo_covering ⟨Λ⟩) (hy : y ∈ Λ.map x.1 x.2 '' s) :
+    EqOn (Λ.map x.1 x.2) (Λ.map y.1 y.2) s := by
+  intro u hu
+  sorry
 
 lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) :
     ∀ S ∈ nhd Λ z, ∃ T ∈ nhd Λ z, T ⊆ S ∧ ∀ a ∈ T, S ∈ nhd Λ a := by
@@ -52,7 +55,7 @@ lemma nhd_is_nhd [C : LocallyConnectedSpace U] (Λ : LocalPrimitiveOn U f) (z : 
   refine (mem_nhd _ _ _).2 ⟨t, ht2.mem_nhds ((mem_map_iff _ _ _ _).1 ha).1, ?_⟩
   intro u hu
   obtain ⟨x, hx1, rfl⟩ := (mem_image _ _ _).1 hu
-  rw [← main Λ t ht4 z a ha hx1]
+  rw [← main Λ t ht4 ht2 z a ha hx1]
   exact hs2 (mem_image_of_mem (Λ.map z.1 z.2) (ht1 hx1))
 
 def p (h : HasLocalPrimitiveOn U f) : holo_covering h → U := λ z => z.1

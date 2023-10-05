@@ -6,6 +6,7 @@ import Mathlib.Topology.LocallyConstant.Basic
 import Mathlib.Analysis.Calculus.MeanValue
 import RMT4.Subdivision
 import RMT4.Primitive
+import RMT4.LocallyConstant
 
 open BigOperators Metric Set Subdivision Topology Filter Nat
 
@@ -110,18 +111,6 @@ noncomputable def pintegral (a b : ℝ) (f : ℂ → ℂ) (γ : ℝ → ℂ) : �
   by_cases h : a < b ∧ ContinuousOn γ (Icc a b) ∧ HasLocalPrimitiveOn (γ '' Icc a b) f
   · exact pintegral_aux h.1 h.2.1 h.2.2.some
   · exact 0
-
-lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) {f : ℂ → ℂ} (h : DifferentiableOn ℂ f U)
-    (hf : U.EqOn (deriv f) 0) :
-    IsLocallyConstant (U.restrict f) := by
-  refine (IsLocallyConstant.iff_exists_open _).2 (λ ⟨z, hz⟩ => ?_)
-  obtain ⟨ε, L1, L2⟩ := isOpen_iff.1 hU z hz
-  refine ⟨ball ⟨z, hz⟩ ε, isOpen_ball, mem_ball_self L1, λ ⟨z', _⟩ hz' => ?_⟩
-  refine (convex_ball z ε).is_const_of_fderivWithin_eq_zero (h.mono L2) ?_ hz' (mem_ball_self L1)
-  intro x hx
-  rw [fderivWithin_eq_fderiv (isOpen_ball.uniqueDiffWithinAt hx)]
-  · exact ContinuousLinearMap.ext_ring (hf (L2 hx))
-  · exact h.differentiableAt (hU.mem_nhds (L2 hx))
 
 lemma apply_eq_of_path (hab : a ≤ b) {f : ℂ → ℂ} (hf : IsLocallyConstant (U.restrict f))
     {γ : ℝ → ℂ} (hγ : ContinuousOn γ (Icc a b)) (h : MapsTo γ (Icc a b) U) :
