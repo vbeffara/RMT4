@@ -114,16 +114,15 @@ lemma discreteTopology (hU : IsOpen U) (h : HasLocalPrimitiveOn U f) (z : U) :
   rintro ⟨z, u⟩ rfl
   rw [nhds_mkOfNhds _ _ pure_le_nhd (nhd_is_nhd _ hU)]
   let Λ := h.some
-  refine ⟨Λ.map z u '' U.restrict (Λ.S z), ?_, ?_⟩
+  refine ⟨Λ.map z u '' (Subtype.val ⁻¹' (Λ.S z)), ?_, ?_⟩
   · apply image_mem_map
-    simp only [nhds_induced]
-    exact ⟨_, Λ.nhd z, by rfl⟩
+    simpa only [nhds_induced] using ⟨_, Λ.nhd z, by rfl⟩
   · rintro ⟨⟨a₁, ha₁⟩, a₂⟩ rfl
-    simp [LocalPrimitiveOn.map]
-    rintro z hz _ h2
+    simp only [LocalPrimitiveOn.map, mem_image, Subtype.exists, forall_exists_index, and_imp]
+    rintro z _ _ h2
     obtain ⟨h3, h4⟩ := Prod.ext_iff.1 h2
-    simp at h3 h4
-    simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀, h3] at h4
+    simp only [Subtype.mk.injEq] at h3 h4
+    simp only [LocalPrimitiveOn.map₀, h3, sub_self, add_zero] at h4
     rw [← h4]
 
 -- theorem isCoveringMap [LocallyConnectedSpace U] (hU : IsOpen U) (h : HasLocalPrimitiveOn U f) :
