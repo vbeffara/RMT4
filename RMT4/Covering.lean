@@ -13,40 +13,54 @@ namespace holo_covering
 
 def proj {h : HasLocalPrimitiveOn U f} : holo_covering h → U := λ w => w.1
 
-lemma lemma1 (Λ : LocalPrimitiveOn U f) (z : U) (f : ℂ → ℂ) (w : U) :
-  proj (Λ.map z u w) = w := rfl
-
-def is_a_nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩)
-  (s : Set (holo_covering ⟨Λ⟩)) : Prop := ∃ t ∈ 𝓝 z.1, Λ.map z.1 z.2 '' t ⊆ s
-
 def nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) : Filter (holo_covering ⟨Λ⟩) :=
   Filter.map (Λ.map z.1 z.2) (𝓝 z.1)
 
+instance : TopologicalSpace (holo_covering h) := TopologicalSpace.mkOfNhds (nhd h.some)
+
+-- A few lemmas about `nhd`
+
 lemma mem_nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) (s : Set (holo_covering ⟨Λ⟩)) :
     s ∈ nhd Λ z ↔ ∃ t ∈ 𝓝 z.1, Λ.map z.1 z.2 '' t ⊆ s := by
-  sorry
+  rw [nhd, mem_map_iff_exists_image]
 
 lemma mem_nhd' (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) (s : Set (holo_covering ⟨Λ⟩)) :
     s ∈ nhd Λ z ↔ ∀ᶠ w in 𝓝 z.1, Λ.map z.1 z.2 w ∈ s := by
-  -- simp only [eventually_iff, LocalPrimitiveOn.map]
-  -- -- simp only [← exists_mem_subset_iff (s := {w | Λ.map z.1 z.2 w ∈ s})]
-  -- convert mem_nhd Λ z s
-  -- simp
-  -- rfl
-  sorry
+    simp only [eventually_iff, nhd] ; rfl
 
-instance : TopologicalSpace (holo_covering h) := TopologicalSpace.mkOfNhds (nhd h.some)
+lemma pure_le_nhd {h : HasLocalPrimitiveOn U f} : pure ≤ nhd (h.some) := by
+  intro a
+  simp only [nhd, le_map_iff, mem_pure]
+  intro s hs
+  apply (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, by simp [LocalPrimitiveOn.map]⟩
+
+lemma pre (Λ : LocalPrimitiveOn U f) (z : U) :
+    ∀ s ∈ 𝓝 z, ∃ t ∈ 𝓝 z, IsOpen t ∧ IsPreconnected t ∧ t ⊆ s ∧ ∀ a ∈ t, s ∈ 𝓝 a := by sorry
+
+lemma mem_map_iff (Λ : LocalPrimitiveOn U f) (s : Set U) (x y : holo_covering ⟨Λ⟩) :
+    y ∈ Λ.map x.1 x.2 '' s ↔ y.1 ∈ s ∧ y = Λ.map x.1 x.2 y.1 := by sorry
+
+lemma main (Λ : LocalPrimitiveOn U f) (s : Set U) (hs : IsPreconnected s) (x y : holo_covering ⟨Λ⟩) :
+    y ∈ Λ.map x.1 x.2 '' s → EqOn (Λ.map x.1 x.2) (Λ.map y.1 y.2) s := sorry
+
+lemma nhd_is_nhd (Λ : LocalPrimitiveOn U f) (z : holo_covering ⟨Λ⟩) :
+    ∀ S ∈ nhd Λ z, ∃ T ∈ nhd Λ z, T ⊆ S ∧ ∀ a ∈ T, S ∈ nhd Λ a := by
+  intro S hS
+  obtain ⟨s, hs1, hs2⟩ := (mem_nhd _ _ _ ).1 hS
+  obtain ⟨t, ht1, ht2, ht3, ht4, ht5⟩ := pre Λ z.1 s hs1
+  refine ⟨Λ.map z.1 z.2 '' t, image_mem_map ht1, (image_subset _ ht4).trans hs2, ?_⟩
+  intro a ha
+  have ha1 := ((mem_map_iff _ _ _ _).1 ha).1
+  rw [mem_nhd]
+  refine ⟨t, ht2.mem_nhds ha1, ?_⟩
+  intro u hu
+  rw [mem_image] at hu
+  obtain ⟨x, hx1, rfl⟩ := hu
+  have := main Λ t ht3 z a ha hx1
+  rw [← this]
+  exact hs2 (mem_image_of_mem (Λ.map z.1 z.2) (ht4 hx1))
 
 def p (h : HasLocalPrimitiveOn U f) : holo_covering h → U := λ z => z.1
-
-lemma pure_le_nhd (h : HasLocalPrimitiveOn U f) : pure ≤ nhd (h.some) := by
-  intro a
-  rw [pure_le_iff]
-  intro s hs
-  obtain ⟨t, h1, h2⟩ := mem_map_iff_exists_image.1 hs
-  apply h2
-  simp
-  refine ⟨a.1, a.1.prop, mem_of_mem_nhds h1, by { simp [LocalPrimitiveOn.map] }⟩
 
 theorem extend (h : HasLocalPrimitiveOn U f) (a : holo_covering h) :
     ∀ S ∈ nhd h.some a, ∃ T ∈ nhd h.some a, T ⊆ S ∧ ∀ a' ∈ T, S ∈ nhd h.some a' := by
@@ -85,7 +99,7 @@ lemma discreteTopology (h : HasLocalPrimitiveOn U f) (z : U) :
       simp at h3 h4
       simp [LocalPrimitiveOn.map, h3] at h4
       rw [← h4]
-  · refine pure_le_nhd h
+  · exact pure_le_nhd
   · apply extend
 
   -- intro ⟨⟨x₁, x₂⟩, hx⟩
