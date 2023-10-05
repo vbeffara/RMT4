@@ -51,22 +51,22 @@ lemma pure_le_nhd : pure ≤ nhd Λ := by
   exact λ s hs => (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, Λ.map_self _⟩
 
 lemma mem_map_iff (s : Set U) (x y : holo_covering ⟨Λ⟩) :
-    y ∈ Λ.map x.1 x.2 '' s ↔ y.1 ∈ s ∧ y = Λ.map x.1 x.2 y.1 where
+    y ∈ Λ.map x.1 x.2 '' s ↔ y.1 ∈ s ∧ y.2 = Λ.map₀ x.1 x.2 y.1 where
   mp h := by
     obtain ⟨z, hz, rfl⟩ := (mem_image _ _ _).1 h
     simp [LocalPrimitiveOn.map, hz]
-  mpr h := (mem_image _ _ _).2 ⟨y.1, h.1, h.2.symm⟩
+  mpr h := by
+    refine (mem_image _ _ _).2 ⟨y.1, h.1, ?_⟩
+    apply Prod.ext <;> simp [LocalPrimitiveOn.map, h.2]
 
-lemma image_eq_of_mem_map {s : Set U} {x y : holo_covering ⟨Λ⟩}
-    (h : y ∈ Λ.map x.1 x.2 '' s) : y.2 = Λ.map₀ x.1 x.2 y.1 := by
-  rw [((mem_map_iff _ _ _).1 h).2] ; rfl
+lemma image_eq_of_mem_map {s : Set U} {x y : holo_covering ⟨Λ⟩} (h : y ∈ Λ.map x.1 x.2 '' s) :
+    y.2 = Λ.map₀ x.1 x.2 y.1 :=
+  ((mem_map_iff _ _ _).1 h).2
 
-lemma premain {s : Set ℂ} (hs : IsPreconnected s) (hs2 : IsOpen s) {x y : holo_covering ⟨Λ⟩}
+lemma eqOn_map₀ {s : Set ℂ} (hs : IsPreconnected s) (hs2 : IsOpen s) {x y : holo_covering ⟨Λ⟩}
     (hxy : y.2 = Λ.map₀ x.1 x.2 y.1) (hy : y.1.1 ∈ s) (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) :
     EqOn (Λ.map₀ x.1 x.2) (Λ.map₀ y.1 y.2) s := by
-  have l1 (z) (hz : z ∈ s) : HasDerivAt (Λ.map₀ x.1 x.2) (f z) z := Λ.der₀ (hsx hz)
-  have l2 (z) (hz : z ∈ s) : HasDerivAt (Λ.map₀ y.1 y.2) (f z) z := Λ.der₀ (hsy hz)
-  apply hs.apply_eq_of_hasDeriv_eq hs2 hy l1 l2
+  apply hs.apply_eq_of_hasDeriv_eq hs2 hy (λ z hz => Λ.der₀ (hsx hz)) (λ z hz => Λ.der₀ (hsy hz))
   simp [LocalPrimitiveOn.map₀, hxy]
 
 lemma main (hU : IsOpen U) (s : Set U) (hs : IsPreconnected s) (hs2 : IsOpen s)
@@ -77,9 +77,7 @@ lemma main (hU : IsOpen U) (s : Set U) (hs : IsPreconnected s) (hs2 : IsOpen s)
   have hs2₀ : IsOpen s₀ := hU.isOpenMap_subtype_val s hs2
   have key : EqOn (LocalPrimitiveOn.map₀ Λ x.fst x.snd) (LocalPrimitiveOn.map₀ Λ y.fst y.snd) s₀ := by
     obtain ⟨hy1, hy2⟩ := (mem_map_iff _ _ _).1 hy
-    rw [Prod.ext_iff] at hy2
-    refine premain hs₀ hs2₀ hy2.2 ?_ hs3 hs4
-    exact mem_image_of_mem Subtype.val hy1
+    exact eqOn_map₀ hs₀ hs2₀ hy2 (mem_image_of_mem Subtype.val hy1) hs3 hs4
   intro z hz
   simp [LocalPrimitiveOn.map, key (mem_image_of_mem Subtype.val hz)]
 
@@ -91,42 +89,31 @@ lemma nhd_is_nhd (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : holo_covering 
   obtain ⟨t, ht1, ht2, ht3, _⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C z.1 s hs1
   refine ⟨Λ.map z.1 z.2 '' t, image_mem_map (ht2.mem_nhds ht3), (image_subset _ ht1).trans hs2, ?_⟩
   intro a ha
-
-  let t' := t ∩ U.restrict (Λ.S a.1)
-  have l1 : t' ∈ 𝓝 a.1 := by
+  have l1 : t ∩ Subtype.val ⁻¹' (Λ.S a.1) ∈ 𝓝 a.1 := by
     apply Filter.inter_mem
-    · apply ht2.mem_nhds
-      rw [mem_map_iff] at ha
-      exact ha.1
-    · apply IsOpen.mem_nhds
-      · exact isOpen_induced (Λ.opn a.1)
-      · exact Λ.mem a.1
-  obtain ⟨t₀, l2, l3, l4, l5⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C a.1 t' l1
-
+    · exact ht2.mem_nhds <| ((mem_map_iff _ _ _).1 ha).1
+    · exact isOpen_induced (Λ.opn a.1) |>.mem_nhds (Λ.mem a.1)
+  obtain ⟨t₀, l2, l3, l4, l5⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C a.1 _ l1
   refine (mem_nhd _ _).2 ⟨t₀, l3.mem_nhds l4, ?_⟩
-  · intro u hu
-    obtain ⟨w, hw, rfl⟩ := (mem_image _ _ _).1 hu
-    apply hs2
-
-    have l6 : a ∈ LocalPrimitiveOn.map Λ z.fst z.snd '' t₀ := by
-      rw [mem_map_iff, Prod.ext_iff, LocalPrimitiveOn.map]
-      simp [image_eq_of_mem_map ha, l4]
-    have l7 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ z.fst := by
-      apply (image_subset _ (l2.trans ((inter_subset_left _ _).trans ht1))).trans hs3
-    have l8 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ a.fst := by
-      simp only [image_subset_iff]
-      exact λ _ hx => (inter_subset_right _ _ (l2 hx))
-    rw [← main hU t₀ l5.isPreconnected l3 l6 l7 l8 hw]
-    exact mem_image_of_mem _ (ht1 (l2 hw).1)
+  intro u hu
+  obtain ⟨w, hw, rfl⟩ := (mem_image _ _ _).1 hu
+  have l6 : a ∈ LocalPrimitiveOn.map Λ z.fst z.snd '' t₀ := by
+    simp only [mem_map_iff, l4, image_eq_of_mem_map ha, and_self]
+  have l7 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ z.fst :=
+    image_subset _ (l2.trans (inter_subset_left _ _ |>.trans ht1)) |>.trans hs3
+  have l8 : Subtype.val '' t₀ ⊆ LocalPrimitiveOn.S Λ a.fst := by
+    simpa only [image_subset_iff] using λ _ hx => (inter_subset_right _ _ (l2 hx))
+  rw [← main hU t₀ l5.isPreconnected l3 l6 l7 l8 hw]
+  exact hs2 <| mem_image_of_mem _ (ht1 (l2 hw).1)
 
 def p (h : HasLocalPrimitiveOn U f) : holo_covering h → U := λ z => z.1
 
 lemma discreteTopology (hU : IsOpen U) (h : HasLocalPrimitiveOn U f) (z : U) :
     DiscreteTopology ↑(p h ⁻¹' {z}) := by
-  let Λ := h.some
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_mkOfNhds, nhds_induced, p]
   rintro ⟨z, u⟩ rfl
   rw [nhds_mkOfNhds _ _ pure_le_nhd (nhd_is_nhd _ hU)]
+  let Λ := h.some
   refine ⟨Λ.map z u '' U.restrict (Λ.S z), ?_, ?_⟩
   · apply image_mem_map
     simp only [nhds_induced]
