@@ -119,34 +119,46 @@ def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
     LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
   toFun := λ w => ⟨w.1, ⟨⟨z, w.2 - (Λ.F z w.1 - Λ.F z z)⟩, rfl⟩⟩
   invFun uv := Λ.map z uv.2.1.2 uv.1
-  source := { w | w.1 ∈ val ⁻¹' Λ.S z }
+  source := (val ⁻¹' Λ.S z) ×ˢ univ
   target := (val ⁻¹' Λ.S z) ×ˢ univ
-  map_source' := by simp
-  map_target' := by simp [LocalPrimitiveOn.map]
+  map_source' x hx := by simpa using Set.mem_prod.1 hx
+  map_target' xy hx := by
+    rw [mem_prod] at hx ⊢
+    simp only [LocalPrimitiveOn.map, mem_preimage, mem_univ, and_true]
+    exact hx.1
   left_inv' := by rintro ⟨a, b⟩ _ ; simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀]
   right_inv' := by
     rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ _
     simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀, p]
 
-def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (z : U) :
+def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
   toLocalEquiv := T_LocalEquiv Λ z
-  open_source := sorry
-  open_target := sorry
-  continuous_toFun := sorry
-  continuous_invFun := sorry
+  open_source := by
+    rw [isOpen_iff_mem_nhds]
+    intro ⟨a₁, a₂⟩ ha
+    simp [T_LocalEquiv] at ha ⊢
+    rw [mem_prod] at ha ; simp at ha
+    rw [nhds_mkOfNhds _ _ pure_le_nhd (nhd_is_nhd hU)] -- TODO lemma about this
+    simp [nhd, LocalPrimitiveOn.map]
+    have := Λ.opn z |>.mem_nhds ha
+    have l1 : val ⁻¹' LocalPrimitiveOn.S Λ z ∈ 𝓝 a₁ := by
+      rw [nhds_induced]
+      apply preimage_mem_comap this
+    convert l1 ; ext x ; simp
+  open_target := IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
+  continuous_toFun := sorry -- Note, this uses the complicated topology above
+  continuous_invFun := sorry -- Note, this uses the complicated topology above
 
-def T (Λ : LocalPrimitiveOn U f) (z : U) : Trivialization (p Λ ⁻¹' {z}) (p Λ) where
-  toLocalHomeomorph := T_LocalHomeomorph Λ z
-  baseSet := sorry
-  open_baseSet := sorry
-  source_eq := sorry
-  target_eq := sorry
-  proj_toFun := sorry
+def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ ⁻¹' {z}) (p Λ) where
+  toLocalHomeomorph := T_LocalHomeomorph Λ hU z
+  baseSet := val ⁻¹' Λ.S z
+  open_baseSet := isOpen_induced (Λ.opn z)
+  source_eq := by simp only [p, T_LocalHomeomorph, T_LocalEquiv] ; ext ; simp
+  target_eq := by simp [T_LocalHomeomorph, T_LocalEquiv]
+  proj_toFun x _:= rfl
 
-theorem isCoveringMap (hU : IsOpen U) : IsCoveringMap (p Λ) := by
-  intro z
-  refine ⟨discreteTopology hU z, ?_⟩
-  sorry
+theorem isCoveringMap (hU : IsOpen U) : IsCoveringMap (p Λ) :=
+  λ z => ⟨discreteTopology hU z, T Λ hU z, Λ.mem z⟩
 
 end holo_covering
