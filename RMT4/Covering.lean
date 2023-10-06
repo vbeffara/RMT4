@@ -13,16 +13,27 @@ namespace LocalPrimitiveOn
 
 def map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := v + (Λ.F z w - Λ.F z z)
 
+def comap₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := v - (Λ.F z w - Λ.F z z)
+
 @[simp] lemma map₀_self : Λ.map₀ z v z.1 = v := by simp [map₀]
 
 @[simp] lemma map₀_self' : Λ.map₀ ⟨z, hz⟩ v z = v := by simp [map₀]
+
+@[simp] lemma map₀_cancel : Λ.map₀ z (Λ.comap₀ z v w) w = v := by simp [map₀, comap₀]
+
+@[simp] lemma map₀_cancel' : Λ.comap₀ z (Λ.map₀ z v w) w = v := by simp [map₀, comap₀]
 
 lemma der₀ (hw : w ∈ Λ.S z) : HasDerivAt (Λ.map₀ z v) (f w) w := by
   simpa using hasDerivAt_const _ _ |>.add (Λ.der z w hw |>.sub<| hasDerivAt_const _ _)
 
 def map (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : U) : holo_covering Λ := (w, Λ.map₀ z v w)
 
+def comap (Λ : LocalPrimitiveOn U f) (z : U) (w : holo_covering Λ) : U × ℂ :=
+  (w.1, Λ.comap₀ z w.2 w.1)
+
 @[simp] lemma map_self (a : holo_covering Λ) : Λ.map a.1 a.2 a.1 = a := by simp [map]
+
+@[simp] lemma map_cancel : Λ.comap z (Λ.map z v u) = (u, v) := by simp [map, comap]
 
 end LocalPrimitiveOn
 
@@ -117,7 +128,7 @@ lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹
 
 def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
     LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
-  toFun := λ w => ⟨w.1, ⟨⟨z, w.2 - (Λ.F z w.1 - Λ.F z z)⟩, rfl⟩⟩
+  toFun w := ⟨w.1, ⟨⟨z, Λ.comap₀ z w.2 w.1⟩, rfl⟩⟩
   invFun uv := Λ.map z uv.2.1.2 uv.1
   source := (val ⁻¹' Λ.S z) ×ˢ univ
   target := (val ⁻¹' Λ.S z) ×ˢ univ
@@ -126,10 +137,8 @@ def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
     rw [mem_prod] at hx ⊢
     simp only [LocalPrimitiveOn.map, mem_preimage, mem_univ, and_true]
     exact hx.1
-  left_inv' := by rintro ⟨a, b⟩ _ ; simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀]
-  right_inv' := by
-    rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ _
-    simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀, p]
+  left_inv' := by simp [LocalPrimitiveOn.map]
+  right_inv' := by rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ ; simp [LocalPrimitiveOn.map, p]
 
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
