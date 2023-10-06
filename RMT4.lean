@@ -6,6 +6,7 @@ import RMT4.etape2
 import RMT4.has_sqrt
 import RMT4.pintegral
 import RMT4.Curvint
+import RMT4.Covering
 
 open UniformConvergence Topology Filter Set Metric Function
 

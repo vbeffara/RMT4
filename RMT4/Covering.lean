@@ -115,7 +115,34 @@ lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹
     rintro ⟨a₁, a₂⟩ rfl ⟨_, h2⟩
     simp [← LocalPrimitiveOn.map₀_self ▸ h2]
 
-def T (Λ : LocalPrimitiveOn U f) (z : U) : Trivialization (↑(p Λ ⁻¹' {z})) (p Λ) := sorry
+def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
+    LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
+  toFun := λ w => ⟨w.1, ⟨⟨z, w.2 - (Λ.F z w.1 - Λ.F z z)⟩, rfl⟩⟩
+  invFun uv := Λ.map z uv.2.1.2 uv.1
+  source := { w | w.1 ∈ val ⁻¹' Λ.S z }
+  target := (val ⁻¹' Λ.S z) ×ˢ univ
+  map_source' := by simp
+  map_target' := by simp [LocalPrimitiveOn.map]
+  left_inv' := by rintro ⟨a, b⟩ _ ; simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀]
+  right_inv' := by
+    rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ _
+    simp [LocalPrimitiveOn.map, LocalPrimitiveOn.map₀, p]
+
+def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (z : U) :
+    LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
+  toLocalEquiv := T_LocalEquiv Λ z
+  open_source := sorry
+  open_target := sorry
+  continuous_toFun := sorry
+  continuous_invFun := sorry
+
+def T (Λ : LocalPrimitiveOn U f) (z : U) : Trivialization (p Λ ⁻¹' {z}) (p Λ) where
+  toLocalHomeomorph := T_LocalHomeomorph Λ z
+  baseSet := sorry
+  open_baseSet := sorry
+  source_eq := sorry
+  target_eq := sorry
+  proj_toFun := sorry
 
 theorem isCoveringMap (hU : IsOpen U) : IsCoveringMap (p Λ) := by
   intro z
