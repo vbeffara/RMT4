@@ -33,7 +33,11 @@ def comap (Λ : LocalPrimitiveOn U f) (z : U) (w : holo_covering Λ) : U × ℂ 
 
 @[simp] lemma map_self (a : holo_covering Λ) : Λ.map a.1 a.2 a.1 = a := by simp [map]
 
+@[simp] lemma map_first : (Λ.map x y z).1 = z := rfl
+
 @[simp] lemma map_cancel : Λ.comap z (Λ.map z v u) = (u, v) := by simp [map, comap]
+
+@[simp] lemma map_cancel' : Λ.map z (Λ.comap z w).2 w.1 = w := by simp [map, comap]
 
 end LocalPrimitiveOn
 
@@ -113,7 +117,7 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
     · simpa only [image_subset_iff] using λ _ hx => (inter_subset_right _ _ (l2 hx))
   exact hs2 <| key ▸ mem_image_of_mem _ (ht1 (l2 hw).1)
 
-def p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := λ z => z.1
+abbrev p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
 
 lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹' {z}) := by
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_mkOfNhds, nhds_induced, p]
@@ -128,17 +132,16 @@ lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹
 
 def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
     LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
-  toFun w := ⟨w.1, ⟨⟨z, Λ.comap₀ z w.2 w.1⟩, rfl⟩⟩
+  toFun w := ⟨w.1, ⟨⟨z, (Λ.comap z w).2⟩, rfl⟩⟩
   invFun uv := Λ.map z uv.2.1.2 uv.1
   source := (val ⁻¹' Λ.S z) ×ˢ univ
   target := (val ⁻¹' Λ.S z) ×ˢ univ
   map_source' x hx := by simpa using Set.mem_prod.1 hx
   map_target' xy hx := by
     rw [mem_prod] at hx ⊢
-    simp only [LocalPrimitiveOn.map, mem_preimage, mem_univ, and_true]
-    exact hx.1
-  left_inv' := by simp [LocalPrimitiveOn.map]
-  right_inv' := by rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ ; simp [LocalPrimitiveOn.map, p]
+    simpa only [LocalPrimitiveOn.map, mem_preimage, mem_univ, and_true] using hx.1
+  left_inv' := by simp
+  right_inv' := by rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ ; simp
 
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
@@ -163,7 +166,7 @@ def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ
   toLocalHomeomorph := T_LocalHomeomorph Λ hU z
   baseSet := val ⁻¹' Λ.S z
   open_baseSet := isOpen_induced (Λ.opn z)
-  source_eq := by simp only [p, T_LocalHomeomorph, T_LocalEquiv] ; ext ; simp
+  source_eq := by simp only [T_LocalHomeomorph, T_LocalEquiv] ; ext ; simp
   target_eq := by simp [T_LocalHomeomorph, T_LocalEquiv]
   proj_toFun x _:= rfl
 
