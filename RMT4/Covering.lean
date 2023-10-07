@@ -3,6 +3,14 @@ import RMT4.pintegral
 import RMT4.LocallyConstant
 import RMT4.to_mathlib
 
+/-
+TODO:
+- use `Filter.map_congr` for invariance under base point change
+- use `Filter.eventually_map` to write everything in terms of filters?
+- rewrite `nhd_is_nhd` aas `∀ y ∈ Λ.S x, ∀ᶠ z in 𝓝 y, Λ.FF x (y, Λ.F x y) z = Λ.FF y whatever z`
+- use all the functions rather than the `Λ.F x`
+-/
+
 open Topology Filter Metric TopologicalSpace Set Subtype
 
 variable {U : Set ℂ} {f : ℂ → ℂ} {Λ : LocalPrimitiveOn U f}
@@ -11,28 +19,16 @@ def holo_covering (_ : LocalPrimitiveOn U f) := U × ℂ
 
 namespace LocalPrimitiveOn
 
-/- The shift of `Λ.F z` going through a -/
+/-- The shift of `Λ.F z` going through a -/
 def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : U) : ℂ := Λ.F z w + (a.2 - Λ.F z a.1)
+
+@[simp] lemma FF_self : LocalPrimitiveOn.FF Λ z (w, u) w = u := by simp [FF]
+
+@[simp] lemma FF_self' : LocalPrimitiveOn.FF Λ z w w.1 = w.2 := FF_self
 
 def map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := v + (Λ.F z w - Λ.F z z)
 
 example : Λ.map₀ z v w.1 = Λ.FF z (z, v) w := by simp [FF, map₀] ; ring
-
-def comap₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := v - (Λ.F z w - Λ.F z z)
-
-example : Λ.comap₀ z v w.1 = Λ.FF z ⟨w, v⟩ z := by simp [FF, comap₀] ; ring
-
-@[simp] lemma map₀_self : Λ.map₀ z v z.1 = v := by simp [map₀]
-
-@[simp] lemma map₀_self' : Λ.map₀ ⟨z, hz⟩ v z = v := by simp [map₀]
-
-@[simp] lemma comap₀_self : Λ.comap₀ z v z.1 = v := by simp [comap₀]
-
-@[simp] lemma comap₀_self' : Λ.comap₀ ⟨z, hz⟩ v z = v := by simp [comap₀]
-
-@[simp] lemma map₀_cancel : Λ.map₀ z (Λ.comap₀ z v w) w = v := by simp [map₀, comap₀]
-
-@[simp] lemma map₀_cancel' : Λ.comap₀ z (Λ.map₀ z v w) w = v := by simp [map₀, comap₀]
 
 lemma der₀ (hw : w ∈ Λ.S z) : HasDerivAt (Λ.map₀ z v) (f w) w := by
   simpa using hasDerivAt_const _ _ |>.add (Λ.der z w hw |>.sub<| hasDerivAt_const _ _)
@@ -41,18 +37,18 @@ def map (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : U) : holo_covering Λ
   (w, Λ.FF z (z, v) w)
 
 def comap (Λ : LocalPrimitiveOn U f) (z : U) (w : holo_covering Λ) : U × ℂ :=
-  (w.1, Λ.comap₀ z w.2 w.1)
+  (w.1, Λ.FF z w z)
 
 @[simp] lemma map_self (a : holo_covering Λ) : Λ.map a.1 a.2 a.1 = a := by simp [map, FF]
 
 @[simp] lemma comap_self (w : holo_covering Λ) (h : w.1 = z) : Λ.comap z w = w := by
-  simp [comap, comap₀, ← h]
+  simp [comap, ← h]
 
 @[simp] lemma map_first : (Λ.map x y z).1 = z := rfl
 
-@[simp] lemma map_cancel : Λ.comap z (Λ.map z v u) = (u, v) := by simp [map, comap, comap₀, FF]
+@[simp] lemma map_cancel : Λ.comap z (Λ.map z v u) = (u, v) := by simp [map, comap, FF]
 
-@[simp] lemma map_cancel' : Λ.map z (Λ.comap z w).2 w.1 = w := by simp [map, comap, comap₀, FF] ; ring_nf ; rfl
+@[simp] lemma map_cancel' : Λ.map z (Λ.comap z w).2 w.1 = w := by simp [map, comap, FF]
 
 end LocalPrimitiveOn
 
@@ -79,18 +75,18 @@ lemma pure_le_nhd : pure ≤ nhd (Λ := Λ) := by
   exact λ s hs => (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, Λ.map_self _⟩
 
 lemma mem_map_iff {y : holo_covering Λ} :
-    y ∈ Λ.map u v '' s ↔ y.1 ∈ s ∧ y.2 = Λ.map₀ u v y.1 where
+    y ∈ Λ.map u v '' s ↔ y.1 ∈ s ∧ y.2 = Λ.FF u ⟨u, v⟩ y.1 where
   mp h := by
     obtain ⟨z, hz, rfl⟩ := (mem_image _ _ _).1 h
-    simp [LocalPrimitiveOn.map, hz, LocalPrimitiveOn.map₀, LocalPrimitiveOn.FF] ; ring
+    simp [LocalPrimitiveOn.map, hz, LocalPrimitiveOn.FF]
   mpr h := by
     refine (mem_image _ _ _).2 ⟨y.1, h.1, ?_⟩
-    simp [LocalPrimitiveOn.map₀] at h
     simp [LocalPrimitiveOn.map, LocalPrimitiveOn.FF, ← h.2]
-    apply Prod.ext <;> simp [LocalPrimitiveOn.map, h.2] ; ring
+    apply Prod.ext <;> simp [LocalPrimitiveOn.map, h.2] ; ring_nf
+    simp [LocalPrimitiveOn.FF]
 
 lemma image_eq_of_mem_map {s : Set U} {x y : holo_covering Λ} (h : y ∈ Λ.map x.1 x.2 '' s) :
-    y.2 = Λ.map₀ x.1 x.2 y.1 :=
+    y.2 = Λ.FF x.1 x y.1 :=
   (mem_map_iff.1 h).2
 
 lemma eqOn_map₀ (hs : IsPreconnected s) (hs2 : IsOpen s) {x y : holo_covering Λ}
@@ -107,7 +103,9 @@ lemma eqOn_map (hU : IsOpen U) (hs : IsPreconnected s) (hs2 : IsOpen s)
   have hs2₀ : IsOpen s₀ := hU.isOpenMap_subtype_val s hs2
   have key : EqOn (Λ.map₀ x.1 x.2) (Λ.map₀ y.1 y.2) s₀ := by
     obtain ⟨hy1, hy2⟩ := mem_map_iff.1 hy
-    exact eqOn_map₀ hs₀ hs2₀ hy2 (mem_image_of_mem val hy1) hs3 hs4
+    refine eqOn_map₀ hs₀ hs2₀ ?_ (mem_image_of_mem val hy1) hs3 hs4
+    convert hy2
+    simp [LocalPrimitiveOn.map₀, LocalPrimitiveOn.FF] ; ring
   simp [LocalPrimitiveOn.map₀] at key
   intro z hz
   simp [LocalPrimitiveOn.map, LocalPrimitiveOn.FF]
@@ -132,7 +130,8 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
   obtain ⟨w, hw, rfl⟩ := (mem_image _ _ _).1 hu
   have key : Λ.map z.1 z.2 w = Λ.map a.1 a.2 w := by
     refine eqOn_map hU l5.isPreconnected l3 ?_ ?_ ?_ hw
-    · simp only [mem_map_iff, l4, image_eq_of_mem_map ha, and_self]
+    · simp [mem_map_iff, l4, image_eq_of_mem_map ha, and_self, LocalPrimitiveOn.map]
+      sorry
     · exact image_subset _ (l2.trans (inter_subset_left _ _ |>.trans ht1)) |>.trans hs3
     · simpa only [image_subset_iff] using λ _ hx => (inter_subset_right _ _ (l2 hx))
   exact hs2 <| key ▸ mem_image_of_mem _ (ht1 (l2 hw).1)
@@ -148,7 +147,8 @@ lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹
     simpa only [nhds_induced] using ⟨_, Λ.nhd z, by rfl⟩
   · simp only [mem_map_iff]
     rintro ⟨a₁, a₂⟩ rfl ⟨_, h2⟩
-    simp [← LocalPrimitiveOn.map₀_self ▸ h2]
+    simp at h2
+    simp [h2]
 
 lemma nhds_eq_nhd (hU : IsOpen U) (z : holo_covering Λ) : 𝓝 z = nhd z :=
   nhds_mkOfNhds nhd z pure_le_nhd (nhd_is_nhd hU)
@@ -195,61 +195,6 @@ example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1).toFun z := by
   apply hu'2.trans
   intro z' hz
   simpa [T_LocalEquiv, hz] using mem_of_mem_nhds hv
-
-theorem toto3 {U : Set ℂ} {f : ℂ → ℂ} {Λ : LocalPrimitiveOn U f} {z : ↑U} {w : holo_covering Λ} (hU : IsOpen U)
-  ⦃s : Set (↑U × ↑(p Λ ⁻¹' {z}))⦄ (u : Set ↑U) (v : Set ↑(p Λ ⁻¹' {z}))
-  (r : (z, LocalPrimitiveOn.comap₀ Λ z w.snd ↑w.fst) ∈ p Λ ⁻¹' {z})
-  (hv : v ∈ 𝓝 { val := (z, LocalPrimitiveOn.comap₀ Λ z w.snd ↑w.fst), property := r }) (huv : u ×ˢ v ⊆ s) (u' : Set ℂ)
-  (hu' : u' ∈ 𝓝 ↑w.fst) (hu'2 : val ⁻¹' u' ⊆ u) ⦃z' : ↑U⦄ (hz : z' ∈ u)
-  (this : { val := (z, LocalPrimitiveOn.comap₀ Λ z w.snd ↑w.fst), property := r } ∈ v) :
-
-  Λ.F w.1 ↑z' - Λ.F w.1 ↑w.1 = Λ.F z ↑z' - Λ.F z ↑w.1 := sorry
-
-theorem holo_covering.totoo2 {U : Set ℂ} {f : ℂ → ℂ} {Λ : LocalPrimitiveOn U f} {z : ↑U} {w : holo_covering Λ}
-  (hU : IsOpen U) ⦃s : Set (↑U × ↑(p Λ ⁻¹' {z}))⦄ (u : Set ↑U) (v : Set ↑(p Λ ⁻¹' {z}))
-  (r : (fun x => x ∈ p Λ ⁻¹' {z}) (z, Λ.comap₀ z w.snd ↑w.fst))
-  (hv :
-    v ∈
-      𝓝
-        { val := (z, Λ.comap₀ z w.snd ↑w.fst),
-          property := (r : (fun x => x ∈ p Λ ⁻¹' {z}) (z, Λ.comap₀ z w.snd ↑w.fst)) })
-  (huv : u ×ˢ v ⊆ s) (u' : Set ℂ) (hu' : u' ∈ 𝓝 ↑w.fst) (hu'2 : val ⁻¹' u' ⊆ u) ⦃z' : ↑U⦄ (hz : z' ∈ u)
-  (this :
-    { val := (z, Λ.comap₀ z w.snd ↑w.fst),
-        property := (r : (fun x => x ∈ p Λ ⁻¹' {z}) (z, Λ.comap₀ z w.snd ↑w.fst)) } ∈
-      v) :
-    Λ.comap₀ z (Λ.map₀ w.fst w.snd ↑z') ↑z' = Λ.comap₀ z w.snd ↑w.fst := by
-
-  simp [LocalPrimitiveOn.map₀, LocalPrimitiveOn.comap₀]
-  extract_goal toto3
-  sorry
-
-example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z).toFun w := by
-  intro s hs
-  simp [T_LocalEquiv, mem_nhds_prod_iff, LocalPrimitiveOn.comap] at hs
-  obtain ⟨u, hu, v, hv, huv⟩ := hs
-  simp [nhds_induced] at hu
-  obtain ⟨u', hu', hu'2⟩ := hu
-  refine Filter.mem_of_superset ?_ huv
-  simp [nhds_eq_nhd hU, nhd, nhds_induced]
-  refine ⟨u', hu', ?_⟩
-  apply hu'2.trans
-  intro z' hz
-  simp [T_LocalEquiv, hz]
-  have := mem_of_mem_nhds hv
-  simp at this
-  convert this
-  simp [LocalPrimitiveOn.comap, LocalPrimitiveOn.map]
-  rw [← sub_eq_zero]
-  ring_nf
-  sorry
-
-example (hU : IsOpen U) (z : ↑U) :
-    ContinuousOn (T_LocalEquiv Λ z).invFun (T_LocalEquiv Λ z).target := by
-  intro z' hz
-  rw [continuousWithinAt_iff_continuousAt]
-  extract_goal
-  sorry
 
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
