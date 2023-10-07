@@ -17,6 +17,8 @@ variable {U : Set ℂ} {f : ℂ → ℂ} {Λ : LocalPrimitiveOn U f}
 
 def holo_covering (_ : LocalPrimitiveOn U f) := U × ℂ
 
+abbrev p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
+
 namespace LocalPrimitiveOn
 
 /-- The shift of `Λ.F z` going through a -/
@@ -50,6 +52,33 @@ def comap (Λ : LocalPrimitiveOn U f) (z : U) (w : holo_covering Λ) : U × ℂ 
 @[simp] lemma map_cancel : Λ.comap z (Λ.map z u) = u := by simp [map, comap, FF]
 
 @[simp] lemma map_cancel' : Λ.map z (Λ.comap z w) = w := by simp [map, comap, FF]
+
+def Φ (Λ : LocalPrimitiveOn U f) (z : U) : holo_covering Λ ≃ U × ℂ where
+  toFun := Λ.comap z
+  invFun := Λ.map z
+  left_inv _ := map_cancel'
+  right_inv _ := map_cancel
+
+def π (Λ : LocalPrimitiveOn U f) (z : U) : ℂ ≃ p Λ ⁻¹' {z} where
+  toFun w := ⟨⟨z, w⟩, rfl⟩
+  invFun w := w.val.2
+  left_inv _ := rfl
+  right_inv := by rintro ⟨w, rfl⟩ ; simp
+
+def ψ (Λ : LocalPrimitiveOn U f) (z : U) : U × ℂ ≃ U × p Λ ⁻¹' {z} :=
+  Equiv.prodCongr (Equiv.refl _) (π Λ z)
+
+def Ψ (Λ : LocalPrimitiveOn U f) (z : U) : holo_covering Λ ≃ U × p Λ ⁻¹' {z} :=
+  (Φ Λ z).trans (ψ Λ z)
+
+def L (Λ : LocalPrimitiveOn U f) (z : U) : LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) :=
+  (Ψ Λ z).toLocalEquiv
+
+lemma L_image : (L Λ z).IsImage ((val ⁻¹' Λ.S z) ×ˢ univ) ((val ⁻¹' Λ.S z) ×ˢ univ) := by
+  intro ⟨z₁, z₂⟩ ; rw [mem_prod, mem_prod] ; simp [L, Ψ, ψ, Φ]
+
+def _root_.holo_covering.T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
+    LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) := L_image.restr
 
 end LocalPrimitiveOn
 
@@ -138,8 +167,6 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
     · simpa only [image_subset_iff] using λ _ hx => (inter_subset_right _ _ (l2 hx))
   exact hs2 <| key ▸ mem_image_of_mem _ (ht1 (l2 hw).1)
 
-abbrev p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
-
 lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹' {z}) := by
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_mkOfNhds, nhds_induced, p]
   rintro ⟨z, u⟩ rfl
@@ -159,28 +186,19 @@ lemma nhds_iff_eventually (hU : IsOpen U) (z : holo_covering Λ) {s : Set (holo_
     s ∈ 𝓝 z ↔ ∀ᶠ x in 𝓝 z.1, Λ.map z.1 (x, z.2) ∈ s := by
   rw [nhds_eq_nhd hU, nhd] ; rfl
 
-def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) :
-    LocalEquiv (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
-  toFun w := ⟨w.1, ⟨⟨z, (Λ.comap z w).2⟩, rfl⟩⟩
-  invFun uv := Λ.map z (uv.1, uv.2.1.2)
-  source := (val ⁻¹' Λ.S z) ×ˢ univ
-  target := (val ⁻¹' Λ.S z) ×ˢ univ
-  map_source' x hx := by simpa using Set.mem_prod.1 hx
-  map_target' xy hx := by
-    rw [mem_prod] at hx ⊢
-    simpa only [LocalPrimitiveOn.map, mem_preimage, mem_univ, and_true] using hx.1
-  left_inv' := by
-    simp [LocalPrimitiveOn.map, LocalPrimitiveOn.comap, LocalPrimitiveOn.FF] -- TODO use FF.comp
-  right_inv' := by rintro ⟨⟨a, ha⟩, ⟨b, rfl⟩⟩ ; simp
-
 theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
     IsOpen (T_LocalEquiv Λ z).source := by
   simp only [isOpen_iff_eventually, T_LocalEquiv, eventually_mem_set]
   intro ⟨a₁, a₂⟩ ha
+  simp [LocalPrimitiveOn.L] at ha
   rw [mem_prod] at ha ; simp at ha
   simp only [nhds_eq_nhd hU, nhd, nhds_induced, mem_map, mem_comap]
   refine ⟨Λ.S z, (Λ.opn z) |>.mem_nhds ha, ?_⟩
-  exact λ x hx => by simpa using hx
+  exact λ x hx => by
+    simp at hx
+    simp [LocalPrimitiveOn.L]
+    rw [mem_prod]
+    simp [hx]
 
 theorem toto_1 (hU : IsOpen U) (hx : x ∈ (T_LocalEquiv Λ z).source) :
     (T_LocalEquiv Λ z).source ∈ 𝓝 x :=
@@ -188,7 +206,7 @@ theorem toto_1 (hU : IsOpen U) (hx : x ∈ (T_LocalEquiv Λ z).source) :
 
 example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1).toFun z := by
   intro s hs
-  simp [T_LocalEquiv, mem_nhds_prod_iff] at hs
+  simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, mem_nhds_prod_iff, LocalPrimitiveOn.L] at hs
   obtain ⟨u, hu, v, hv, huv⟩ := hs
   simp [nhds_induced] at hu
   obtain ⟨u', hu', hu'2⟩ := hu
@@ -197,13 +215,18 @@ example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1).toFun z := by
   refine ⟨u', hu', ?_⟩
   apply hu'2.trans
   intro z' hz
-  simpa [T_LocalEquiv, hz] using mem_of_mem_nhds hv
+  have := mem_of_mem_nhds hv
+  simp [LocalPrimitiveOn.π, LocalPrimitiveOn.Φ, p] at this
+  simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π, LocalPrimitiveOn.Φ, LocalPrimitiveOn.L, hz]
+  exact this
 
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
   toLocalEquiv := T_LocalEquiv Λ z
   open_source := isOpen_source Λ hU z
-  open_target := IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
+  open_target := by
+    simp [T_LocalEquiv, LocalPrimitiveOn.L]
+    exact IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
   continuous_toFun := sorry
   continuous_invFun := sorry
 
@@ -211,8 +234,8 @@ def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ
   toLocalHomeomorph := T_LocalHomeomorph Λ hU z
   baseSet := val ⁻¹' Λ.S z
   open_baseSet := isOpen_induced (Λ.opn z)
-  source_eq := by simp only [T_LocalHomeomorph, T_LocalEquiv] ; ext ; simp
-  target_eq := by simp [T_LocalHomeomorph, T_LocalEquiv]
+  source_eq := by simp [T_LocalHomeomorph, T_LocalEquiv, LocalPrimitiveOn.L] ; ext ; simp
+  target_eq := by simp [T_LocalHomeomorph, T_LocalEquiv, LocalPrimitiveOn.L]
   proj_toFun x _:= rfl
 
 theorem isCoveringMap (hU : IsOpen U) : IsCoveringMap (p Λ) :=
