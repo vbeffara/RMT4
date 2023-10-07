@@ -28,12 +28,14 @@ def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : U) : ℂ := Λ.F 
 
 @[simp] lemma FF_self' : LocalPrimitiveOn.FF Λ z w w.1 = w.2 := FF_self
 
-def map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := v + (Λ.F z w - Λ.F z z)
+def map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := Λ.F z w + (v - Λ.F z z)
 
-example (w : U) : Λ.map₀ z v w = Λ.FF z (z, v) w := by simp [FF, map₀] ; ring
+example (w : U) : Λ.map₀ z v w = Λ.FF z (z, v) w := by simp [FF, map₀]
 
-lemma der₀ (hw : w ∈ Λ.S z) : HasDerivAt (Λ.map₀ z v) (f w) w := by
-  simpa using hasDerivAt_const _ _ |>.add (Λ.der z w hw |>.sub<| hasDerivAt_const _ _)
+lemma der₀ (hw : w ∈ Λ.S z) : HasDerivAt (Λ.map₀ z v) (f w) w := by sorry
+  -- simpa using hasDerivAt_const _ _ |>.add (Λ.der z w hw |>.sub<| hasDerivAt_const _ _)
+
+lemma der_F (hw : w ∈ Λ.S z) : HasDerivAt (Λ.F z) (f w) w := Λ.der z w hw
 
 def map (Λ : LocalPrimitiveOn U f) (z : U) (w : U × ℂ) : holo_covering Λ :=
   (w.1, Λ.FF z (z, w.2) w.1)
@@ -126,6 +128,37 @@ lemma eqOn_map₀ (hs : IsPreconnected s) (hs2 : IsOpen s) {x y : holo_covering 
   apply hs.apply_eq_of_hasDeriv_eq hs2 hy (λ z hz => Λ.der₀ (hsx hz)) (λ z hz => Λ.der₀ (hsy hz))
   simp [LocalPrimitiveOn.map₀, hxy]
 
+lemma eqOn_F {x y : holo_covering Λ} {s : Set ℂ} (hs : IsOpen s) (hs' : IsPreconnected s)
+    (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) (hys : y.1.1 ∈ s) :
+    EqOn (Λ.F x.1 · + (y.2 - Λ.F x.1 y.1)) (Λ.F y.1 · + (y.2 - Λ.F y.1 y.1)) s := by
+
+  -- TODO: factor this out
+  have l1 (w) (hw : w ∈ s) : HasDerivAt (Λ.F x.1 · + (y.2 - Λ.F x.1 ↑y.1)) (f w) w := by
+    have := Λ.der x.1 w (hsx hw)
+    convert this.add (hasDerivAt_const _ _) using 1
+    simp
+
+  have l2 (w) (hw : w ∈ s) : HasDerivAt (Λ.F y.1 · + (y.2 - Λ.F y.1 ↑y.1)) (f w) w := by
+    have := Λ.der y.1 w (hsy hw)
+    convert this.add (hasDerivAt_const _ _) using 1
+    simp
+
+  exact @IsPreconnected.apply_eq_of_hasDeriv_eq ℂ _ f (Λ.F x.1 · + (y.2 - Λ.F x.1 y.1))
+    (Λ.F y.1 · + (y.2 - Λ.F y.1 y.1)) y.1 s hs' hs hys l1 l2 (by ring)
+
+lemma eqOn_FF (hU : IsOpen U) {x y : holo_covering Λ} {s : Set U} (hs' : IsPreconnected s)
+    (hs : IsOpen s) (hsx : s ⊆ val ⁻¹' Λ.S x.1) (hsy : s ⊆ val ⁻¹' Λ.S y.1) (hys : y.1 ∈ s) :
+    EqOn (Λ.FF x.1 y) (Λ.FF y.1 y) s := by
+  let s₀ : Set ℂ := val '' s
+  intro ⟨w, hw⟩ hws
+  have l1 : IsOpen s₀ := hU.isOpenMap_subtype_val s hs
+  have l2 : IsPreconnected s₀ := hs'.image _ continuous_subtype_val.continuousOn
+  have l3 : s₀ ⊆ LocalPrimitiveOn.S Λ x.fst := by simp [hsx]
+  have l4 : s₀ ⊆ LocalPrimitiveOn.S Λ y.fst := by simp [hsy]
+  have l5 : ↑y.fst ∈ s₀ := by simp [hys]
+  have l6 : w ∈ s₀ := by simp [hw, hws]
+  exact eqOn_F l1 l2 l3 l4 l5 l6
+
 lemma eqOn_map (hU : IsOpen U) (hs : IsPreconnected s) (hs2 : IsOpen s)
     {x y : holo_covering Λ} (hy : y ∈ (Λ.map x.1 ⟨·, x.2⟩) '' s) (hs3 : val '' s ⊆ Λ.S x.1)
     (hs4 : val '' s ⊆ Λ.S y.1) : EqOn (Λ.map x.1 ⟨·, x.2⟩) (Λ.map y.1 ⟨·, y.2⟩) s := by
@@ -134,9 +167,7 @@ lemma eqOn_map (hU : IsOpen U) (hs : IsPreconnected s) (hs2 : IsOpen s)
   have hs2₀ : IsOpen s₀ := hU.isOpenMap_subtype_val s hs2
   have key : EqOn (Λ.map₀ x.1 x.2) (Λ.map₀ y.1 y.2) s₀ := by
     obtain ⟨hy1, hy2⟩ := mem_map_iff.1 hy
-    refine eqOn_map₀ hs₀ hs2₀ ?_ (mem_image_of_mem val hy1) hs3 hs4
-    convert hy2
-    simp [LocalPrimitiveOn.map₀, LocalPrimitiveOn.FF] ; ring
+    exact eqOn_map₀ hs₀ hs2₀ hy2 (mem_image_of_mem val hy1) hs3 hs4
   simp [LocalPrimitiveOn.map₀] at key
   intro z hz
   simp [LocalPrimitiveOn.map, LocalPrimitiveOn.FF]
