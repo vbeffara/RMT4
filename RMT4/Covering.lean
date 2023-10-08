@@ -5,10 +5,7 @@ import RMT4.to_mathlib
 
 /-
 TODO:
-- use `Filter.map_congr` for invariance under base point change
-- use `Filter.eventually_map` to write everything in terms of filters?
-- rewrite `nhd_is_nhd` aas `∀ y ∈ Λ.S x, ∀ᶠ z in 𝓝 y, Λ.FF x (y, Λ.F x y) z = Λ.FF y whatever z`
-- use all the functions rather than the `Λ.F x`
+- use all the functions rather than the `Λ.F x` ?
 -/
 
 open Topology Filter Metric TopologicalSpace Set Subtype
@@ -41,14 +38,6 @@ def Φ (Λ : LocalPrimitiveOn U f) (z : U) : holo_covering Λ ≃ U × ℂ where
   invFun w := (w.1, Λ.FF z (z, w.2) w.1)
   left_inv _ := by simp [FF]
   right_inv _ := by simp [FF]
-
-@[simp] lemma Φ_first : (Λ.Φ z w).1 = w.1 := rfl
-
-@[simp] lemma Φ_symm_first : ((Λ.Φ z).symm w).1 = w.1 := rfl
-
-@[simp] lemma Φ_self : Λ.Φ a.1 a = a := by simp [Φ]
-
-@[simp] lemma Φ_symm_self : (Λ.Φ a.1).symm a = a := by simp [Φ]
 
 def π (Λ : LocalPrimitiveOn U f) (z : U) : ℂ ≃ p Λ ⁻¹' {z} where
   toFun w := ⟨⟨z, w⟩, rfl⟩
@@ -91,9 +80,6 @@ lemma mem_nhd_1 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, �
 lemma mem_nhd_from {z : holo_covering Λ} : s ∈ nhd_from x z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF x z u⟩ ∈ s :=
   by rfl
 
-lemma mem_nhd_2 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, (Λ.Φ z.1).symm (u, z.2) ∈ s :=
-  mem_nhd_1
-
 lemma mem_nhd {z : holo_covering Λ} :
     s ∈ nhd z ↔ ∃ t ∈ 𝓝 z.1, (λ w => ⟨w, Λ.FF z.1 z w⟩) '' t ⊆ s := by
   simpa [mem_nhd_1] using eventually_iff_exists_mem
@@ -101,10 +87,6 @@ lemma mem_nhd {z : holo_covering Λ} :
 theorem toto6 : ∀ᶠ x in 𝓝 ↑z, x ∈ Λ.S z := isOpen_iff_eventually.1 (Λ.opn z) ↑z (Λ.mem z)
 
 lemma toto7 : val ⁻¹' Λ.S z ∈ 𝓝 z := by simpa only [nhds_induced] using ⟨_, Λ.nhd z, by rfl⟩
-
-lemma toto5 : ∀ᶠ x in 𝓝 z, ↑x ∈ Λ.S z := by
-  simp only [nhds_induced, eventually_comap]
-  filter_upwards [toto6] with x hx a ha using ha ▸ hx
 
 lemma mem_nhd' (h : s ∈ nhd z) : ∃ t ∈ 𝓝 z.1, val '' t ⊆ Λ.S z.1 ∧ (Λ.map z.1 ⟨·, z.2⟩) '' t ⊆ s := by
   -- change ∀ᶠ w in 𝓝 z.1, ↑w ∈ Λ.S z.1 ∧ (Λ.map z.1 ⟨w, z.2⟩) ∈ s
@@ -223,10 +205,6 @@ lemma discreteTopology (hU : IsOpen U) : DiscreteTopology (p Λ ⁻¹' {z}) := b
   simp at h2
   simp [h2]
 
-lemma nhds_iff_eventually (hU : IsOpen U) (z : holo_covering Λ) {s : Set (holo_covering Λ)} :
-    s ∈ 𝓝 z ↔ ∀ᶠ x in 𝓝 z.1, Λ.map z.1 (x, z.2) ∈ s := by
-  rw [nhds_eq_nhd hU, nhd] ; rfl
-
 theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
     IsOpen (T_LocalEquiv Λ z).source := by
   simp only [isOpen_iff_eventually, T_LocalEquiv, eventually_mem_set]
@@ -244,10 +222,6 @@ theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
 theorem isOpen_target : IsOpen (T_LocalEquiv Λ z).target := by
   simp [T_LocalEquiv, LocalPrimitiveOn.L]
   exact IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
-
-theorem toto_1 (hU : IsOpen U) (hx : x ∈ (T_LocalEquiv Λ z).source) :
-    (T_LocalEquiv Λ z).source ∈ 𝓝 x :=
-  isOpen_source Λ hU z |>.mem_nhds hx
 
 lemma toto10 (l : Filter α) (b : β) : s ∈ l ×ˢ pure b ↔ ∃ t ∈ l, t ×ˢ {b} ⊆ s := by
   simpa using exists_mem_subset_iff.symm
