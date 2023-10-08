@@ -22,44 +22,33 @@ abbrev p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
 namespace LocalPrimitiveOn
 
 /-- The shift of `Λ.F z` going through a -/
-def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : U) : ℂ := Λ.F z w + (a.2 - Λ.F z a.1)
+def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : ℂ) : ℂ := Λ.F z w + (a.2 - Λ.F z a.1)
 
 @[simp] lemma FF_self : LocalPrimitiveOn.FF Λ z (w, u) w = u := by simp [FF]
 
 @[simp] lemma FF_self' : LocalPrimitiveOn.FF Λ z w w.1 = w.2 := FF_self
 
-def map₀ (Λ : LocalPrimitiveOn U f) (z : U) (v : ℂ) (w : ℂ) : ℂ := Λ.F z w + (v - Λ.F z z)
+lemma FF_deriv (hw : w ∈ Λ.S z) : HasDerivAt (Λ.FF z a) (f w) w := Λ.der z w hw |>.add_const _
 
-example (w : U) : Λ.map₀ z v w = Λ.FF z (z, v) w := by simp [FF, map₀]
+def map (Λ : LocalPrimitiveOn U f) (z : U) (w : U × ℂ) : holo_covering Λ := (w.1, Λ.FF z (z, w.2) w.1)
 
-lemma der₀ (hw : w ∈ Λ.S z) : HasDerivAt (Λ.map₀ z v) (f w) w := by sorry
-  -- simpa using hasDerivAt_const _ _ |>.add (Λ.der z w hw |>.sub<| hasDerivAt_const _ _)
-
-lemma der_F (hw : w ∈ Λ.S z) : HasDerivAt (Λ.F z) (f w) w := Λ.der z w hw
-
-def map (Λ : LocalPrimitiveOn U f) (z : U) (w : U × ℂ) : holo_covering Λ :=
-  (w.1, Λ.FF z (z, w.2) w.1)
-
-def comap (Λ : LocalPrimitiveOn U f) (z : U) (w : holo_covering Λ) : U × ℂ :=
-  (w.1, Λ.FF z w z)
-
-@[simp] lemma map_self (a : holo_covering Λ) : Λ.map a.1 a = a := by simp [map]
-
-@[simp] lemma comap_self (a : U × ℂ) : Λ.comap a.1 a = a := by simp [comap]
-
-@[simp] lemma map_first : (Λ.map x z).1 = z.1 := rfl
-
-@[simp] lemma comap_first : (Λ.comap x z).1 = z.1 := rfl
-
-@[simp] lemma map_cancel : Λ.comap z (Λ.map z u) = u := by simp [map, comap, FF]
-
-@[simp] lemma map_cancel' : Λ.map z (Λ.comap z w) = w := by simp [map, comap, FF]
+/-- The shear transformation. `Φ z` maps a point `(u, v)` to `(u, w)` where `w` is the value above
+  `z` of the translate of `F z` that goes through `(u, v)`, and `(Φ z).symm` maps `(u, w)` to
+  `(u, v)` where `v` is the value above `u` of the translate of `F` that goes through `(z, v)`. -/
 
 def Φ (Λ : LocalPrimitiveOn U f) (z : U) : holo_covering Λ ≃ U × ℂ where
-  toFun := Λ.comap z
-  invFun := Λ.map z
-  left_inv _ := map_cancel'
-  right_inv _ := map_cancel
+  toFun w := (w.1, Λ.FF z w z)
+  invFun w := (w.1, Λ.FF z (z, w.2) w.1)
+  left_inv _ := by simp [FF]
+  right_inv _ := by simp [FF]
+
+@[simp] lemma Φ_first : (Λ.Φ z w).1 = w.1 := rfl
+
+@[simp] lemma Φ_symm_first : ((Λ.Φ z).symm w).1 = w.1 := rfl
+
+@[simp] lemma Φ_self : Λ.Φ a.1 a = a := by simp [Φ]
+
+@[simp] lemma Φ_symm_self : (Λ.Φ a.1).symm a = a := by simp [Φ]
 
 def π (Λ : LocalPrimitiveOn U f) (z : U) : ℂ ≃ p Λ ⁻¹' {z} where
   toFun w := ⟨⟨z, w⟩, rfl⟩
@@ -68,7 +57,7 @@ def π (Λ : LocalPrimitiveOn U f) (z : U) : ℂ ≃ p Λ ⁻¹' {z} where
   right_inv := by rintro ⟨w, rfl⟩ ; simp
 
 def ψ (Λ : LocalPrimitiveOn U f) (z : U) : U × ℂ ≃ U × p Λ ⁻¹' {z} :=
-  Equiv.prodCongr (Equiv.refl _) (π Λ z)
+  (Equiv.refl _).prodCongr (π Λ z)
 
 def Ψ (Λ : LocalPrimitiveOn U f) (z : U) : holo_covering Λ ≃ U × p Λ ⁻¹' {z} :=
   (Φ Λ z).trans (ψ Λ z)
@@ -87,12 +76,18 @@ end LocalPrimitiveOn
 namespace holo_covering
 
 def nhd (z : holo_covering Λ) : Filter (holo_covering Λ) :=
-  Filter.map (Λ.map z.1 ⟨·, z.2⟩) (𝓝 z.1)
+  Filter.map (λ w => (w, Λ.FF z.1 z w)) (𝓝 z.1)
 
 instance : TopologicalSpace (holo_covering Λ) := TopologicalSpace.mkOfNhds nhd
 
-lemma mem_nhd : s ∈ nhd z ↔ ∃ t ∈ 𝓝 z.1, (Λ.map z.1 ⟨·, z.2⟩) '' t ⊆ s := by
-  rw [nhd, mem_map_iff_exists_image]
+lemma mem_nhd_1 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF z.1 z u⟩ ∈ s :=
+  by rfl
+
+lemma mem_nhd_2 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, (Λ.Φ z.1).symm (u, z.2) ∈ s :=
+  mem_nhd_1
+
+lemma mem_nhd {z : holo_covering Λ} : s ∈ nhd z ↔ ∃ t ∈ 𝓝 z.1, (λ w => ⟨w, Λ.FF z.1 z w⟩) '' t ⊆ s := by
+  simpa [mem_nhd_1] using eventually_iff_exists_mem
 
 lemma mem_nhd' (h : s ∈ nhd z) : ∃ t ∈ 𝓝 z.1, val '' t ⊆ Λ.S z.1 ∧ (Λ.map z.1 ⟨·, z.2⟩) '' t ⊆ s := by
   obtain ⟨t, l1, l2⟩ := mem_nhd.1 h
@@ -105,7 +100,8 @@ lemma mem_nhd' (h : s ∈ nhd z) : ∃ t ∈ 𝓝 z.1, val '' t ⊆ Λ.S z.1 ∧
 lemma pure_le_nhd : pure ≤ nhd (Λ := Λ) := by
   intro a
   simp only [nhd, le_map_iff, mem_pure]
-  exact λ s hs => (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, Λ.map_self _⟩
+  refine λ s hs => (mem_image _ _ _).2 ⟨a.1, mem_of_mem_nhds hs, ?_⟩
+  simp [LocalPrimitiveOn.map]
 
 lemma mem_map_iff {y : holo_covering Λ} :
     y ∈ (Λ.map u ⟨·, v⟩) '' s ↔ y.1 ∈ s ∧ y.2 = Λ.FF u ⟨u, v⟩ y.1 where
@@ -122,57 +118,34 @@ lemma image_eq_of_mem_map {s : Set U} {x y : holo_covering Λ} (h : y ∈ (Λ.ma
     y.2 = Λ.FF x.1 x y.1 :=
   (mem_map_iff.1 h).2
 
-lemma eqOn_map₀ (hs : IsPreconnected s) (hs2 : IsOpen s) {x y : holo_covering Λ}
-    (hxy : y.2 = Λ.map₀ x.1 x.2 y.1) (hy : y.1.1 ∈ s) (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) :
-    EqOn (Λ.map₀ x.1 x.2) (Λ.map₀ y.1 y.2) s := by
-  apply hs.apply_eq_of_hasDeriv_eq hs2 hy (λ z hz => Λ.der₀ (hsx hz)) (λ z hz => Λ.der₀ (hsy hz))
-  simp [LocalPrimitiveOn.map₀, hxy]
-
 lemma eqOn_F {x y : holo_covering Λ} {s : Set ℂ} (hs : IsOpen s) (hs' : IsPreconnected s)
     (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) (hys : y.1.1 ∈ s) :
     EqOn (Λ.F x.1 · + (y.2 - Λ.F x.1 y.1)) (Λ.F y.1 · + (y.2 - Λ.F y.1 y.1)) s := by
-
-  -- TODO: factor this out
-  have l1 (w) (hw : w ∈ s) : HasDerivAt (Λ.F x.1 · + (y.2 - Λ.F x.1 ↑y.1)) (f w) w := by
-    have := Λ.der x.1 w (hsx hw)
-    convert this.add (hasDerivAt_const _ _) using 1
-    simp
-
-  have l2 (w) (hw : w ∈ s) : HasDerivAt (Λ.F y.1 · + (y.2 - Λ.F y.1 ↑y.1)) (f w) w := by
-    have := Λ.der y.1 w (hsy hw)
-    convert this.add (hasDerivAt_const _ _) using 1
-    simp
-
+  have l1 (w) (hw : w ∈ s) : HasDerivAt (Λ.F x.1 · + (y.2 - Λ.F x.1 ↑y.1)) (f w) w :=
+    Λ.der x.1 w (hsx hw) |>.add_const _
+  have l2 (w) (hw : w ∈ s) : HasDerivAt (Λ.F y.1 · + (y.2 - Λ.F y.1 ↑y.1)) (f w) w :=
+    Λ.der y.1 w (hsy hw) |>.add_const _
   exact @IsPreconnected.apply_eq_of_hasDeriv_eq ℂ _ f (Λ.F x.1 · + (y.2 - Λ.F x.1 y.1))
     (Λ.F y.1 · + (y.2 - Λ.F y.1 y.1)) y.1 s hs' hs hys l1 l2 (by ring)
 
-lemma eqOn_FF (hU : IsOpen U) {x y : holo_covering Λ} {s : Set U} (hs' : IsPreconnected s)
-    (hs : IsOpen s) (hsx : s ⊆ val ⁻¹' Λ.S x.1) (hsy : s ⊆ val ⁻¹' Λ.S y.1) (hys : y.1 ∈ s) :
-    EqOn (Λ.FF x.1 y) (Λ.FF y.1 y) s := by
-  let s₀ : Set ℂ := val '' s
-  intro ⟨w, hw⟩ hws
-  have l1 : IsOpen s₀ := hU.isOpenMap_subtype_val s hs
-  have l2 : IsPreconnected s₀ := hs'.image _ continuous_subtype_val.continuousOn
-  have l3 : s₀ ⊆ LocalPrimitiveOn.S Λ x.fst := by simp [hsx]
-  have l4 : s₀ ⊆ LocalPrimitiveOn.S Λ y.fst := by simp [hsy]
-  have l5 : ↑y.fst ∈ s₀ := by simp [hys]
-  have l6 : w ∈ s₀ := by simp [hw, hws]
-  exact eqOn_F l1 l2 l3 l4 l5 l6
+lemma eqOn_FF {x y : holo_covering Λ} {s : Set ℂ} (hs' : IsPreconnected s)
+    (hs : IsOpen s) (hsx : s ⊆ Λ.S x.1) (hsy : s ⊆ Λ.S y.1) (hys : y.1.1 ∈ s) :
+    EqOn (Λ.FF x.1 y) (Λ.FF y.1 y) s :=
+  λ _ hws => eqOn_F hs hs' hsx hsy hys hws
 
-lemma eqOn_map (hU : IsOpen U) (hs : IsPreconnected s) (hs2 : IsOpen s)
+lemma eqOn_map (hU : IsOpen U) {s : Set U} (hs : IsPreconnected s) (hs2 : IsOpen s)
     {x y : holo_covering Λ} (hy : y ∈ (Λ.map x.1 ⟨·, x.2⟩) '' s) (hs3 : val '' s ⊆ Λ.S x.1)
     (hs4 : val '' s ⊆ Λ.S y.1) : EqOn (Λ.map x.1 ⟨·, x.2⟩) (Λ.map y.1 ⟨·, y.2⟩) s := by
   let s₀ : Set ℂ := val '' s
   have hs₀ : IsPreconnected s₀ := hs.image _ continuous_subtype_val.continuousOn
   have hs2₀ : IsOpen s₀ := hU.isOpenMap_subtype_val s hs2
-  have key : EqOn (Λ.map₀ x.1 x.2) (Λ.map₀ y.1 y.2) s₀ := by
-    obtain ⟨hy1, hy2⟩ := mem_map_iff.1 hy
-    exact eqOn_map₀ hs₀ hs2₀ hy2 (mem_image_of_mem val hy1) hs3 hs4
-  simp [LocalPrimitiveOn.map₀] at key
   intro z hz
-  simp [LocalPrimitiveOn.map, LocalPrimitiveOn.FF]
-  specialize key (mem_image_of_mem val hz) ; ring_nf at key ⊢
-  rw [key]
+  simp [LocalPrimitiveOn.map]
+  obtain ⟨hy1, hy2⟩ := mem_map_iff.1 hy
+  have l2 : z.1 ∈ s₀ := by simp [hz]
+  rw [Prod.ext_iff] ; simp
+  have := eqOn_FF hs₀ hs2₀ hs3 hs4 (mem_image_of_mem val hy1) l2
+  rw [← this] ; simp [LocalPrimitiveOn.FF, hy2]
 
 lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
     ∀ S ∈ nhd z, ∃ T ∈ nhd z, T ⊆ S ∧ ∀ a ∈ T, S ∈ nhd a := by
@@ -180,7 +153,7 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
   intro S hS
   obtain ⟨s, hs1, hs3, hs2⟩ := mem_nhd' hS
   obtain ⟨t, ht1, ht2, ht3, _⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 C z.1 s hs1
-  refine ⟨(Λ.map z.1 ⟨·, z.2⟩) '' t, image_mem_map (ht2.mem_nhds ht3), (image_subset _ ht1).trans hs2, ?_⟩
+  refine ⟨(λ w => (w, Λ.FF z.1 z w)) '' t, image_mem_map (ht2.mem_nhds ht3), (image_subset _ ht1).trans hs2, ?_⟩
   intro a ha
   have l1 : t ∩ val ⁻¹' Λ.S a.1 ∈ 𝓝 a.1 := by
     apply Filter.inter_mem
@@ -193,10 +166,13 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
   have key : Λ.map z.1 (w, z.2) = Λ.map a.1 (w, a.2) := by
     refine eqOn_map hU l5.isPreconnected l3 ?_ ?_ ?_ hw
     · simp [mem_map_iff, l4, image_eq_of_mem_map ha, and_self, LocalPrimitiveOn.map]
+      simp [LocalPrimitiveOn.FF]
       sorry
     · exact image_subset _ (l2.trans (inter_subset_left _ _ |>.trans ht1)) |>.trans hs3
     · simpa only [image_subset_iff] using λ _ hx => (inter_subset_right _ _ (l2 hx))
-  exact hs2 <| key ▸ mem_image_of_mem _ (ht1 (l2 hw).1)
+  apply hs2
+  simp
+  exact ⟨w, w.2, ht1 (l2 hw).1, key⟩
 
 lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹' {z}) := by
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_mkOfNhds, nhds_induced, p]
@@ -229,13 +205,13 @@ theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
     simp at hx
     simp [LocalPrimitiveOn.L]
     rw [mem_prod]
-    simp [hx]
+    simp [hx, LocalPrimitiveOn.map]
 
 theorem toto_1 (hU : IsOpen U) (hx : x ∈ (T_LocalEquiv Λ z).source) :
     (T_LocalEquiv Λ z).source ∈ 𝓝 x :=
   isOpen_source Λ hU z |>.mem_nhds hx
 
-example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1).toFun z := by
+example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1) z := by
   intro s hs
   simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, mem_nhds_prod_iff, LocalPrimitiveOn.L] at hs
   obtain ⟨u, hu, v, hv, huv⟩ := hs
@@ -248,7 +224,8 @@ example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1).toFun z := by
   intro z' hz
   have := mem_of_mem_nhds hv
   simp [LocalPrimitiveOn.π, LocalPrimitiveOn.Φ, p] at this
-  simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π, LocalPrimitiveOn.Φ, LocalPrimitiveOn.L, hz]
+  simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
+    LocalPrimitiveOn.Φ, LocalPrimitiveOn.L, LocalPrimitiveOn.map, LocalPrimitiveOn.FF, hz]
   exact this
 
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
