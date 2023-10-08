@@ -249,23 +249,6 @@ theorem toto_1 (hU : IsOpen U) (hx : x ∈ (T_LocalEquiv Λ z).source) :
     (T_LocalEquiv Λ z).source ∈ 𝓝 x :=
   isOpen_source Λ hU z |>.mem_nhds hx
 
-example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1) z := by
-  intro s hs
-  simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, mem_nhds_prod_iff, LocalPrimitiveOn.L] at hs
-  obtain ⟨u, hu, v, hv, huv⟩ := hs
-  simp [nhds_induced] at hu
-  obtain ⟨u', hu', hu'2⟩ := hu
-  refine Filter.mem_of_superset ?_ huv
-  simp [nhds_eq_nhd hU, nhd, nhds_induced]
-  refine ⟨u', hu', ?_⟩
-  apply hu'2.trans
-  intro z' hz
-  have := mem_of_mem_nhds hv
-  simp [LocalPrimitiveOn.π, LocalPrimitiveOn.Φ, p] at this
-  simp [T_LocalEquiv, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
-    LocalPrimitiveOn.Φ, LocalPrimitiveOn.L, LocalPrimitiveOn.map, LocalPrimitiveOn.FF, hz]
-  exact this
-
 lemma toto10 (l : Filter α) (b : β) : s ∈ l ×ˢ pure b ↔ ∃ t ∈ l, t ×ˢ {b} ⊆ s := by
   simpa using exists_mem_subset_iff.symm
 
@@ -293,6 +276,18 @@ theorem toto9 (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEqu
   simp [LocalPrimitiveOn.FF] at hx ⊢
   exact hx
 
+theorem toto9' (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z).symm w := by
+  rw [ContinuousAt, Tendsto]
+  intro s hs
+  simp
+  rw [toto13 hU]
+  rw [nhds_eq_nhd hU, ← nhd_from_eq_nhd h] at hs
+  simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
+    LocalPrimitiveOn.Φ, mem_nhd_from] at hs ⊢
+  filter_upwards [hs] with x hx
+  simp [LocalPrimitiveOn.FF] at hx ⊢
+  exact hx
+
 theorem toto8 (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z) (T_LocalEquiv Λ z).source := by
   rintro w h
   rw [continuousWithinAt_iff_continuousAt <| isOpen_source Λ hU z |>.mem_nhds h]
@@ -302,15 +297,20 @@ theorem toto8 (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z) (T_LocalEquiv �
   simp at h
   apply toto9 hU h
 
+theorem toto8' (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z).symm (T_LocalEquiv Λ z).target := by
+  rintro w h
+  rw [continuousWithinAt_iff_continuousAt <| isOpen_target |>.mem_nhds h]
+  simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
+    LocalPrimitiveOn.Φ] at h
+  apply toto9' hU h
+
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
   toLocalEquiv := T_LocalEquiv Λ z
   open_source := isOpen_source Λ hU z
-  open_target := by
-    simp [T_LocalEquiv, LocalPrimitiveOn.L]
-    exact IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
+  open_target := isOpen_target
   continuous_toFun := toto8 hU
-  continuous_invFun := sorry
+  continuous_invFun := toto8' hU
 
 def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ ⁻¹' {z}) (p Λ) where
   toLocalHomeomorph := T_LocalHomeomorph Λ hU z
