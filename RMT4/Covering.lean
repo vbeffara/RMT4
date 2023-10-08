@@ -88,6 +88,9 @@ instance : TopologicalSpace (holo_covering Λ) := TopologicalSpace.mkOfNhds nhd
 lemma mem_nhd_1 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF z.1 z u⟩ ∈ s :=
   by rfl
 
+lemma mem_nhd_from {z : holo_covering Λ} : s ∈ nhd_from x z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF x z u⟩ ∈ s :=
+  by rfl
+
 lemma mem_nhd_2 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, (Λ.Φ z.1).symm (u, z.2) ∈ s :=
   mem_nhd_1
 
@@ -159,7 +162,7 @@ lemma titi1 (ha : z.1 ∈ Λ.S a) (hb : z.1 ∈ Λ'.S b) : ∀ᶠ u in 𝓝 z.1,
   have l6 : ∀ x ∈ t, HasDerivAt (Λ'.FF b z) (f x) x := λ x hx => Λ'.FF_deriv (ht1 hx).2
   apply ht4.isPreconnected.apply_eq_of_hasDeriv_eq ht2 ht3 l5 l6 (by simp)
 
-lemma crucial {z : holo_covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from x z = nhd z := by
+lemma nhd_from_eq_nhd {z : holo_covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from x z = nhd z := by
   rw [nhd, nhd_from, nhds_induced]
   apply Filter.map_congr
   simp [EventuallyEq]
@@ -200,7 +203,7 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
     refine eqOn_map hU l5.isPreconnected l3 ?_ ?_ ?_ hw
     · simp [mem_map_iff, l4, image_eq_of_mem_map ha, and_self, LocalPrimitiveOn.map]
       simp [LocalPrimitiveOn.FF]
-      sorry
+      aesop
     · exact image_subset _ (l2.trans (inter_subset_left _ _ |>.trans ht1)) |>.trans hs3
     · simpa only [image_subset_iff] using λ _ hx => (inter_subset_right _ _ (l2 hx))
   apply hs2
@@ -282,13 +285,13 @@ lemma toto13 (hU : IsOpen U) {w : U × p Λ ⁻¹' {z}} : s ∈ 𝓝 w ↔ ∀�
 theorem toto9 (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z) w := by
   rw [ContinuousAt, Tendsto]
   intro s hs
-  simp [nhds_eq_nhd hU, mem_nhd_1]
   rw [toto13 hU] at hs
+  rw [nhds_eq_nhd hU, ← nhd_from_eq_nhd h]
   simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
-    LocalPrimitiveOn.Φ] at hs ⊢
+    LocalPrimitiveOn.Φ, mem_nhd_from] at hs ⊢
   filter_upwards [hs] with x hx
-  convert hx
-  all_goals { sorry }
+  simp [LocalPrimitiveOn.FF] at hx ⊢
+  exact hx
 
 theorem toto8 (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z) (T_LocalEquiv Λ z).source := by
   rintro w h
