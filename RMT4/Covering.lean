@@ -13,7 +13,7 @@ TODO:
 
 open Topology Filter Metric TopologicalSpace Set Subtype
 
-variable {U : Set ℂ} {f : ℂ → ℂ} {Λ : LocalPrimitiveOn U f}
+variable {U : Set ℂ} {f : ℂ → ℂ} {Λ Λ' : LocalPrimitiveOn U f}
 
 def holo_covering (_ : LocalPrimitiveOn U f) := U × ℂ
 
@@ -75,8 +75,13 @@ end LocalPrimitiveOn
 
 namespace holo_covering
 
+@[simp] lemma T_fst : (T_LocalEquiv Λ z w).1 = w.1 := rfl
+
 def nhd (z : holo_covering Λ) : Filter (holo_covering Λ) :=
   Filter.map (λ w => (w, Λ.FF z.1 z w)) (𝓝 z.1)
+
+def nhd_from (x : U) (z : holo_covering Λ) : Filter (holo_covering Λ) :=
+  Filter.map (λ w => (w, Λ.FF x z w)) (𝓝 z.1)
 
 instance : TopologicalSpace (holo_covering Λ) := TopologicalSpace.mkOfNhds nhd
 
@@ -86,10 +91,20 @@ lemma mem_nhd_1 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, �
 lemma mem_nhd_2 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, (Λ.Φ z.1).symm (u, z.2) ∈ s :=
   mem_nhd_1
 
-lemma mem_nhd {z : holo_covering Λ} : s ∈ nhd z ↔ ∃ t ∈ 𝓝 z.1, (λ w => ⟨w, Λ.FF z.1 z w⟩) '' t ⊆ s := by
+lemma mem_nhd {z : holo_covering Λ} :
+    s ∈ nhd z ↔ ∃ t ∈ 𝓝 z.1, (λ w => ⟨w, Λ.FF z.1 z w⟩) '' t ⊆ s := by
   simpa [mem_nhd_1] using eventually_iff_exists_mem
 
+theorem toto6 : ∀ᶠ x in 𝓝 ↑z, x ∈ Λ.S z := isOpen_iff_eventually.1 (Λ.opn z) ↑z (Λ.mem z)
+
+lemma toto7 : val ⁻¹' Λ.S z ∈ 𝓝 z := by simpa only [nhds_induced] using ⟨_, Λ.nhd z, by rfl⟩
+
+lemma toto5 : ∀ᶠ x in 𝓝 z, ↑x ∈ Λ.S z := by
+  simp only [nhds_induced, eventually_comap]
+  filter_upwards [toto6] with x hx a ha using ha ▸ hx
+
 lemma mem_nhd' (h : s ∈ nhd z) : ∃ t ∈ 𝓝 z.1, val '' t ⊆ Λ.S z.1 ∧ (Λ.map z.1 ⟨·, z.2⟩) '' t ⊆ s := by
+  -- change ∀ᶠ w in 𝓝 z.1, ↑w ∈ Λ.S z.1 ∧ (Λ.map z.1 ⟨w, z.2⟩) ∈ s
   obtain ⟨t, l1, l2⟩ := mem_nhd.1 h
   refine ⟨t ∩ val ⁻¹' Λ.S z.1, ?_, ?_, ?_⟩
   · exact Filter.inter_mem l1 <| IsOpen.mem_nhds (isOpen_induced (Λ.opn z.1)) <| Λ.mem z.1
@@ -133,6 +148,24 @@ lemma eqOn_FF {x y : holo_covering Λ} {s : Set ℂ} (hs' : IsPreconnected s)
     EqOn (Λ.FF x.1 y) (Λ.FF y.1 y) s :=
   λ _ hws => eqOn_F hs hs' hsx hsy hys hws
 
+lemma titi1 (ha : z.1 ∈ Λ.S a) (hb : z.1 ∈ Λ'.S b) : ∀ᶠ u in 𝓝 z.1, Λ.FF a z u = Λ'.FF b z u := by
+  let s := Λ.S a ∩ Λ'.S b
+  have l1 : IsOpen s := (Λ.opn a).inter (Λ'.opn b)
+  have l2 : s ∈ 𝓝 z.1.1 := l1.mem_nhds ⟨ha, hb⟩
+  have l3 : LocallyConnectedSpace ℂ := by infer_instance
+  obtain ⟨t, ht1, ht2, ht3, ht4⟩ := locallyConnectedSpace_iff_open_connected_subsets.1 l3 z.1 s l2
+  apply eventually_of_mem (ht2.mem_nhds ht3)
+  have l5 : ∀ x ∈ t, HasDerivAt (Λ.FF a z) (f x) x := λ x hx => Λ.FF_deriv (ht1 hx).1
+  have l6 : ∀ x ∈ t, HasDerivAt (Λ'.FF b z) (f x) x := λ x hx => Λ'.FF_deriv (ht1 hx).2
+  apply ht4.isPreconnected.apply_eq_of_hasDeriv_eq ht2 ht3 l5 l6 (by simp)
+
+lemma crucial {z : holo_covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from x z = nhd z := by
+  rw [nhd, nhd_from, nhds_induced]
+  apply Filter.map_congr
+  simp [EventuallyEq]
+  filter_upwards [titi1 h (Λ.mem z.1)] with w h1 w' h2 h3
+  simp [h3, h1]
+
 lemma eqOn_map (hU : IsOpen U) {s : Set U} (hs : IsPreconnected s) (hs2 : IsOpen s)
     {x y : holo_covering Λ} (hy : y ∈ (Λ.map x.1 ⟨·, x.2⟩) '' s) (hs3 : val '' s ⊆ Λ.S x.1)
     (hs4 : val '' s ⊆ Λ.S y.1) : EqOn (Λ.map x.1 ⟨·, x.2⟩) (Λ.map y.1 ⟨·, y.2⟩) s := by
@@ -174,20 +207,18 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
   simp
   exact ⟨w, w.2, ht1 (l2 hw).1, key⟩
 
-lemma discreteTopology (hU : IsOpen U) (z : U) : DiscreteTopology ↑(p Λ ⁻¹' {z}) := by
-  simp [discreteTopology_iff_singleton_mem_nhds, nhds_mkOfNhds, nhds_induced, p]
-  rintro ⟨z, u⟩ rfl
-  rw [nhds_mkOfNhds _ _ pure_le_nhd (nhd_is_nhd hU)]
-  refine ⟨(Λ.map z ⟨·, u⟩) '' (val ⁻¹' (Λ.S z)), ?_, ?_⟩
-  · apply image_mem_map
-    simpa only [nhds_induced] using ⟨_, Λ.nhd z, by rfl⟩
-  · simp only [mem_map_iff]
-    rintro ⟨a₁, a₂⟩ rfl ⟨_, h2⟩
-    simp at h2
-    simp [h2]
-
 lemma nhds_eq_nhd (hU : IsOpen U) (z : holo_covering Λ) : 𝓝 z = nhd z :=
   nhds_mkOfNhds nhd z pure_le_nhd (nhd_is_nhd hU)
+
+lemma discreteTopology (hU : IsOpen U) : DiscreteTopology (p Λ ⁻¹' {z}) := by
+  simp [discreteTopology_iff_singleton_mem_nhds, nhds_induced]
+  rintro ⟨z, u⟩ rfl
+  rw [nhds_eq_nhd hU]
+  refine ⟨(Λ.map z ⟨·, u⟩) '' (val ⁻¹' (Λ.S z)), image_mem_map toto7, ?_⟩
+  simp only [mem_map_iff]
+  rintro ⟨a₁, a₂⟩ rfl ⟨_, h2⟩
+  simp at h2
+  simp [h2]
 
 lemma nhds_iff_eventually (hU : IsOpen U) (z : holo_covering Λ) {s : Set (holo_covering Λ)} :
     s ∈ 𝓝 z ↔ ∀ᶠ x in 𝓝 z.1, Λ.map z.1 (x, z.2) ∈ s := by
@@ -206,6 +237,10 @@ theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
     simp [LocalPrimitiveOn.L]
     rw [mem_prod]
     simp [hx, LocalPrimitiveOn.map]
+
+theorem isOpen_target : IsOpen (T_LocalEquiv Λ z).target := by
+  simp [T_LocalEquiv, LocalPrimitiveOn.L]
+  exact IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
 
 theorem toto_1 (hU : IsOpen U) (hx : x ∈ (T_LocalEquiv Λ z).source) :
     (T_LocalEquiv Λ z).source ∈ 𝓝 x :=
@@ -228,6 +263,42 @@ example (hU : IsOpen U) : ContinuousAt (T_LocalEquiv Λ z.1) z := by
     LocalPrimitiveOn.Φ, LocalPrimitiveOn.L, LocalPrimitiveOn.map, LocalPrimitiveOn.FF, hz]
   exact this
 
+lemma toto10 (l : Filter α) (b : β) : s ∈ l ×ˢ pure b ↔ ∃ t ∈ l, t ×ˢ {b} ⊆ s := by
+  simpa using exists_mem_subset_iff.symm
+
+lemma toto11 {s : Set (α × β)}: t ×ˢ {b} ⊆ s ↔ ∀ y ∈ t, (y, b) ∈ s where
+  mp h y hy := h ⟨hy, rfl⟩
+  mpr h := by rintro ⟨y, b'⟩ ⟨hy, rfl⟩ ; exact h y hy
+
+lemma toto12 [TopologicalSpace α] [TopologicalSpace β] [DiscreteTopology β] {s : Set (α × β)}
+  {w : α × β} : s ∈ 𝓝 w ↔ ∀ᶠ x in 𝓝 w.1, (x, w.2) ∈ s := by
+  rw [nhds_prod_eq, nhds_discrete β, toto10, eventually_iff_exists_mem]
+  simp only [toto11]
+
+lemma toto13 (hU : IsOpen U) {w : U × p Λ ⁻¹' {z}} : s ∈ 𝓝 w ↔ ∀ᶠ x in 𝓝 w.1, (x, w.2) ∈ s := by
+  have l1 : DiscreteTopology (p Λ ⁻¹' {z}) := discreteTopology hU
+  exact toto12
+
+theorem toto9 (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z) w := by
+  rw [ContinuousAt, Tendsto]
+  intro s hs
+  simp [nhds_eq_nhd hU, mem_nhd_1]
+  rw [toto13 hU] at hs
+  simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
+    LocalPrimitiveOn.Φ] at hs ⊢
+  filter_upwards [hs] with x hx
+  convert hx
+  all_goals { sorry }
+
+theorem toto8 (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z) (T_LocalEquiv Λ z).source := by
+  rintro w h
+  rw [continuousWithinAt_iff_continuousAt <| isOpen_source Λ hU z |>.mem_nhds h]
+  simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
+    LocalPrimitiveOn.Φ] at h
+  rw [mem_prod] at h
+  simp at h
+  apply toto9 hU h
+
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
   toLocalEquiv := T_LocalEquiv Λ z
@@ -235,7 +306,7 @@ def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
   open_target := by
     simp [T_LocalEquiv, LocalPrimitiveOn.L]
     exact IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
-  continuous_toFun := sorry
+  continuous_toFun := toto8 hU
   continuous_invFun := sorry
 
 def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ ⁻¹' {z}) (p Λ) where
@@ -247,6 +318,6 @@ def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ
   proj_toFun x _:= rfl
 
 theorem isCoveringMap (hU : IsOpen U) : IsCoveringMap (p Λ) :=
-  λ z => ⟨discreteTopology hU z, T Λ hU z, Λ.mem z⟩
+  λ z => ⟨discreteTopology hU, T Λ hU z, Λ.mem z⟩
 
 end holo_covering
