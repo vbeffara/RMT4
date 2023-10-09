@@ -3,12 +3,36 @@ import RMT4.pintegral
 import RMT4.LocallyConstant
 import RMT4.to_mathlib
 
-/-
-TODO:
-- use all the functions rather than the `Λ.F x` ?
--/
+set_option autoImplicit false
 
 open Topology Filter Metric TopologicalSpace Set Subtype
+
+structure Bunch (ι α β : Type) [TopologicalSpace α] where
+  F : ι → α → β
+  S : ι → Set α
+  -- opn : ∀ i, IsOpen (S i)
+  -- cov a b : ∃ i, F i a = b
+  cmp i j : IsOpen { a ∈ S i ∩ S j | F i a = F j a }
+
+namespace Bunch
+
+variable {ι α β : Type} [TopologicalSpace α] {B : Bunch ι α β} {i j : ι} {a : α}
+
+instance : CoeFun (Bunch ι α β) (λ _ => ι → α → β) := ⟨Bunch.F⟩
+
+def space (_ : Bunch ι α β) := α × β
+
+def nhd (B : Bunch ι α β) (i : ι) (a : α) : Filter B.space := Filter.map (λ x => (x, B i x)) (𝓝 a)
+
+lemma nhd_congr (h1 : a ∈ B.S i ∩ B.S j) (h2 : B i a = B j a) : B.nhd i a = B.nhd j a := by
+  apply Filter.map_congr
+  apply eventually_of_mem <| B.cmp i j |>.mem_nhds ⟨h1, h2⟩
+  rintro x ⟨_, hx2⟩
+  simp only [hx2]
+
+end Bunch
+
+set_option autoImplicit true
 
 variable {U : Set ℂ} {f : ℂ → ℂ} {Λ Λ' : LocalPrimitiveOn U f}
 
