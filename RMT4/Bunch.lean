@@ -23,11 +23,13 @@ lemma opn (B : Bunch ι α β) (i : ι) : IsOpen (B.S i) := by simpa using B.cmp
 
 def space (_ : Bunch ι α β) := α × β
 
-def idx (B : Bunch ι α β) (z : B.space) := { i | z.1 ∈ B.S i ∧ B i z.1 = z.2 }
+def idx (B : Bunch ι α β) (z : B.space) : Set ι := { i | z.1 ∈ B.S i ∧ B i z.1 = z.2 }
 
 def tile (B : Bunch ι α β) (i : ι) (s : Set α) : Set B.space := (λ x => (x, B i x)) '' s
 
 variable {B : Bunch ι α β} {s s₁ s₂ : Set B.space} {z : B.space}
+
+lemma S_mem_nhd (hi : i ∈ B.idx z) : B.S i ∈ 𝓝 z.1 := B.opn i |>.mem_nhds hi.1
 
 lemma tile_mono {s t : Set α} (h : s ⊆ t) : B.tile i s ⊆ B.tile i t := image_subset _ h
 
@@ -45,12 +47,10 @@ lemma tile_inter {s₁ s₂ : Set α} (hi₁ : i₁ ∈ B.idx z) (hi₂ : i₂ �
     ∃ s ∈ 𝓝 z.1, B.tile i s ⊆ B.tile i₁ s₁ ∩ B.tile i₂ s₂ := by
   suffices : ∀ᶠ b in 𝓝 z.1, (b, B i b) ∈ B.tile i₁ s₁ ∩ B.tile i₂ s₂
   · simpa only [eventually_iff_exists_mem, ← subset_iff_forall] using this
-  obtain ⟨hi₁, hi'₁⟩ := hi₁
-  obtain ⟨hi₂, hi'₂⟩ := hi₂
-  have l1 := eventuallyEq hi₁ hi.1 (hi'₁.trans hi.2.symm)
-  have l2 := eventuallyEq hi₂ hi.1 (hi'₂.trans hi.2.symm)
+  have l1 := eventuallyEq hi₁.1 hi.1 (hi₁.2.trans hi.2.symm)
+  have l2 := eventuallyEq hi₂.1 hi.1 (hi₂.2.trans hi.2.symm)
   filter_upwards [h₁, h₂, l1, l2] with b e1 e2 e3 e4
-  refine ⟨⟨b, e1, by simp only [e3]⟩, ⟨b, e2, by simp only [e4]⟩⟩
+  exact ⟨⟨b, e1, by simp only [e3]⟩, ⟨b, e2, by simp only [e4]⟩⟩
 
 def reaches (B : Bunch ι α β) (is : ι × Set α) (z : B.space) := is.1 ∈ B.idx z ∧ is.2 ∈ 𝓝 z.1
 
@@ -77,7 +77,7 @@ theorem eventually_apply_mem {f : α → β} {t : Set β} :
 theorem eventually_mem_iff_tile : (∀ᶠ b in 𝓝 a, (b, B j b) ∈ s) ↔ (∃ v ∈ 𝓝 a, tile B j v ⊆ s) := by
   simp [tile, ← eventually_apply_mem]
 
-lemma nhd_of_mem_tile {s : Set α} (hi : i ∈ B.idx z) (hs : s ∈ 𝓝 z.1) : B.tile i s ∈ nhd z := by
+lemma tile_mem_nhd {s : Set α} (hi : i ∈ B.idx z) (hs : s ∈ 𝓝 z.1) : B.tile i s ∈ nhd z := by
   simpa only [nhd, IsBasis.mem_filter_iff] using ⟨(i, s), ⟨hi, hs⟩, subset_rfl⟩
 
 lemma mem_nhd_open (h : s ∈ nhd z) : ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, IsOpen v ∧ B.tile i v ⊆ s := by
@@ -94,19 +94,17 @@ theorem nhd_is_nhd (a : space B) (s : Set (space B)) (hs : s ∈ nhd a) :
     ∃ t ∈ nhd a, t ⊆ s ∧ ∀ b ∈ t, s ∈ nhd b := by
   obtain ⟨i, hi1, s₀, hi2, hi3, hi4⟩ := mem_nhd_open hs
   refine ⟨B.tile i (s₀ ∩ B.S i), ?_, ?_, ?_⟩
-  · simp [mem_nhd] -- TODO separate out
-    refine ⟨i, hi1, _, ?_, subset_rfl⟩
-    apply Filter.inter_mem hi2
-    apply B.opn i |>.mem_nhds
-    exact hi1.1
+  · exact tile_mem_nhd hi1 <| inter_mem hi2 <| S_mem_nhd hi1
   · exact tile_mono (inter_subset_left _ _) |>.trans hi4
   · rintro b ⟨c, hb1, rfl⟩
     refine mem_of_superset ?_ hi4
-    refine nhd_of_mem_tile ⟨?_, rfl⟩ ?_
+    refine tile_mem_nhd ⟨?_, rfl⟩ ?_
     · exact inter_subset_right _ _ hb1
     · exact hi3.mem_nhds <| inter_subset_left _ _ hb1
 
+lemma nhds_eq_nhd : 𝓝 z = nhd z := nhds_mkOfNhds _ _ pure_le nhd_is_nhd
+
 lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i ∈ B.idx z, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s := by
-  simp [nhds_mkOfNhds _ _ pure_le nhd_is_nhd, mem_nhd, tile, idx, and_assoc, eventually_apply_mem]
+  simp [nhds_eq_nhd, mem_nhd, tile, idx, and_assoc, eventually_apply_mem]
 
 end Bunch
