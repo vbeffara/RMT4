@@ -17,7 +17,7 @@ namespace Bunch
 
 variable {ι α β : Type} [TopologicalSpace α] {B : Bunch ι α β} {i₁ i₂ i j : ι} {a : α}
 
-lemma opn : IsOpen (B.S i) := by simpa using B.cmp i i
+lemma opn (i : ι) : IsOpen (B.S i) := by simpa using B.cmp i i
 
 def space (_ : Bunch ι α β) := α × β
 
@@ -70,6 +70,19 @@ def nhd' (z : B.space) : Filter B.space := (isBasis z).filter
 lemma mem_nhd' : s ∈ nhd' z ↔ ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, B.tile i v ⊆ s := by
   simp only [nhd', (isBasis z).mem_filter_iff, reaches] ; aesop
 
+-- TODO iff ?
+lemma mem_nhd'_open : s ∈ nhd' z → ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, IsOpen v ∧ B.tile i v ⊆ s := by
+  intro h
+  have := mem_nhd'.1 h
+  obtain ⟨i, hi1, t, hi3, hi4⟩ := this
+  have := nhds_basis_opens' z.1
+  have := this.mem_iff.1 hi3
+  obtain ⟨s', ⟨h1, h2⟩, h3⟩ := this
+  refine ⟨i, hi1, s', h1, h2, ?_⟩
+  trans B.tile i t
+  · apply tile_mono h3
+  · exact hi4
+
 lemma mem_nhd_iff : s ∈ nhd B i a ↔ ∀ᶠ x in 𝓝 a, (x, B i x) ∈ s := by rfl
 
 lemma mem_nhd_1 : s ∈ B.nhd i a ↔ ∃ t ∈ 𝓝 a, B.tile i t ⊆ s := by
@@ -98,21 +111,47 @@ theorem pure_le_nhd (z : B.space) : pure z ≤ nhd' z := by
   rw [hi1.2]
   rfl
 
-theorem nhd_is_nhd (h1 : z.1 ∈ B.S i) (h2 : s ∈ B.nhd i z.1) :
-  ∃ t ∈ B.nhd i z.1, t ⊆ s ∧ ∀ w ∈ t,
-    w.1 ∈ B.S i ∧ ∀ j, w.1 ∈ B.S j ∧ B j w.1 = B i w.1 → s ∈ B.nhd j w.1 := by
-  sorry
-
-theorem nhd_is_nhd' (ha : s ∈ B.nhd (B.cov z).choose z.1) :
-    ∃ t ∈ nhd B (B.cov z).choose z.1, t ⊆ s ∧ ∀ w ∈ t, s ∈ nhd B (B.cov w).choose w.fst := by
-  sorry
-
 theorem tata {f : α → β} {t : Set β} : (∀ᶠ x in 𝓝 a, f x ∈ t) ↔ (∃ s ∈ 𝓝 a, s ⊆ f ⁻¹' t) :=
   eventually_iff_exists_mem
+
+theorem toto : (∃ v ∈ 𝓝 a, tile B j v ⊆ s) ↔ (∀ᶠ b in 𝓝 a, (b, B j b) ∈ s) := by
+  simp [tile, ← tata]
+
+theorem nhd_is_nhd (a : space B) (s : Set (space B)) (hs : s ∈ nhd' a) :
+    ∃ t ∈ nhd' a, t ⊆ s ∧ ∀ b ∈ t, s ∈ nhd' b := by
+  obtain ⟨i, hi1, s₀, hi3, hi2, hi4⟩ := mem_nhd'_open hs
+  let s₁ := s₀ ∩ B.S i
+  refine ⟨B.tile i s₁, ?_, ?_, ?_⟩
+  · simp [mem_nhd'] -- TODO separate out
+    refine ⟨i, hi1, s₁, ?_, subset_rfl⟩
+    apply Filter.inter_mem hi3
+    apply B.opn i |>.mem_nhds
+    exact hi1.1
+  · trans B.tile i s₀
+    · apply tile_mono
+      apply inter_subset_left
+    · exact hi4
+  · rintro z ⟨b, hb1, rfl⟩
+    simp
+    rw [mem_nhd']
+    simp
+    have := B.cov (b, B i b)
+    obtain ⟨j, hj⟩ := this
+    refine ⟨j, hj, ?_⟩
+    rw [toto]
+    have : b ∈ S B i := by aesop
+    have l1 := @eventuallyEq ι α β _ B i j b this hj.1 hj.2.symm
+    have l2 : ∀ᶠ c in 𝓝 b, (c, B i c) ∈ s := by
+      have l3 : s₀ ∈ 𝓝 b := by
+        apply hi2.mem_nhds
+        exact inter_subset_left _ _ hb1
+      rw [← toto]
+      refine ⟨s₀, l3, hi4⟩
+    filter_upwards [l1, l2] with c e1 e2 using e1 ▸ e2
 
 lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i, z.1 ∈ B.S i ∧ B i z.1 = z.2 ∧ ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s := by
   rw [nhds_mkOfNhds _ _ pure_le_nhd, mem_nhd']
   · simp [tile, idx, and_assoc, tata]
-  sorry
+  exact nhd_is_nhd
 
 end Bunch
