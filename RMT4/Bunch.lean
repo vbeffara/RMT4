@@ -107,9 +107,12 @@ theorem nhd_is_nhd' (ha : s ∈ B.nhd (B.cov z).choose z.1) :
     ∃ t ∈ nhd B (B.cov z).choose z.1, t ⊆ s ∧ ∀ w ∈ t, s ∈ nhd B (B.cov w).choose w.fst := by
   sorry
 
-lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s := by
-  rw [nhds_mkOfNhds _ _ pure_le_nhd]
-  · sorry
-  · sorry
+theorem tata {f : α → β} {t : Set β} : (∀ᶠ x in 𝓝 a, f x ∈ t) ↔ (∃ s ∈ 𝓝 a, s ⊆ f ⁻¹' t) :=
+  eventually_iff_exists_mem
+
+lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i, z.1 ∈ B.S i ∧ B i z.1 = z.2 ∧ ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s := by
+  rw [nhds_mkOfNhds _ _ pure_le_nhd, mem_nhd']
+  · simp [tile, idx, and_assoc, tata]
+  sorry
 
 end Bunch
