@@ -1,13 +1,10 @@
 import Mathlib
-import RMT4.pintegral
-import RMT4.LocallyConstant
-import RMT4.to_mathlib
 
 set_option autoImplicit false
 
 open Topology Filter Metric TopologicalSpace Set Subtype
 
-variable {ι α β : Type} [TopologicalSpace α] {i₁ i₂ i j : ι} {a : α} {s t : Set α}
+variable {ι α β : Type} [TopologicalSpace α] {i₁ i₂ i j : ι} {a : α} {b : β} {s t : Set α}
 
 structure Bunch (ι α β : Type) [TopologicalSpace α] where
   F : ι → α → β
@@ -68,7 +65,7 @@ def nhd (z : B.space) : Filter B.space := (isBasis z).filter
 instance : TopologicalSpace B.space := TopologicalSpace.mkOfNhds nhd
 
 lemma mem_nhd : s ∈ nhd z ↔ ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, B.tile i v ⊆ s := by
-  simp only [nhd, (isBasis z).mem_filter_iff, reaches] ; aesop
+  simp [nhd, (isBasis z).mem_filter_iff, reaches, and_assoc]
 
 theorem eventually_apply_mem {f : α → β} {t : Set β} :
     (∀ᶠ x in 𝓝 a, f x ∈ t) ↔ (∃ s ∈ 𝓝 a, s ⊆ f ⁻¹' t) :=
@@ -104,7 +101,33 @@ theorem nhd_is_nhd (a : space B) (s : Set (space B)) (hs : s ∈ nhd a) :
 
 lemma nhds_eq_nhd : 𝓝 z = nhd z := nhds_mkOfNhds _ _ pure_le nhd_is_nhd
 
-lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i ∈ B.idx z, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s := by
-  simp [nhds_eq_nhd, mem_nhd, tile, idx, and_assoc, eventually_apply_mem]
+lemma mem_nhds_tfae : List.TFAE [
+      s ∈ 𝓝 z,
+      s ∈ nhd z,
+      ∃ i ∈ B.idx z, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s,
+      ∃ i ∈ B.idx z, ∃ t ∈ 𝓝 z.1, B.tile i t ⊆ s
+    ] := by
+  tfae_have 1 ↔ 2 ; simp [nhds_eq_nhd]
+  tfae_have 2 ↔ 4 ; exact mem_nhd
+  tfae_have 3 ↔ 4 ; simp [eventually_mem_iff_tile]
+  tfae_finish
+
+lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i ∈ B.idx z, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s :=
+  mem_nhds_tfae.out 0 2
+
+def p (B : Bunch ι α β) (z : B.space) : α := z.1
+
+lemma discreteTopology : DiscreteTopology (B.p ⁻¹' {a}) := by
+  simp [discreteTopology_iff_singleton_mem_nhds, nhds_induced]
+  rintro ⟨z₁, z₂⟩ rfl
+  dsimp [p]
+  obtain ⟨i, h1, h2⟩ := B.cov (z₁, z₂)
+  have h3 := S_mem_nhd ⟨h1, h2⟩
+  refine ⟨B.tile i <| B.S i, ?_, ?_⟩
+  · rw [nhds_eq_nhd]
+    exact tile_mem_nhd ⟨h1, h2⟩ h3
+  · rintro ⟨x₁, x₂⟩ rfl ⟨u, _, hu2⟩
+    obtain ⟨rfl, rfl⟩ := Prod.ext_iff.1 hu2
+    simp_all only
 
 end Bunch
