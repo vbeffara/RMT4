@@ -18,12 +18,17 @@ lemma isConst_nhds_of_hasDerivAt (h : ∀ᶠ w in 𝓝 z, HasDerivAt f 0 w) : �
     rw [l4] ; ext1 ; simp
   exact (convex_ball z r).is_const_of_fderivWithin_eq_zero l1 l2 hw (mem_ball_self hr)
 
-lemma eventuallyEq_of_hasDeriv (h1 : ∀ᶠ w in 𝓝 z, HasDerivAt F1 (f w) w)
+lemma eventuallyEq_of_hasDeriv' (h1 : ∀ᶠ w in 𝓝 z, HasDerivAt F1 (f w) w)
     (h2 : ∀ᶠ w in 𝓝 z, HasDerivAt F2 (f w) w) : ∀ᶠ w in 𝓝 z, F2 w - F2 z = F1 w - F1 z := by
   have : ∀ᶠ w in 𝓝 z, HasDerivAt (F2 - F1) 0 w := by
     filter_upwards [h1, h2] with w h1 h2 ; simpa using h2.sub h1
   filter_upwards [isConst_nhds_of_hasDerivAt this] with w h
   simpa [sub_eq_sub_iff_sub_eq_sub] using h
+
+lemma eventuallyEq_of_hasDeriv (h1 : ∀ᶠ w in 𝓝 z, HasDerivAt F1 (f w) w)
+    (h2 : ∀ᶠ w in 𝓝 z, HasDerivAt F2 (f w) w) (h3 : F1 z = F2 z) : ∀ᶠ w in 𝓝 z, F2 w = F1 w := by
+  filter_upwards [eventuallyEq_of_hasDeriv' h1 h2] with a ha
+  simpa [h3, sub_left_inj] using ha
 
 lemma isLocallyConstant_of_deriv_eq_zero (hU : IsOpen U) (h : DifferentiableOn 𝕜 f U)
     (hf : U.EqOn (deriv f) 0) :

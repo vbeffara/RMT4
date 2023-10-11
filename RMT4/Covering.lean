@@ -8,10 +8,6 @@ open Topology Filter Metric TopologicalSpace Set Subtype
 
 variable {U : Set ℂ} {f : ℂ → ℂ} {Λ Λ' : LocalPrimitiveOn U f}
 
-def holo_covering (_ : LocalPrimitiveOn U f) := U × ℂ
-
-abbrev p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
-
 namespace LocalPrimitiveOn
 
 /-- The shift of `Λ.F z` going through a -/
@@ -21,13 +17,30 @@ def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : ℂ) : ℂ := Λ.
 
 @[simp] lemma FF_self' : LocalPrimitiveOn.FF Λ z w w.1 = w.2 := FF_self
 
-def LocalPrimitiveOn.toBunch (Λ : LocalPrimitiveOn U f) : Bunch (U × ℂ) U ℂ where
+lemma FF_deriv (hw : w ∈ Λ.S z) : HasDerivAt (Λ.FF z a) (f w) w := Λ.der z w hw |>.add_const _
+
+theorem isOpen_FF_eq (Λ : LocalPrimitiveOn U f) (i j : U × ℂ) :
+    IsOpen { z : U | z ∈ val ⁻¹' S Λ i.1 ∩ val ⁻¹' S Λ j.1 ∧ Λ.FF i.1 i ↑z = Λ.FF j.1 j ↑z } := by
+  simp only [isOpen_iff_nhds, mem_setOf_eq, nhds_induced, le_principal_iff, mem_comap,
+    preimage_subset_iff, Subtype.forall, and_imp]
+  rintro z _ ⟨h1, h2⟩ h3
+  have l1 : ∀ᶠ w in 𝓝 z, HasDerivAt (FF Λ i.1 i) (f w) w :=
+    eventually_of_mem (Λ.opn i.1 |>.mem_nhds h1) (λ w => FF_deriv)
+  have l2 : ∀ᶠ w in 𝓝 z, HasDerivAt (FF Λ j.1 j) (f w) w :=
+    eventually_of_mem (Λ.opn j.1 |>.mem_nhds h2) (λ w => FF_deriv)
+  have l4 := @eventuallyEq_of_hasDeriv ℂ _ f z (Λ.FF i.1 i) (Λ.FF j.1 j) l1 l2 h3
+  have l5 := inter_mem (inter_mem l4 (Λ.opn i.1 |>.mem_nhds h1)) (Λ.opn j.1 |>.mem_nhds h2)
+  exact ⟨_, l5, λ w _ h => ⟨⟨h.1.2, h.2⟩, h.1.1.symm⟩⟩
+
+def toBunch (Λ : LocalPrimitiveOn U f) : Bunch (U × ℂ) U ℂ where
   F i w := Λ.FF i.1 i w
   S i := val ⁻¹' Λ.S i.1
   cov z := ⟨z, Λ.mem z.1, FF_self⟩
-  cmp i j := sorry
+  cmp := Λ.isOpen_FF_eq
 
-lemma FF_deriv (hw : w ∈ Λ.S z) : HasDerivAt (Λ.FF z a) (f w) w := Λ.der z w hw |>.add_const _
+def _root_.holo_covering (Λ : LocalPrimitiveOn U f) := Λ.toBunch.space
+
+abbrev _root_.p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
 
 def map (Λ : LocalPrimitiveOn U f) (z : U) (w : U × ℂ) : holo_covering Λ := (w.1, Λ.FF z (z, w.2) w.1)
 
@@ -70,6 +83,18 @@ namespace holo_covering
 
 def nhd (z : holo_covering Λ) : Filter (holo_covering Λ) :=
   Filter.map (λ w => (w, Λ.FF z.1 z w)) (𝓝 z.1)
+
+-- example (s : Set (holo_covering Λ)): s ∈ nhd z ↔ s ∈ 𝓝 z := by
+--   simp [nhd, mem_map, Bunch.nhds_eq_nhd, Bunch.mem_nhd, Bunch.tile, LocalPrimitiveOn.toBunch,
+--     Bunch.idx]
+--   rw [← exists_mem_subset_iff]
+--   constructor
+--   · rintro ⟨t, h1, h2⟩
+--     refine ⟨z.1, z.1.2, z.2, ⟨Λ.mem z.1, by simp⟩, t, h1, h2⟩
+--   · rintro ⟨a, ha, b, ⟨h1, h2⟩, t, h3, hhh⟩
+--     simp [LocalPrimitiveOn.FF] at h2 hhh ⊢
+--     refine ⟨t, h3, ?_⟩
+--     sorry
 
 def nhd_from (x : U) (z : holo_covering Λ) : Filter (holo_covering Λ) :=
   Filter.map (λ w => (w, Λ.FF x z w)) (𝓝 z.1)

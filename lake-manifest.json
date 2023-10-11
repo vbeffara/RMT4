@@ -4,7 +4,7 @@
  [{"git":
    {"url": "https://github.com/leanprover-community/mathlib4.git",
     "subDir?": null,
-    "rev": "911cd305d405023471e81fc89a0cc8a4978361ff",
+    "rev": "b39fc2a80f96ffe50b3b8eae0f820de0f21d776f",
     "opts": {},
     "name": "mathlib",
     "inputRev?": null,
@@ -12,19 +12,11 @@
   {"git":
    {"url": "https://github.com/leanprover/doc-gen4",
     "subDir?": null,
-    "rev": "649e7791fa2e6864bf624aea0c03308598123ec3",
+    "rev": "f9d987567129f422ebd8cfac6a1e6233a06c720b",
     "opts": {},
     "name": "«doc-gen4»",
     "inputRev?": "main",
     "inherited": false}},
-  {"git":
-   {"url": "https://github.com/leanprover/std4",
-    "subDir?": null,
-    "rev": "f2df4ab8c0726fce3bafb73a5727336b0c3120ea",
-    "opts": {},
-    "name": "std",
-    "inputRev?": "main",
-    "inherited": true}},
   {"git":
    {"url": "https://github.com/gebner/quote4",
     "subDir?": null,
@@ -56,6 +48,14 @@
     "opts": {},
     "name": "proofwidgets",
     "inputRev?": "v0.0.18",
+    "inherited": true}},
+  {"git":
+   {"url": "https://github.com/leanprover/std4",
+    "subDir?": null,
+    "rev": "a093d7a6ac721071d8ba3774b0318063928cd3e2",
+    "opts": {},
+    "name": "std",
+    "inputRev?": "main",
     "inherited": true}},
   {"git":
    {"url": "https://github.com/xubaiw/CMark.lean",

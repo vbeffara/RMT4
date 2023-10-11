@@ -125,8 +125,4 @@ lemma discreteTopology : DiscreteTopology (B.p ⁻¹' {a}) := by
   · simpa only [nhds_eq_nhd] using tile_mem_nhd ⟨h1, rfl⟩ <| S_mem_nhd ⟨h1, rfl⟩
   · rintro x rfl ⟨u, _, rfl⟩ ; rfl
 
-theorem isCoveringMap : IsCoveringMap (B.p) := by
-  refine λ a => ⟨discreteTopology, ?_, ?_⟩
-  sorry
-  sorry
 end Bunch
