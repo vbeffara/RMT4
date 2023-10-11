@@ -120,14 +120,13 @@ def p (B : Bunch ι α β) (z : B.space) : α := z.1
 lemma discreteTopology : DiscreteTopology (B.p ⁻¹' {a}) := by
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_induced]
   rintro ⟨z₁, z₂⟩ rfl
-  dsimp [p]
-  obtain ⟨i, h1, h2⟩ := B.cov (z₁, z₂)
-  have h3 := S_mem_nhd ⟨h1, h2⟩
+  obtain ⟨i, h1, rfl : B i z₁ = z₂⟩ := B.cov (z₁, z₂)
   refine ⟨B.tile i <| B.S i, ?_, ?_⟩
-  · rw [nhds_eq_nhd]
-    exact tile_mem_nhd ⟨h1, h2⟩ h3
-  · rintro ⟨x₁, x₂⟩ rfl ⟨u, _, hu2⟩
-    obtain ⟨rfl, rfl⟩ := Prod.ext_iff.1 hu2
-    simp_all only
+  · simpa only [nhds_eq_nhd] using tile_mem_nhd ⟨h1, rfl⟩ <| S_mem_nhd ⟨h1, rfl⟩
+  · rintro x rfl ⟨u, _, rfl⟩ ; rfl
 
+theorem isCoveringMap : IsCoveringMap (B.p) := by
+  refine λ a => ⟨discreteTopology, ?_, ?_⟩
+  sorry
+  sorry
 end Bunch

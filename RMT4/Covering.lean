@@ -2,6 +2,7 @@ import Mathlib
 import RMT4.pintegral
 import RMT4.LocallyConstant
 import RMT4.to_mathlib
+import RMT4.Bunch
 
 open Topology Filter Metric TopologicalSpace Set Subtype
 
@@ -19,6 +20,12 @@ def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : ℂ) : ℂ := Λ.
 @[simp] lemma FF_self : LocalPrimitiveOn.FF Λ z (w, u) w = u := by simp [FF]
 
 @[simp] lemma FF_self' : LocalPrimitiveOn.FF Λ z w w.1 = w.2 := FF_self
+
+def LocalPrimitiveOn.toBunch (Λ : LocalPrimitiveOn U f) : Bunch (U × ℂ) U ℂ where
+  F i w := Λ.FF i.1 i w
+  S i := val ⁻¹' Λ.S i.1
+  cov z := ⟨z, Λ.mem z.1, FF_self⟩
+  cmp i j := sorry
 
 lemma FF_deriv (hw : w ∈ Λ.S z) : HasDerivAt (Λ.FF z a) (f w) w := Λ.der z w hw |>.add_const _
 
