@@ -7,16 +7,13 @@ open Topology Filter Metric TopologicalSpace Set Subtype
 variable {ι α β : Type} [TopologicalSpace α] {i₁ i₂ i j : ι} {a : α} {b : β} {s t : Set α}
 
 structure Bunch (ι α β : Type) [TopologicalSpace α] where
-  F : ι → α → β
   S : ι → Set α
-  cov (z : α × β) : Nonempty {i | z.1 ∈ S i ∧ F i z.1 = z.2}
+  F : ι → α → β
   cmp i j : IsOpen { a ∈ S i ∩ S j | F i a = F j a }
 
 instance : CoeFun (Bunch ι α β) (λ _ => ι → α → β) := ⟨Bunch.F⟩
 
 namespace Bunch
-
-lemma opn (B : Bunch ι α β) (i : ι) : IsOpen (B.S i) := by simpa using B.cmp i i
 
 def space (_ : Bunch ι α β) := α × β
 
@@ -27,6 +24,8 @@ def tile (B : Bunch ι α β) (i : ι) (s : Set α) : Set B.space := (λ x => (x
 def range (B : Bunch ι α β) : Set (B.space) := { z | Nonempty (B.idx z) }
 
 def reaches (B : Bunch ι α β) (is : ι × Set α) (z : B.space) := is.1 ∈ B.idx z ∧ is.2 ∈ 𝓝 z.1
+
+lemma opn (B : Bunch ι α β) (i : ι) : IsOpen (B.S i) := by simpa using B.cmp i i
 
 variable {B : Bunch ι α β} {s s₁ s₂ : Set B.space} {z : B.space}
 
@@ -40,7 +39,8 @@ lemma tile_congr {s : Set α} (h : EqOn (B i) (B j) s) : B.tile i s = B.tile j s
 lemma subset_iff_forall (a : Set α) (b : Set β) (f : α → β) : f '' a ⊆ b ↔ ∀ x ∈ a, f x ∈ b := by
   rw [image_subset_iff] ; rfl
 
-lemma eventuallyEq (hi : a ∈ B.S i) (hj : a ∈ B.S j) (h : B i a = B j a) : ∀ᶠ b in 𝓝 a, B i b = B j b :=
+lemma eventuallyEq (hi : a ∈ B.S i) (hj : a ∈ B.S j) (h : B i a = B j a) :
+    ∀ᶠ b in 𝓝 a, B i b = B j b :=
   (eventually_and.1 <| (B.cmp i j).mem_nhds ⟨⟨hi, hj⟩, h⟩).2
 
 lemma tile_inter {s₁ s₂ : Set α} (hi₁ : i₁ ∈ B.idx z) (hi₂ : i₂ ∈ B.idx z) (hi : i ∈ B.idx z)
@@ -63,58 +63,70 @@ lemma isBasis (hz : z ∈ B.range) :
     obtain ⟨s, hs1, hs2⟩ := tile_inter hi1 hj1 hi1 hi2 hj2
     refine ⟨⟨i.1, s⟩, ⟨⟨hi1, hs1⟩, hs2⟩⟩
 
-def nhd (z : B.space) : Filter B.space := (isBasis (B.cov z)).filter
-
-def nhd' (z : B.space) : Filter B.space := open Classical in
+def nhd (z : B.space) : Filter B.space := open Classical in
   if h : Nonempty (B.idx z) then (isBasis h).filter else pure z
 
 instance : TopologicalSpace B.space := TopologicalSpace.mkOfNhds nhd
 
-lemma mem_nhd : s ∈ nhd z ↔ ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, B.tile i v ⊆ s := by
-  simp [nhd, (isBasis (B.cov z)).mem_filter_iff, reaches, and_assoc]
+lemma mem_nhd (h : Nonempty (B.idx z)) :
+    s ∈ nhd z ↔ ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, B.tile i v ⊆ s := by
+  simp only [nhd, h, dite_true]
+  simp [(isBasis h).mem_filter_iff, reaches, and_assoc]
 
 theorem eventually_apply_mem {f : α → β} {t : Set β} :
     (∀ᶠ x in 𝓝 a, f x ∈ t) ↔ (∃ s ∈ 𝓝 a, s ⊆ f ⁻¹' t) :=
   eventually_iff_exists_mem
 
-theorem eventually_mem_iff_tile : (∀ᶠ b in 𝓝 a, (b, B j b) ∈ s) ↔ (∃ v ∈ 𝓝 a, tile B j v ⊆ s) := by
+theorem eventually_mem_iff_tile :
+    (∀ᶠ b in 𝓝 a, (b, B j b) ∈ s) ↔ (∃ v ∈ 𝓝 a, tile B j v ⊆ s) := by
   simp [tile, ← eventually_apply_mem]
 
 lemma tile_mem_nhd {s : Set α} (hi : i ∈ B.idx z) (hs : s ∈ 𝓝 z.1) : B.tile i s ∈ nhd z := by
-  simpa only [nhd, IsBasis.mem_filter_iff] using ⟨(i, s), ⟨hi, hs⟩, subset_rfl⟩
+  have : Nonempty (B.idx z) := ⟨_, hi⟩
+  simp only [nhd, this, dite_true]
+  simpa only [IsBasis.mem_filter_iff] using ⟨(i, s), ⟨hi, hs⟩, subset_rfl⟩
 
-lemma mem_nhd_open (h : s ∈ nhd z) : ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, IsOpen v ∧ B.tile i v ⊆ s := by
-  obtain ⟨i, hi1, t, hi3, hi4⟩ := mem_nhd.1 h
+lemma mem_nhd_open (hz : Nonempty (B.idx z)) (h : s ∈ nhd z) :
+    ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, IsOpen v ∧ B.tile i v ⊆ s := by
+  obtain ⟨i, hi1, t, hi3, hi4⟩ := (mem_nhd hz).1 h
   obtain ⟨s', ⟨h1, h2⟩, h3⟩ := nhds_basis_opens' z.1 |>.mem_iff.1 hi3
   exact ⟨i, hi1, s', h1, h2, tile_mono h3 |>.trans hi4⟩
 
 theorem pure_le (z : B.space) : pure z ≤ nhd z := by
-  intro s hs
-  obtain ⟨i, hi1, hi2, hi3, hi4⟩ := mem_nhd.1 hs
-  exact hi4 ⟨z.1, mem_of_mem_nhds hi3, by simp [hi1.2]⟩
+  by_cases h : Nonempty (B.idx z)
+  · intro s hs
+    obtain ⟨i, hi1, hi2, hi3, hi4⟩ := (mem_nhd h).1 hs
+    exact hi4 ⟨z.1, mem_of_mem_nhds hi3, by simp [hi1.2]⟩
+  · simp only [nhd, h, dite_false] ; rfl
 
 theorem nhd_is_nhd (a : space B) (s : Set (space B)) (hs : s ∈ nhd a) :
     ∃ t ∈ nhd a, t ⊆ s ∧ ∀ b ∈ t, s ∈ nhd b := by
-  obtain ⟨i, hi1, s₀, hi2, hi3, hi4⟩ := mem_nhd_open hs
-  refine ⟨B.tile i (s₀ ∩ B.S i), ?_, ?_, ?_⟩
-  · exact tile_mem_nhd hi1 <| inter_mem hi2 <| S_mem_nhd hi1
-  · exact tile_mono (inter_subset_left _ _) |>.trans hi4
-  · rintro b ⟨c, hb1, rfl⟩
-    refine mem_of_superset ?_ hi4
-    refine tile_mem_nhd ⟨?_, rfl⟩ ?_
-    · exact inter_subset_right _ _ hb1
-    · exact hi3.mem_nhds <| inter_subset_left _ _ hb1
+  by_cases h : Nonempty (B.idx a)
+  · obtain ⟨i, hi1, s₀, hi2, hi3, hi4⟩ := mem_nhd_open h hs
+    refine ⟨B.tile i (s₀ ∩ B.S i), ?_, ?_, ?_⟩
+    · exact tile_mem_nhd hi1 <| inter_mem hi2 <| S_mem_nhd hi1
+    · exact tile_mono (inter_subset_left _ _) |>.trans hi4
+    · rintro b ⟨c, hb1, rfl⟩
+      refine mem_of_superset ?_ hi4
+      refine tile_mem_nhd ⟨?_, rfl⟩ ?_
+      · exact inter_subset_right _ _ hb1
+      · exact hi3.mem_nhds <| inter_subset_left _ _ hb1
+  · have hs' := hs
+    simp only [nhd, h, dite_false, mem_pure] at hs'
+    refine ⟨{a}, ?_, by simp [hs'], ?_⟩
+    · simp only [nhd, h, dite_false] ; simp
+    · simp [hs]
 
 lemma nhds_eq_nhd : 𝓝 z = nhd z := nhds_mkOfNhds _ _ pure_le nhd_is_nhd
 
-lemma mem_nhds_tfae : List.TFAE [
+lemma mem_nhds_tfae (h : Nonempty (B.idx z)) : List.TFAE [
       s ∈ 𝓝 z,
       s ∈ nhd z,
       ∃ i ∈ B.idx z, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s,
       ∃ i ∈ B.idx z, ∃ t ∈ 𝓝 z.1, B.tile i t ⊆ s
     ] := by
   tfae_have 1 ↔ 2 ; simp [nhds_eq_nhd]
-  tfae_have 2 ↔ 4 ; exact mem_nhd
+  tfae_have 2 ↔ 4 ; exact mem_nhd h
   tfae_have 3 ↔ 4 ; simp [eventually_mem_iff_tile]
   tfae_finish
 
@@ -123,9 +135,12 @@ def p (B : Bunch ι α β) (z : B.space) : α := z.1
 lemma discreteTopology : DiscreteTopology (B.p ⁻¹' {a}) := by
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_induced]
   rintro ⟨z₁, z₂⟩ rfl
-  obtain ⟨i, h1, rfl : B i z₁ = z₂⟩ := B.cov (z₁, z₂)
-  refine ⟨B.tile i <| B.S i, ?_, ?_⟩
-  · simpa only [nhds_eq_nhd] using tile_mem_nhd ⟨h1, rfl⟩ <| S_mem_nhd ⟨h1, rfl⟩
-  · rintro x rfl ⟨u, _, rfl⟩ ; rfl
+  by_cases h : Nonempty (B.idx (z₁, z₂))
+  · obtain ⟨i, h1, rfl : B i z₁ = z₂⟩ := h
+    refine ⟨B.tile i <| B.S i, ?_, ?_⟩
+    · simpa only [nhds_eq_nhd] using tile_mem_nhd ⟨h1, rfl⟩ <| S_mem_nhd ⟨h1, rfl⟩
+    · rintro x rfl ⟨u, _, rfl⟩ ; rfl
+  · refine ⟨{(z₁, z₂)}, ?_, by simp⟩
+    simp only [nhds_eq_nhd, nhd, h, dite_false, mem_pure, mem_singleton]
 
 end Bunch

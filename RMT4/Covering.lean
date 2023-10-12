@@ -33,9 +33,8 @@ theorem isOpen_FF_eq (Λ : LocalPrimitiveOn U f) (i j : U × ℂ) :
   exact ⟨_, l5, λ w _ h => ⟨⟨h.1.2, h.2⟩, h.1.1.symm⟩⟩
 
 def toBunch (Λ : LocalPrimitiveOn U f) : Bunch (U × ℂ) U ℂ where
-  F i w := Λ.FF i.1 i w
   S i := val ⁻¹' Λ.S i.1
-  cov z := ⟨z, Λ.mem z.1, FF_self⟩
+  F i w := Λ.FF i.1 i w
   cmp := Λ.isOpen_FF_eq
 
 def _root_.holo_covering (Λ : LocalPrimitiveOn U f) := Λ.toBunch.space
