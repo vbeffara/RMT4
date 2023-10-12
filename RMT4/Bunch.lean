@@ -9,7 +9,7 @@ variable {ι α β : Type} [TopologicalSpace α] {i₁ i₂ i j : ι} {a : α} {
 structure Bunch (ι α β : Type) [TopologicalSpace α] where
   F : ι → α → β
   S : ι → Set α
-  cov (z : α × β) : ∃ i, z.1 ∈ S i ∧ F i z.1 = z.2
+  cov (z : α × β) : Nonempty {i | z.1 ∈ S i ∧ F i z.1 = z.2}
   cmp i j : IsOpen { a ∈ S i ∩ S j | F i a = F j a }
 
 instance : CoeFun (Bunch ι α β) (λ _ => ι → α → β) := ⟨Bunch.F⟩
@@ -23,6 +23,10 @@ def space (_ : Bunch ι α β) := α × β
 def idx (B : Bunch ι α β) (z : B.space) : Set ι := { i | z.1 ∈ B.S i ∧ B i z.1 = z.2 }
 
 def tile (B : Bunch ι α β) (i : ι) (s : Set α) : Set B.space := (λ x => (x, B i x)) '' s
+
+def range (B : Bunch ι α β) : Set (B.space) := { z | Nonempty (B.idx z) }
+
+def reaches (B : Bunch ι α β) (is : ι × Set α) (z : B.space) := is.1 ∈ B.idx z ∧ is.2 ∈ 𝓝 z.1
 
 variable {B : Bunch ι α β} {s s₁ s₂ : Set B.space} {z : B.space}
 
@@ -49,23 +53,25 @@ lemma tile_inter {s₁ s₂ : Set α} (hi₁ : i₁ ∈ B.idx z) (hi₂ : i₂ �
   filter_upwards [h₁, h₂, l1, l2] with b e1 e2 e3 e4
   exact ⟨⟨b, e1, by simp only [e3]⟩, ⟨b, e2, by simp only [e4]⟩⟩
 
-def reaches (B : Bunch ι α β) (is : ι × Set α) (z : B.space) := is.1 ∈ B.idx z ∧ is.2 ∈ 𝓝 z.1
-
-lemma isBasis (z : B.space) : IsBasis (λ is => B.reaches is z) (λ is => B.tile is.1 is.2) where
+lemma isBasis (hz : z ∈ B.range) :
+    IsBasis (λ is => B.reaches is z) (λ is => B.tile is.1 is.2) where
   nonempty := by
-    obtain ⟨i, hi⟩ := B.cov z
+    obtain ⟨i, hi⟩ := hz
     refine ⟨⟨i, univ⟩, hi, univ_mem⟩
   inter := by
     rintro i j ⟨hi1, hi2⟩ ⟨hj1, hj2⟩
     obtain ⟨s, hs1, hs2⟩ := tile_inter hi1 hj1 hi1 hi2 hj2
     refine ⟨⟨i.1, s⟩, ⟨⟨hi1, hs1⟩, hs2⟩⟩
 
-def nhd (z : B.space) : Filter B.space := (isBasis z).filter
+def nhd (z : B.space) : Filter B.space := (isBasis (B.cov z)).filter
+
+def nhd' (z : B.space) : Filter B.space := open Classical in
+  if h : Nonempty (B.idx z) then (isBasis h).filter else pure z
 
 instance : TopologicalSpace B.space := TopologicalSpace.mkOfNhds nhd
 
 lemma mem_nhd : s ∈ nhd z ↔ ∃ i ∈ B.idx z, ∃ v ∈ 𝓝 z.1, B.tile i v ⊆ s := by
-  simp [nhd, (isBasis z).mem_filter_iff, reaches, and_assoc]
+  simp [nhd, (isBasis (B.cov z)).mem_filter_iff, reaches, and_assoc]
 
 theorem eventually_apply_mem {f : α → β} {t : Set β} :
     (∀ᶠ x in 𝓝 a, f x ∈ t) ↔ (∃ s ∈ 𝓝 a, s ⊆ f ⁻¹' t) :=
@@ -111,9 +117,6 @@ lemma mem_nhds_tfae : List.TFAE [
   tfae_have 2 ↔ 4 ; exact mem_nhd
   tfae_have 3 ↔ 4 ; simp [eventually_mem_iff_tile]
   tfae_finish
-
-lemma mem_nhds_iff : s ∈ 𝓝 z ↔ ∃ i ∈ B.idx z, ∀ᶠ a in 𝓝 z.1, (a, B i a) ∈ s :=
-  mem_nhds_tfae.out 0 2
 
 def p (B : Bunch ι α β) (z : B.space) : α := z.1
 
