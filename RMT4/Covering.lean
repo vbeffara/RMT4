@@ -37,7 +37,7 @@ def toBunch (Λ : LocalPrimitiveOn U f) : Bunch (U × ℂ) U ℂ where
   F i w := Λ.FF i.1 i w
   cmp := Λ.isOpen_FF_eq
 
-def _root_.holo_covering (Λ : LocalPrimitiveOn U f) := Λ.toBunch.space
+abbrev _root_.holo_covering (Λ : LocalPrimitiveOn U f) := Λ.toBunch.space
 
 abbrev _root_.p (Λ : LocalPrimitiveOn U f) : holo_covering Λ → U := Prod.fst
 
@@ -87,8 +87,6 @@ set_option pp.proofs.withType false
 
 def nhd_from (x : U) (z : holo_covering Λ) : Filter (holo_covering Λ) :=
   Filter.map (λ w => (w, Λ.FF x z w)) (𝓝 z.1)
-
-instance : TopologicalSpace (holo_covering Λ) := TopologicalSpace.mkOfNhds nhd
 
 lemma mem_nhd_1 {z : holo_covering Λ} : s ∈ nhd z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF z.1 z u⟩ ∈ s :=
   by rfl
@@ -167,7 +165,7 @@ lemma nhd_from_eq_nhd {z : holo_covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from 
   filter_upwards [titi1 h (Λ.mem z.1)] with w h1 w' h2 h3
   simp [h3, h1]
 
-example : nhd = Λ.toBunch.nhd := by
+lemma nhd_eq_toBunch_nhd : nhd = Λ.toBunch.nhd := by
   ext ⟨a, b⟩ s
   have : Nonempty ↑(Bunch.idx (LocalPrimitiveOn.toBunch Λ) (a, b)) := by
     simp [LocalPrimitiveOn.toBunch, Bunch.idx, LocalPrimitiveOn.FF]
@@ -236,13 +234,13 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
   simp
   exact ⟨w, w.2, ht1 (l2 hw).1, key⟩
 
-lemma nhds_eq_nhd (hU : IsOpen U) (z : holo_covering Λ) : 𝓝 z = nhd z :=
-  nhds_mkOfNhds nhd z pure_le_nhd (nhd_is_nhd hU)
+lemma nhds_eq_nhd (z : holo_covering Λ) : 𝓝 z = nhd z := by
+  rw [nhd_eq_toBunch_nhd, Bunch.nhds_eq_nhd]
 
 lemma discreteTopology (hU : IsOpen U) : DiscreteTopology (p Λ ⁻¹' {z}) := by
   simp [discreteTopology_iff_singleton_mem_nhds, nhds_induced]
   rintro ⟨z, u⟩ rfl
-  rw [nhds_eq_nhd hU]
+  rw [nhds_eq_nhd]
   refine ⟨(Λ.map z ⟨·, u⟩) '' (val ⁻¹' (Λ.S z)), image_mem_map toto7, ?_⟩
   simp only [mem_map_iff]
   rintro ⟨a₁, a₂⟩ rfl ⟨_, h2⟩
@@ -255,7 +253,7 @@ theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
   intro ⟨a₁, a₂⟩ ha
   simp [LocalPrimitiveOn.L] at ha
   rw [mem_prod] at ha ; simp at ha
-  simp only [nhds_eq_nhd hU, nhd, nhds_induced, mem_map, mem_comap]
+  simp only [nhds_eq_nhd, nhd, nhds_induced, mem_map, mem_comap]
   refine ⟨Λ.S z, (Λ.opn z) |>.mem_nhds ha, ?_⟩
   exact λ x hx => by
     simp at hx
@@ -287,7 +285,7 @@ theorem toto9 (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEqu
   rw [ContinuousAt, Tendsto]
   intro s hs
   rw [toto13 hU] at hs
-  rw [nhds_eq_nhd hU, ← nhd_from_eq_nhd h]
+  rw [nhds_eq_nhd, ← nhd_from_eq_nhd h]
   simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
     LocalPrimitiveOn.Φ, mem_nhd_from] at hs ⊢
   filter_upwards [hs] with x hx
@@ -299,7 +297,7 @@ theorem toto9' (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEq
   intro s hs
   simp
   rw [toto13 hU]
-  rw [nhds_eq_nhd hU, ← nhd_from_eq_nhd h] at hs
+  rw [nhds_eq_nhd, ← nhd_from_eq_nhd h] at hs
   simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
     LocalPrimitiveOn.Φ, mem_nhd_from] at hs ⊢
   filter_upwards [hs] with x hx
