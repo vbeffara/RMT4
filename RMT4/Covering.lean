@@ -83,17 +83,7 @@ namespace holo_covering
 def nhd (z : holo_covering Λ) : Filter (holo_covering Λ) :=
   Filter.map (λ w => (w, Λ.FF z.1 z w)) (𝓝 z.1)
 
--- example (s : Set (holo_covering Λ)): s ∈ nhd z ↔ s ∈ 𝓝 z := by
---   simp [nhd, mem_map, Bunch.nhds_eq_nhd, Bunch.mem_nhd, Bunch.tile, LocalPrimitiveOn.toBunch,
---     Bunch.idx]
---   rw [← exists_mem_subset_iff]
---   constructor
---   · rintro ⟨t, h1, h2⟩
---     refine ⟨z.1, z.1.2, z.2, ⟨Λ.mem z.1, by simp⟩, t, h1, h2⟩
---   · rintro ⟨a, ha, b, ⟨h1, h2⟩, t, h3, hhh⟩
---     simp [LocalPrimitiveOn.FF] at h2 hhh ⊢
---     refine ⟨t, h3, ?_⟩
---     sorry
+set_option pp.proofs.withType false
 
 def nhd_from (x : U) (z : holo_covering Λ) : Filter (holo_covering Λ) :=
   Filter.map (λ w => (w, Λ.FF x z w)) (𝓝 z.1)
@@ -176,6 +166,34 @@ lemma nhd_from_eq_nhd {z : holo_covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from 
   simp [EventuallyEq]
   filter_upwards [titi1 h (Λ.mem z.1)] with w h1 w' h2 h3
   simp [h3, h1]
+
+example : nhd = Λ.toBunch.nhd := by
+  ext ⟨a, b⟩ s
+  have : Nonempty ↑(Bunch.idx (LocalPrimitiveOn.toBunch Λ) (a, b)) := by
+    simp [LocalPrimitiveOn.toBunch, Bunch.idx, LocalPrimitiveOn.FF]
+    refine ⟨a.1, a.prop, Λ.mem a, b, by ring⟩
+  constructor
+  · intro h
+    simp only [nhd, Bunch.nhd, this, dite_true, mem_map, Filter.IsBasis.mem_filter_iff]
+    simp only [Bunch.reaches, Bunch.idx]
+    simp only [LocalPrimitiveOn.toBunch]
+    refine ⟨⟨(a, b), _⟩, ⟨?_, h⟩, ?_⟩
+    · simpa using Λ.mem a
+    · simpa [Bunch.tile] using subset_rfl
+  · simp only [Bunch.nhd, this, dite_true, mem_map, Filter.IsBasis.mem_filter_iff]
+    simp only [Bunch.reaches, Bunch.idx]
+    simp only at *
+    rintro ⟨⟨z, t⟩, ⟨⟨h1, h2⟩, h3⟩, h4⟩
+    have : nhd_from (Λ := Λ) z.1 (a, b) = nhd (a, b) := by
+      apply nhd_from_eq_nhd
+      simpa [LocalPrimitiveOn.toBunch] using h1
+    simp only [← this, nhd_from, mem_map]
+    simp only [LocalPrimitiveOn.toBunch, Bunch.tile] at *
+    simp at h4
+    apply mem_of_superset h3
+    simp [LocalPrimitiveOn.FF] at h2
+    simp [LocalPrimitiveOn.FF, ← h2] at h4 ⊢
+    exact h4
 
 lemma eqOn_map (hU : IsOpen U) {s : Set U} (hs : IsPreconnected s) (hs2 : IsOpen s)
     {x y : holo_covering Λ} (hy : y ∈ (Λ.map x.1 ⟨·, x.2⟩) '' s) (hs3 : val '' s ⊆ Λ.S x.1)
