@@ -237,17 +237,9 @@ lemma nhd_is_nhd (hU : IsOpen U) (z : holo_covering Λ) :
 lemma nhds_eq_nhd (z : holo_covering Λ) : 𝓝 z = nhd z := by
   rw [nhd_eq_toBunch_nhd, Bunch.nhds_eq_nhd]
 
-lemma discreteTopology (hU : IsOpen U) : DiscreteTopology (p Λ ⁻¹' {z}) := by
-  simp [discreteTopology_iff_singleton_mem_nhds, nhds_induced]
-  rintro ⟨z, u⟩ rfl
-  rw [nhds_eq_nhd]
-  refine ⟨(Λ.map z ⟨·, u⟩) '' (val ⁻¹' (Λ.S z)), image_mem_map toto7, ?_⟩
-  simp only [mem_map_iff]
-  rintro ⟨a₁, a₂⟩ rfl ⟨_, h2⟩
-  simp at h2
-  simp [h2]
+lemma discreteTopology : DiscreteTopology (p Λ ⁻¹' {z}) := Bunch.discreteTopology
 
-theorem isOpen_source (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : ↑U) :
+theorem isOpen_source (Λ : LocalPrimitiveOn U f) (z : ↑U) :
     IsOpen (T_LocalEquiv Λ z).source := by
   simp only [isOpen_iff_eventually, T_LocalEquiv, eventually_mem_set]
   intro ⟨a₁, a₂⟩ ha
@@ -278,7 +270,7 @@ lemma toto12 [TopologicalSpace α] [TopologicalSpace β] [DiscreteTopology β] {
   simp only [toto11]
 
 lemma toto13 (hU : IsOpen U) {w : U × p Λ ⁻¹' {z}} : s ∈ 𝓝 w ↔ ∀ᶠ x in 𝓝 w.1, (x, w.2) ∈ s := by
-  have l1 : DiscreteTopology (p Λ ⁻¹' {z}) := discreteTopology hU
+  have l1 : DiscreteTopology (p Λ ⁻¹' {z}) := discreteTopology
   exact toto12
 
 theorem toto9 (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z) w := by
@@ -306,7 +298,7 @@ theorem toto9' (hU : IsOpen U) (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEq
 
 theorem toto8 (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z) (T_LocalEquiv Λ z).source := by
   rintro w h
-  rw [continuousWithinAt_iff_continuousAt <| isOpen_source Λ hU z |>.mem_nhds h]
+  rw [continuousWithinAt_iff_continuousAt <| isOpen_source Λ z |>.mem_nhds h]
   simp [T_LocalEquiv, LocalPrimitiveOn.L, LocalPrimitiveOn.Ψ, LocalPrimitiveOn.ψ, LocalPrimitiveOn.π,
     LocalPrimitiveOn.Φ] at h
   rw [mem_prod] at h
@@ -323,7 +315,7 @@ theorem toto8' (hU : IsOpen U) : ContinuousOn (T_LocalEquiv Λ z).symm (T_LocalE
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) :
     LocalHomeomorph (holo_covering Λ) (U × p Λ ⁻¹' {z}) where
   toLocalEquiv := T_LocalEquiv Λ z
-  open_source := isOpen_source Λ hU z
+  open_source := isOpen_source Λ z
   open_target := isOpen_target
   continuous_toFun := toto8 hU
   continuous_invFun := toto8' hU
@@ -337,6 +329,6 @@ def T (Λ : LocalPrimitiveOn U f) (hU : IsOpen U) (z : U) : Trivialization (p Λ
   proj_toFun x _:= rfl
 
 theorem isCoveringMap (hU : IsOpen U) : IsCoveringMap (p Λ) :=
-  λ z => ⟨discreteTopology hU, T Λ hU z, Λ.mem z⟩
+  λ z => ⟨discreteTopology, T Λ hU z, Λ.mem z⟩
 
 end holo_covering
