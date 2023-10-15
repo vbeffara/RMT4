@@ -78,13 +78,10 @@ lemma L_image : (L Λ z).IsImage ((val ⁻¹' Λ.S z) ×ˢ univ) ((val ⁻¹' Λ
 def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) : LocalEquiv (covering Λ) (U × Λ.p ⁻¹' {z}) :=
   L_image.restr
 
-@[simp] lemma T_fst : (T_LocalEquiv Λ z w).1 = w.1 := rfl
-
-def nhd (z : covering Λ) : Filter (covering Λ) :=
-  Filter.map (λ w => (w, Λ.FF z.1 z w)) (𝓝 z.1)
-
 def nhd_from (x : U) (z : covering Λ) : Filter (covering Λ) :=
   Filter.map (λ w => (w, Λ.FF x z w)) (𝓝 z.1)
+
+def nhd (z : covering Λ) : Filter (covering Λ) := nhd_from z.1 z
 
 lemma mem_nhd_from {z : covering Λ} : s ∈ nhd_from x z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF x z u⟩ ∈ s :=
   by rfl
@@ -109,7 +106,7 @@ lemma titi1 (ha : z.1 ∈ Λ.S a) (hb : z.1 ∈ Λ'.S b) : ∀ᶠ u in 𝓝 z.1,
   apply ht4.isPreconnected.apply_eq_of_hasDeriv_eq ht2 ht3 l5 l6 (by simp)
 
 lemma nhd_from_eq_nhd {z : covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from x z = nhd z := by
-  rw [nhd, nhd_from, nhds_induced]
+  rw [nhd_from, nhd, nhd_from, nhds_induced]
   apply Filter.map_congr
   simp [EventuallyEq]
   filter_upwards [titi1 h (Λ.mem z.1)] with w h1 w' h2 h3
@@ -141,7 +138,7 @@ theorem isOpen_source (Λ : LocalPrimitiveOn U f) (z : ↑U) :
   intro ⟨a₁, a₂⟩ ha
   simp [L] at ha
   rw [mem_prod] at ha ; simp at ha
-  simp only [nhds_eq_nhd, nhd, nhds_induced, mem_map, mem_comap]
+  simp only [nhds_eq_nhd, nhd, nhd_from, nhds_induced, mem_map, mem_comap]
   refine ⟨Λ.S z, (Λ.opn z) |>.mem_nhds ha, ?_⟩
   exact λ x hx => by
     simp at hx
