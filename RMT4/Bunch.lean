@@ -133,6 +133,9 @@ lemma mem_nhds_tfae (h : Nonempty (B.idx z)) : List.TFAE [
   tfae_have 3 ↔ 4 ; simp [eventually_mem_iff_tile]
   tfae_finish
 
+@[simp] lemma nhds_eq_pure (h : ¬ Nonempty (B.idx z)) : 𝓝 z = pure z := by
+  simp only [nhds_eq_nhd, nhd, h, dite_false]
+
 lemma tile_mem_nhd {s : Set α} (hi : i ∈ B.idx z) (hs : s ∈ 𝓝 z.1) : B.tile i s ∈ 𝓝 z := by
   simpa [nhds_eq_nhd] using tile_mem_nhd' hi hs
 
@@ -166,36 +169,49 @@ variable {ι α β γ : Type} [TopologicalSpace α] {B : Bunch ι α β}
 
 def IsLiftOf (g : γ → B.space) (f : γ → α) : Prop := Continuous g ∧ ∀ x, B.p (g x) = f x
 
-lemma toto1 {γ : Type} [TopologicalSpace γ] {f : γ → B.space} {x : γ} (hf : ContinuousAt f x)
-    {i : ι} (hi : i ∈ B.idx (f x)) : ∀ᶠ y in 𝓝 x, f y = ((f y).1, B.F i (f y).1) := by
+lemma eventually_mem_tile {γ : Type} [TopologicalSpace γ] {f : γ → B.space} {x : γ}
+    (hf : ContinuousAt f x) {i : ι} (hi : i ∈ B.idx (f x)) :
+    ∀ᶠ y in 𝓝 x, (f y).2 = B.F i (f y).1 := by
   refine eventually_of_mem (hf.preimage_mem_nhds <| B.tile_mem_nhd hi <| B.S_mem_nhd hi) ?_
   exact λ x hx => by simp [B.eq_of_mem_tile hx]
 
-theorem toto2 {γ : Type} [inst_1 : TopologicalSpace γ] {f : γ → α} {g₁ g₂ : γ → Bunch.space B}
-    (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f) {x : γ} (hx : g₁ x = g₂ x)
-    (h1 : Nonempty ↑(Bunch.idx B (g₁ x))) : ∀ᶠ (y : γ) in 𝓝 x, g₁ y = g₂ y := by
-  obtain ⟨i1, hi1⟩ := id h1
-  filter_upwards [toto1 (h₁.1.continuousAt) hi1, toto1 (h₂.1.continuousAt) (hx ▸ hi1)] with y r1 r2
+theorem eventually_eq_of_lift {γ : Type} [TopologicalSpace γ] {f : γ → α}
+    {g₁ g₂ : γ → Bunch.space B} (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f) {x : γ}
+    (hx : g₁ x = g₂ x) (h1 : Nonempty ↑(Bunch.idx B (g₁ x))) : g₁ =ᶠ[𝓝 x] g₂ := by
+  obtain ⟨i1, hi1⟩ := h1
+  filter_upwards [eventually_mem_tile (h₁.1.continuousAt) hi1,
+    eventually_mem_tile (h₂.1.continuousAt) (hx ▸ hi1)] with y r1 r2
   have r4 : (g₁ y).1 = f y := h₁.2 y
   have r5 : (g₂ y).1 = f y := h₂.2 y
-  rw [r1, r2, r4, r5]
+  rw [Prod.ext_iff]
+  simp [r1, r2, r4, r5]
+
+theorem eventually_eq_of_lift' {γ : Type} [TopologicalSpace γ] {f : γ → α} {x : γ}
+    {g₁ g₂ : γ → Bunch.space B} (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f) (hx : g₁ x = g₂ x) :
+    g₁ =ᶠ[𝓝 x] g₂ := by
+  by_cases h1 : Nonempty ↑(Bunch.idx B (g₁ x))
+  · obtain ⟨i1, hi1⟩ := h1
+    filter_upwards [eventually_mem_tile (h₁.1.continuousAt) hi1,
+      eventually_mem_tile (h₂.1.continuousAt) (hx ▸ hi1)] with y r1 r2
+    have r4 : (g₁ y).1 = f y := h₁.2 y
+    have r5 : (g₂ y).1 = f y := h₂.2 y
+    rw [Prod.ext_iff]
+    simp [r1, r2, r4, r5]
+  · have h2 := h₁.1.tendsto x
+    have h3 := h₂.1.tendsto x
+    simp only [Bunch.nhds_eq_pure, h1, hx ▸ h1, tendsto_pure] at h2 h3
+    filter_upwards [h2, h3] with y h4 h5
+    simp [hx, h4, h5]
+
+theorem isOpen_eq_of_lift {γ : Type} [TopologicalSpace γ] {f : γ → α} {g₁ g₂ : γ → Bunch.space B}
+    (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f) : IsOpen {x | g₁ x = g₂ x} := by
+  simpa only [isOpen_iff_eventually] using λ _ => eventually_eq_of_lift' h₁ h₂
 
 lemma lift_congr (f : γ → α) (g₁ g₂ : γ → B.space) (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f)
     {x₀ : γ} (h₀ : g₁ x₀ = g₂ x₀) : g₁ = g₂ := by
   let s : Set γ := { x | g₁ x = g₂ x }
-  suffices : s = univ
-  · exact funext (λ x => (this ▸ mem_univ x : x ∈ s))
-  have h1 : IsOpen s := by
-    rw [isOpen_iff_eventually]
-    intro x (hx : g₁ x = g₂ x)
-    by_cases h1 : Nonempty (B.idx (g₁ x))
-    · exact toto2 h₁ h₂ hx h1
-    · sorry -- This is wrong
-  have h2 : IsClosed s := sorry
-  have h3 : IsClopen s := ⟨h1, h2⟩
-  have h4 : s = univ := by
-    apply (isClopen_iff.1 h3).resolve_left
-    apply Nonempty.ne_empty
-    refine ⟨x₀, h₀⟩
-  assumption
+  have h2 : IsClosed s := by sorry
+  have h3 : IsClopen s := ⟨isOpen_eq_of_lift h₁ h₂, h2⟩
+  have h4 : s = univ := (isClopen_iff.1 h3).resolve_left <| Nonempty.ne_empty ⟨x₀, h₀⟩
+  exact funext (λ x => (h4 ▸ mem_univ x : x ∈ s))
 end lift
