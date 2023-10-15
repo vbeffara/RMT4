@@ -174,30 +174,11 @@ lemma toto1 {γ : Type} [TopologicalSpace γ] {f : γ → B.space} {x : γ} (hf 
 theorem toto2 {γ : Type} [inst_1 : TopologicalSpace γ] {f : γ → α} {g₁ g₂ : γ → Bunch.space B}
     (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f) {x : γ} (hx : g₁ x = g₂ x)
     (h1 : Nonempty ↑(Bunch.idx B (g₁ x))) : ∀ᶠ (y : γ) in 𝓝 x, g₁ y = g₂ y := by
-  have h2 := hx ▸ h1
   obtain ⟨i1, hi1⟩ := id h1
-  have l1 := B.S_mem_nhd hi1
-  have l2 := B.tile_mem_nhd hi1 l1
-  have e1 := mem_of_mem_nhds l1
-  obtain ⟨i2, hi2⟩ := id h2
-  have l'1 := B.S_mem_nhd hi2
-  have l'2 := B.tile_mem_nhd hi2 l'1
-  have e'1 := mem_of_mem_nhds l'1
-  have l3 := toto1 (h₁.1.continuousAt (x := x)) hi1
-  have l4 := toto1 (h₂.1.continuousAt (x := x)) hi2
-  rw [← hx] at e'1
-  have : Bunch.F B i1 (g₁ x).fst = Bunch.F B i2 (g₁ x).fst := by
-    rw [B.eq_of_mem_tile (mem_of_mem_nhds l2)]
-    rw [hx]
-    rw [B.eq_of_mem_tile (mem_of_mem_nhds l'2)]
-  have := @Bunch.eventuallyEq ι α β _ i1 i2 (g₁ x).1 B e1 e'1 this
-  have : ∀ᶠ b in 𝓝 x, Bunch.F B i1 (g₁ b).1 = Bunch.F B i2 (g₁ b).1 :=
-    this.filter_mono (Bunch.continuous_p.comp h₁.1).continuousAt.tendsto
-  filter_upwards [l3, l4, this] with y r1 r2 r3
+  filter_upwards [toto1 (h₁.1.continuousAt) hi1, toto1 (h₂.1.continuousAt) (hx ▸ hi1)] with y r1 r2
   have r4 : (g₁ y).1 = f y := h₁.2 y
   have r5 : (g₂ y).1 = f y := h₂.2 y
-  rw [r4] at r3
-  rw [r1, r2, r4, r5, r3]
+  rw [r1, r2, r4, r5]
 
 lemma lift_congr (f : γ → α) (g₁ g₂ : γ → B.space) (h₁ : IsLiftOf g₁ f) (h₂ : IsLiftOf g₂ f)
     {x₀ : γ} (h₀ : g₁ x₀ = g₂ x₀) : g₁ = g₂ := by
