@@ -7,7 +7,7 @@ set_option pp.proofs.withType false
 open Set Topology
 
 variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : Icc (0:ℝ) 1 → X}
-  {A : E} {s t : Icc (0:ℝ) 1}
+  {A : E} {s t t₁ t₂ : Icc (0:ℝ) 1}
 
 instance : PreconnectedSpace (Icc (0:ℝ) 1) :=
   isPreconnected_iff_preconnectedSpace.1 isPreconnected_Icc
@@ -19,20 +19,24 @@ lemma Icct_subset {s t : Icc 0 1} (h : s ∈ Icct t) : Icct s ⊆ Icct t :=
 
 @[simp] lemma Icct_one : Icct 1 = univ := by ext x ; simpa [Icct] using x.prop.2
 
-def goods (f : E → X) (γ : Icc (0:ℝ) 1 → X) (A : E) : Set (Icc (0:ℝ) 1) :=
-  { t | ∃ Γ : Icc (0:ℝ) 1 → E, ContinuousOn Γ (Icct t) ∧ Γ 0 = A ∧ ∀ s ≤ t, f (Γ s) = γ s }
+def good (f : E → X) (γ : Icc (0:ℝ) 1 → X) (A : E) (t : Icc (0:ℝ) 1) : Prop :=
+  ∃ Γ : Icc (0:ℝ) 1 → E, ContinuousOn Γ (Icct t) ∧ Γ 0 = A ∧ ∀ s ≤ t, f (Γ s) = γ s
 
-lemma goods_nonempty (hγ : γ 0 = f A) : Set.Nonempty (goods f γ A) := by
-  refine ⟨0, λ _ => A, continuousOn_const, rfl, ?_⟩
+lemma good_zero (hγ : γ 0 = f A) : good f γ A 0 := by
+  refine ⟨λ _ => A, continuousOn_const, rfl, ?_⟩
   rintro ⟨s, h1, h2⟩ (h3 : s ≤ 0)
   simp [le_antisymm h3 h1, hγ]
 
-lemma goods_directed {t : Icc 0 1} (ht : t ∈ goods f γ A) : Icct t ⊆ goods f γ A := by
-  obtain ⟨Γ, h1, h2, h3⟩ := ht
-  intro s hs
-  refine ⟨Γ, ?_, h2, ?_⟩
-  · exact ContinuousOn.mono h1 <| Icct_subset hs
-  · intro s' hs' ; exact h3 s' (hs'.trans hs)
+lemma good_mono (h12 : t₁ ≤ t₂) (h2 : good f γ A t₂) : good f γ A t₁ := by
+  obtain ⟨Γ, h1, h2, h3⟩ := h2
+  exact ⟨Γ, ContinuousOn.mono h1 <| Icct_subset h12, h2, λ s' hs' => h3 s' (hs'.trans h12)⟩
+
+def goods (f : E → X) (γ : Icc (0:ℝ) 1 → X) (A : E) : Set (Icc (0:ℝ) 1) := { t | good f γ A t }
+
+lemma goods_nonempty (hγ : γ 0 = f A) : Set.Nonempty (goods f γ A) := ⟨0, good_zero hγ⟩
+
+lemma goods_directed {t : Icc 0 1} (ht : t ∈ goods f γ A) : Icct t ⊆ goods f γ A :=
+  λ _ hs => good_mono hs ht
 
 lemma goods_extendable (hf : IsCoveringMap f) (hγ : Continuous γ) (ht : t ∈ goods f γ A)
     (ht' : t < 1) (hh : 0 < t) : ∃ t' : Icc 0 1, t < t' ∧ t' ∈ goods f γ A := by
