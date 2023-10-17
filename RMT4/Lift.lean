@@ -34,8 +34,8 @@ lemma goods_directed {t : Icc 0 1} (ht : t ∈ goods f γ A) : Icct t ⊆ goods 
   · exact ContinuousOn.mono h1 <| Icct_subset hs
   · intro s' hs' ; exact h3 s' (hs'.trans hs)
 
-lemma goods_extendable (hf : IsCoveringMap f) (hγ : Continuous γ) {t : Icc 0 1}
-    (ht : t ∈ goods f γ A) (ht' : t < 1) (hh : 0 < t) : ∃ t' : Icc 0 1, t < t' ∧ t' ∈ goods f γ A := by
+lemma goods_extendable (hf : IsCoveringMap f) (hγ : Continuous γ) (ht : t ∈ goods f γ A)
+    (ht' : t < 1) (hh : 0 < t) : ∃ t' : Icc 0 1, t < t' ∧ t' ∈ goods f γ A := by
   obtain ⟨Γ, h1, h2, h3⟩ := id ht
   let B := Γ t
   let b := γ t
@@ -53,7 +53,47 @@ lemma goods_extendable (hf : IsCoveringMap f) (hγ : Continuous γ) {t : Icc 0 1
   obtain ⟨t', hi4, hi5⟩ := l10
   refine ⟨t', hi4, ?_⟩
   · refine ⟨Δ, ?_, ?_, ?_⟩
-    · sorry
+    · apply ContinuousOn.if
+      · intro a ⟨ha1, ha2⟩
+        have : frontier {a | a ≤ t} ⊆ {t} := by
+          apply frontier_le_subset_eq continuous_id continuous_const
+        have := this ha2
+        simp at this
+        subst a
+        simp
+        have := h3 t le_rfl
+        have k1 : Γ t ∈ T.source := by
+          simp [T.source_eq, this]
+          have := mem_of_mem_nhds l4
+          exact this
+        have k2 := T.proj_toFun _ k1
+        have k3 := T.left_inv' k1
+        simp only [← this, ← k2]
+        symm
+        convert k3
+      · have : closure {a | a ≤ t} = {a | a ≤ t} := by
+          apply closure_le_eq continuous_id continuous_const
+        apply h1.mono
+        simp [Icct, this]
+      · have : ContinuousOn δ (γ ⁻¹' T.baseSet) := by
+          apply T.continuous_invFun.comp
+          · apply Continuous.continuousOn
+            simp [hγ, continuous_const]
+          · simp [T.target_eq]
+            intro u hu
+            simp [hu]
+            exact hu
+        apply this.mono
+        refine subset_trans ?_ hi3
+        have : closure {a | t < a} ⊆ {a | t ≤ a} := by
+          apply closure_lt_subset_le continuous_const continuous_id
+        simp [this, Icct]
+        intro u ⟨e1, e2⟩
+        specialize this e2
+        simp at *
+        constructor
+        · exact hi1.trans_le this
+        · exact e1.trans_lt hi5
     · have : 0 ≤ t := t.2.1
       simp [this, h2]
     · intro v hv
