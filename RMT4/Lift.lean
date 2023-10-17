@@ -36,86 +36,64 @@ lemma goods_directed {t : Icc 0 1} (ht : t ∈ goods f γ A) : Icct t ⊆ goods 
 
 lemma goods_extendable (hf : IsCoveringMap f) (hγ : Continuous γ) (ht : t ∈ goods f γ A)
     (ht' : t < 1) (hh : 0 < t) : ∃ t' : Icc 0 1, t < t' ∧ t' ∈ goods f γ A := by
-  obtain ⟨Γ, h1, h2, h3⟩ := id ht
-  let B := Γ t
-  let b := γ t
-  have l1 : f B = b := h3 t le_rfl
-  have l3 := hf b
-  obtain ⟨l4, T, l5⟩ := l3
-  let z := T B
-  let δ (s : Icc (0:ℝ) 1) : E := T.invFun (γ s, (T B).2)
-  let Δ (s : Icc (0:ℝ) 1) : E := if s ≤ t then Γ s else δ s
-  let β := T.baseSet
-  have l2 : β ∈ 𝓝 b := T.open_baseSet.mem_nhds l5
-  have l4 : γ ⁻¹' β ∈ 𝓝 t := ContinuousAt.preimage_mem_nhds hγ.continuousAt l2
+  obtain ⟨Γ, h1, h2, h3⟩ := ht
+  obtain ⟨_, T, l5⟩ := hf (γ t)
+  have l1 : f (Γ t) = γ t := h3 t le_rfl
+  have l2 : T.baseSet ∈ 𝓝 (γ t) := T.open_baseSet.mem_nhds l5
+  have l4 : γ ⁻¹' T.baseSet ∈ 𝓝 t := ContinuousAt.preimage_mem_nhds hγ.continuousAt l2
   obtain ⟨⟨t1,t2⟩, ⟨hi1, hi2⟩, hi3⟩ := nhds_basis_Ioo' ⟨_, hh⟩ ⟨_, ht'⟩ |>.mem_iff.1 l4
   have l10 : Set.Nonempty (Ioo t t2) := nonempty_Ioo.2 hi2
   obtain ⟨t', hi4, hi5⟩ := l10
-  refine ⟨t', hi4, ?_⟩
-  · refine ⟨Δ, ?_, ?_, ?_⟩
-    · apply ContinuousOn.if
-      · intro a ⟨ha1, ha2⟩
-        have : frontier {a | a ≤ t} ⊆ {t} := by
-          apply frontier_le_subset_eq continuous_id continuous_const
-        have := this ha2
-        simp at this
-        subst a
-        simp
-        have := h3 t le_rfl
-        have k1 : Γ t ∈ T.source := by
-          simp [T.source_eq, this]
-          have := mem_of_mem_nhds l4
-          exact this
-        have k2 := T.proj_toFun _ k1
-        have k3 := T.left_inv' k1
-        simp only [← this, ← k2]
-        symm
-        convert k3
-      · have : closure {a | a ≤ t} = {a | a ≤ t} := by
-          apply closure_le_eq continuous_id continuous_const
-        apply h1.mono
-        simp [Icct, this]
-      · have : ContinuousOn δ (γ ⁻¹' T.baseSet) := by
-          apply T.continuous_invFun.comp
-          · apply Continuous.continuousOn
-            simp [hγ, continuous_const]
-          · simp [T.target_eq]
-            intro u hu
-            simp [hu]
-            exact hu
-        apply this.mono
-        refine subset_trans ?_ hi3
-        have : closure {a | t < a} ⊆ {a | t ≤ a} := by
-          apply closure_lt_subset_le continuous_const continuous_id
-        simp [this, Icct]
-        intro u ⟨e1, e2⟩
-        specialize this e2
-        simp at *
+  let δ (s : Icc (0:ℝ) 1) : E := T.invFun (γ s, (T (Γ t)).2)
+  let Δ (s : Icc (0:ℝ) 1) : E := if s ≤ t then Γ s else δ s
+  refine ⟨t', hi4, Δ, ?_, ?_, ?_⟩
+  · apply ContinuousOn.if
+    · intro a ⟨ha1, ha2⟩
+      have : frontier {a | a ≤ t} ⊆ {t} := frontier_le_subset_eq continuous_id continuous_const
+      have : a = t := by simpa using this ha2
+      subst a
+      have k1 : Γ t ∈ T.source := by simpa [T.source_eq, l1] using mem_of_mem_nhds l4
+      have k2 : (T (Γ t)).1 = f (Γ t) := T.proj_toFun _ k1
+      have k3 : T.invFun (T (Γ t)) = Γ t := T.left_inv' k1
+      simp_rw [← l1, ← k2, Prod.eta, k3]
+    · have : closure {a | a ≤ t} = {a | a ≤ t} := closure_le_eq continuous_id continuous_const
+      apply h1.mono
+      simp [Icct, this]
+    · have : ContinuousOn δ (γ ⁻¹' T.baseSet) := by
+        apply T.continuous_invFun.comp
+        · exact Continuous.continuousOn (by simp [hγ, continuous_const])
+        · intro u hu ; simpa [T.target_eq] using hu
+      apply this.mono
+      refine subset_trans ?_ hi3
+      have : closure {a | t < a} ⊆ {a | t ≤ a} := by
+        apply closure_lt_subset_le continuous_const continuous_id
+      simp [this, Icct]
+      intro u ⟨e1, e2⟩
+      specialize this e2
+      simp at *
+      constructor
+      · exact hi1.trans_le this
+      · exact e1.trans_lt hi5
+  · have : 0 ≤ t := t.2.1 ; simp [this, h2]
+  · intro v hv
+    by_cases l6 : v ≤ t
+    · simp [l6, h3]
+    · simp only [l6, ite_false]
+      have l23 : γ v ∈ T.baseSet := by
+        apply hi3
         constructor
-        · exact hi1.trans_le this
-        · exact e1.trans_lt hi5
-    · have : 0 ≤ t := t.2.1
-      simp [this, h2]
-    · intro v hv
-      by_cases l6 : v ≤ t
-      · simp [l6, h3]
-      · simp only [l6, ite_false]
-        change f (T.invFun (γ v, (T (Γ t)).snd)) = γ v
-        have l23 : γ v ∈ T.baseSet := by
-          apply hi3
-          constructor
-          · simp at l6
-            trans t
-            exact hi1
-            exact l6
-          · apply hv.trans_lt hi5
-        rw [← T.proj_toFun]
-        · have l7 : (γ v, (T (Γ t)).snd) ∈ T.target := by simp [T.target_eq, l23]
-          have := T.right_inv' l7
-          simp at this ⊢
-          simp [this]
-        · apply T.map_target'
-          simp [T.target_eq, l23]
+        · simp at l6
+          trans t
+          exact hi1
+          exact l6
+        · apply hv.trans_lt hi5
+      rw [← T.proj_toFun]
+      · have l7 : (γ v, (T (Γ t)).snd) ∈ T.target := by simp [T.target_eq, l23]
+        have := T.right_inv' l7
+        simp at this ⊢
+        simp [this]
+      · apply T.map_target'
+        simp [T.target_eq, l23]
 
 lemma goods_open (hf : IsCoveringMap f) : IsOpen (goods f γ A) := by
   rw [isOpen_iff_mem_nhds]
