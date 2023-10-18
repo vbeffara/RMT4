@@ -1,28 +1,21 @@
 import Mathlib.Analysis.Convex.Normed
 import Mathlib.Analysis.Convex.Segment
 import Mathlib.Topology.Covering
-import Mathlib.Topology.PathConnected
 
 set_option autoImplicit false
 set_option pp.proofs.withType false
 
-open Set Topology Metric
+open Set Topology Metric unitInterval
 
-variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : Icc (0:ℝ) 1 → X}
-  {A : E} {s t t₁ t₂ : Icc (0:ℝ) 1}
+variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : I → X} {A : E}
+  {s t t₁ t₂ : I}
 
-instance : PreconnectedSpace (Icc (0:ℝ) 1) :=
-  isPreconnected_iff_preconnectedSpace.1 isPreconnected_Icc
+lemma Icct_subset {s t : I} (h : s ∈ Iic t) : Iic s ⊆ Iic t := Iic_subset_Iic.mpr h
 
-def Icct (t : Icc (0:ℝ) 1) : Set (Icc (0:ℝ) 1) := { s | s ≤ t }
+@[simp] lemma Icct_one : Iic (1 : I) = univ := by ext x ; simpa [Iic] using x.prop.2
 
-lemma Icct_subset {s t : Icc 0 1} (h : s ∈ Icct t) : Icct s ⊆ Icct t :=
-  λ s' (hs' : s' ≤ s) => hs'.trans h
-
-@[simp] lemma Icct_one : Icct 1 = univ := by ext x ; simpa [Icct] using x.prop.2
-
-def good (f : E → X) (γ : Icc (0:ℝ) 1 → X) (A : E) (t : Icc (0:ℝ) 1) : Prop :=
-  ∃ Γ : Icc (0:ℝ) 1 → E, ContinuousOn Γ (Icct t) ∧ Γ 0 = A ∧ ∀ s ≤ t, f (Γ s) = γ s
+def good (f : E → X) (γ : I → X) (A : E) (t : I) : Prop :=
+  ∃ Γ : I → E, ContinuousOn Γ (Iic t) ∧ Γ 0 = A ∧ ∀ s ≤ t, f (Γ s) = γ s
 
 lemma good_zero (hγ : γ 0 = f A) : good f γ A 0 := by
   refine ⟨λ _ => A, continuousOn_const, rfl, ?_⟩
@@ -31,7 +24,7 @@ lemma good_zero (hγ : γ 0 = f A) : good f γ A 0 := by
 
 lemma good_mono (h2 : good f γ A t₂) (h12 : t₁ ≤ t₂) : good f γ A t₁ := by
   obtain ⟨Γ, h1, h2, h3⟩ := h2
-  exact ⟨Γ, ContinuousOn.mono h1 <| Icct_subset h12, h2, λ s' hs' => h3 s' (hs'.trans h12)⟩
+  refine ⟨Γ, ContinuousOn.mono h1 <| Icct_subset h12, h2, λ s' hs' => h3 s' (hs'.trans h12)⟩
 
 lemma good_extend (h1 : good f γ A t₁) {T : Trivialization (f ⁻¹' {γ t}) f}
     (h : MapsTo γ (uIcc t₁ t₂) T.baseSet) (hγ : Continuous γ) : good f γ A t₂ := by
@@ -41,8 +34,8 @@ lemma good_extend (h1 : good f γ A t₁) {T : Trivialization (f ⁻¹' {γ t}) 
   have l5 : γ t₁ ∈ T.baseSet  := h ⟨inf_le_left, le_sup_left⟩
   have l2 : T.baseSet ∈ 𝓝 (γ t₁) := T.open_baseSet.mem_nhds l5
   have l4 : γ ⁻¹' T.baseSet ∈ 𝓝 t₁ := ContinuousAt.preimage_mem_nhds hγ.continuousAt l2
-  let δ (s : Icc (0:ℝ) 1) : E := T.invFun (γ s, (T (Γ t₁)).2)
-  let Δ (s : Icc (0:ℝ) 1) : E := if s ≤ t₁ then Γ s else δ s
+  let δ (s : I) : E := T.invFun (γ s, (T (Γ t₁)).2)
+  let Δ (s : I) : E := if s ≤ t₁ then Γ s else δ s
   refine ⟨Δ, ?_, ?_, ?_⟩
   · apply ContinuousOn.if
     · intro a ⟨ha1, ha2⟩
@@ -55,7 +48,7 @@ lemma good_extend (h1 : good f γ A t₁) {T : Trivialization (f ⁻¹' {γ t}) 
       simp_rw [← l1, ← k2, Prod.eta, k3]
     · have : closure {a | a ≤ t₁} = {a | a ≤ t₁} := closure_le_eq continuous_id continuous_const
       apply h1.mono
-      simp [Icct, this]
+      simp [Iic, this]
     · have : ContinuousOn δ (γ ⁻¹' T.baseSet) := by
         apply T.continuous_invFun.comp
         · exact Continuous.continuousOn (by simp [hγ, continuous_const])
@@ -82,7 +75,7 @@ lemma good_extend (h1 : good f γ A t₁) {T : Trivialization (f ⁻¹' {γ t}) 
       simp at this ⊢
       simp [this]
 
-def goods (f : E → X) (γ : Icc (0:ℝ) 1 → X) (A : E) : Set (Icc (0:ℝ) 1) := { t | good f γ A t }
+def goods (f : E → X) (γ : I → X) (A : E) : Set I := { t | good f γ A t }
 
 lemma good_nhds (hf : IsCoveringMap f) (hγ : Continuous γ) (h : good f γ A t) :
     goods f γ A ∈ 𝓝 t := by
@@ -124,8 +117,8 @@ lemma goods_compl_open (hf : IsCoveringMap f) (hγ : Continuous γ) : IsOpen (go
   simpa only [isOpen_iff_mem_nhds] using λ a ha => good_compl_nhds hf hγ ha
 
 theorem lift (hf : IsCoveringMap f) (hγ : Continuous γ) (hγ0 : γ 0 = f A) :
-    ∃ Γ : Icc (0:ℝ) 1 → E, Continuous Γ ∧ Γ 0 = A ∧ ∀ t, f (Γ t) = γ t := by
-  let s : Set (Icc (0:ℝ) 1) := goods f γ A
+    ∃ Γ : I → E, Continuous Γ ∧ Γ 0 = A ∧ ∀ t, f (Γ t) = γ t := by
+  let s : Set I := goods f γ A
   suffices goods f γ A = univ by
     obtain ⟨Γ, h1, h2, h3⟩ := this.symm ▸ mem_univ 1
     refine ⟨Γ, ?_, h2, λ s => h3 s s.2.2⟩
