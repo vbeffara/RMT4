@@ -61,15 +61,13 @@ lemma good_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc 
     · refine h1.mono <| (inter_subset_right _ _).trans (?_ : closure (Iic t₁) ⊆ Iic t₁)
       simpa only [closure_Iic] using subset_rfl
     · have : ContinuousOn δ (γ ⁻¹' T.baseSet) := by
-        apply T.continuous_invFun.comp
-        · apply Continuous.continuousOn
-          simpa only [continuous_prod_mk, continuous_const, and_true] using γ.continuous_toFun
-        · intro u hu ; simpa [T.target_eq] using hu
-      apply this.mono
-      rintro v ⟨hv1, hv2⟩
+        refine T.continuous_invFun.comp ?_ <| λ u hu => by simpa [T.target_eq] using hu
+        apply Continuous.continuousOn
+        simpa only [continuous_prod_mk, continuous_const, and_true] using γ.continuous_toFun
+      refine this.mono <| subset_trans (λ v ⟨hv1, hv2⟩ => ?_) h
       simp only [not_le] at hv2
-      have : closure (Ioi t₁) ⊆ Ici t₁ := closure_lt_subset_le continuous_const continuous_id
-      refine h ⟨inf_le_left.trans <| this hv2, (show v ≤ t₂ from hv1).trans le_sup_right⟩
+      have : v ∈ Ici t₁ := closure_lt_subset_le continuous_const continuous_id hv2
+      exact Icc_subset_uIcc <| by simpa only [← Ici_inter_Iic] using mem_inter this hv1
   · intro v hv
     by_cases l6 : v ≤ t₁
     · simp only [LocalEquiv.invFun_as_coe, LocalHomeomorph.coe_coe_symm, l6, ite_true, h3]
@@ -80,8 +78,7 @@ lemma good_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc 
       rw [← T.proj_toFun _ l7]
       have : T (T.invFun (γ v, (T (Γ t₁)).snd)) = (γ v, (T (Γ t₁)).snd) :=
         T.right_inv' <| by simp only [T.target_eq, mem_prod, this, mem_univ, and_self]
-      simp only [LocalEquiv.invFun_as_coe, LocalHomeomorph.coe_coe_symm] at this
-      simp [this]
+      simp_all only [Trivialization.coe_coe]
 
 lemma good_nhds_iff (hf : IsCoveringMap f) : ∀ᶠ t' in 𝓝 t, good f γ A t' ↔ good f γ A t := by
   obtain ⟨_, T, h4⟩ := hf (γ t)
