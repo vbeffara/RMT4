@@ -99,8 +99,29 @@ lemma good_nhds (hf : IsCoveringMap f) (hγ : Continuous γ) (h : good f γ A t)
   have l5 : MapsTo γ (uIcc t u) T.baseSet := λ v hv => l3 (l4 hv)
   exact good_extend h l5 hγ
 
+lemma good_compl_nhds (hf : IsCoveringMap f) (hγ : Continuous γ) (h : ¬ good f γ A t) :
+    (goods f γ A)ᶜ ∈ 𝓝 t := by
+  obtain ⟨_, T, h4⟩ := hf (γ t)
+  have l1 : T.baseSet ∈ 𝓝 (γ t) := T.open_baseSet.mem_nhds h4
+  have l2 : γ ⁻¹' T.baseSet ∈ 𝓝 t := ContinuousAt.preimage_mem_nhds hγ.continuousAt l1
+  rw [Metric.mem_nhds_iff] at l2 ⊢
+  obtain ⟨ε, hε, l3⟩ := l2
+  refine ⟨ε, hε, ?_⟩
+  intro u hu
+  have l4 : uIcc t u ⊆ ball t ε := by
+    suffices uIcc t.1 u.1 ⊆ ball t.1 ε by intro v ; apply this
+    simpa only [segment_eq_uIcc] using (convex_ball t.1 ε).segment_subset (mem_ball_self hε) hu
+  have l5 : MapsTo γ (uIcc t u) T.baseSet := λ v hv => l3 (l4 hv)
+  rw [uIcc_comm] at l5
+  simp
+  intro h'
+  exact h <| @good_extend E X _ _ f γ A t u t h' T l5 hγ
+
 lemma goods_open (hf : IsCoveringMap f) (hγ : Continuous γ) : IsOpen (goods f γ A) := by
   simpa only [isOpen_iff_mem_nhds] using λ a ha => good_nhds hf hγ ha
+
+lemma goods_compl_open (hf : IsCoveringMap f) (hγ : Continuous γ) : IsOpen (goods f γ A)ᶜ := by
+  simpa only [isOpen_iff_mem_nhds] using λ a ha => good_compl_nhds hf hγ ha
 
 theorem lift (hf : IsCoveringMap f) (hγ : Continuous γ) (hγ0 : γ 0 = f A) :
     ∃ Γ : Icc (0:ℝ) 1 → E, Continuous Γ ∧ Γ 0 = A ∧ ∀ t, f (Γ t) = γ t := by
@@ -113,4 +134,4 @@ theorem lift (hf : IsCoveringMap f) (hγ : Continuous γ) (hγ0 : γ 0 = f A) :
   suffices IsClopen s from (isClopen_iff.1 this).resolve_left <| Nonempty.ne_empty l1
   constructor
   · exact goods_open hf hγ
-  · sorry
+  · exact ⟨goods_compl_open hf hγ⟩
