@@ -7,6 +7,8 @@ set_option pp.proofs.withType false
 
 open Set Topology Metric unitInterval
 
+section helpers
+
 variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : C(I, X)} {A : E}
   {s t t₁ t₂ : I}
 
@@ -109,12 +111,16 @@ lemma goods_open (hf : IsCoveringMap f) : IsOpen (goods f γ A) := by
 lemma goods_compl_open (hf : IsCoveringMap f) : IsOpen (goods f γ A)ᶜ := by
   simpa only [isOpen_iff_mem_nhds] using λ a ha => good_compl_nhds hf ha
 
-theorem lift (hf : IsCoveringMap f) (hγ0 : γ 0 = f A) :
+end helpers
+
+variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : C(I, X)} {A : E}
+
+theorem lift (hf : IsCoveringMap f) (hγ : γ 0 = f A) :
     ∃ Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ := by
   suffices goods f γ A = univ by
     obtain ⟨Γ, h1, h2, h3⟩ := this.symm ▸ mem_univ ⊤
     refine ⟨⟨Γ, ?_⟩, h2, funext <| λ s => h3 s s.2.2⟩
     simpa [continuous_iff_continuousOn_univ] using h1
-  have l1 : Set.Nonempty (goods f γ A) := ⟨0, good_zero hγ0⟩
+  have l1 : Set.Nonempty (goods f γ A) := ⟨0, good_zero hγ⟩
   suffices IsClopen (goods f γ A) from (isClopen_iff.1 this).resolve_left <| Nonempty.ne_empty l1
   exact ⟨goods_open hf, ⟨goods_compl_open hf⟩⟩
