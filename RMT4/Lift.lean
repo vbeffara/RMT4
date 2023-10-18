@@ -1,31 +1,47 @@
 import Mathlib.Analysis.Convex.Normed
 import Mathlib.Analysis.Convex.Segment
 import Mathlib.Topology.Covering
+import Mathlib.Topology.LocallyConstant.Basic
 
 set_option autoImplicit false
 set_option pp.proofs.withType false
 
 open Set Topology Metric unitInterval
 
+section misc
+
+instance : Top I := ⟨1⟩
+instance : OrderTop I := by refine ⟨λ _ => le_one'⟩
+
+lemma isClopen_iff_nhds {α : Type*} [TopologicalSpace α] {s : Set α} :
+    IsClopen s ↔ ∀ a, ∀ᶠ b in 𝓝 a, b ∈ s ↔ a ∈ s where
+  mp h a := by
+    by_cases h3 : a ∈ s
+    · simpa [h3] using h.1.mem_nhds h3
+    · simpa only [h3, iff_false] using h.2.isOpen_compl.mem_nhds h3
+  mpr h := by
+    constructor
+    · simpa [isOpen_iff_mem_nhds] using λ a ha => by simpa [ha] using h a
+    · exact ⟨by simpa [isOpen_iff_mem_nhds] using λ a ha => by simpa only [ha, iff_false] using h a⟩
+
+end misc
+
 section helpers
 
 variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : C(I, X)} {A : E}
   {s t t₁ t₂ : I}
-
-instance : Top I := ⟨1⟩
-instance : OrderTop I := by refine ⟨λ _ => le_one'⟩
 
 def good (f : E → X) (γ : C(I, X)) (A : E) (t : I) : Prop :=
   ∃ Γ : I → E, ContinuousOn Γ (Iic t) ∧ Γ 0 = A ∧ ∀ s ≤ t, f (Γ s) = γ s
 
 lemma good_zero (hγ : γ 0 = f A) : good f γ A 0 := by
   refine ⟨λ _ => A, continuousOn_const, rfl, ?_⟩
-  rintro ⟨s, h1, h2⟩ (h3 : s ≤ 0)
+  rintro ⟨s, h1, _⟩ (h3 : s ≤ 0)
   simp [le_antisymm h3 h1, hγ]
 
 lemma good_mono (h2 : good f γ A t₂) (h12 : t₁ ≤ t₂) : good f γ A t₁ := by
   obtain ⟨Γ, h1, h2, h3⟩ := h2
-  refine ⟨Γ, ContinuousOn.mono h1 <| Iic_subset_Iic.mpr h12, h2, λ s' hs' => h3 s' (hs'.trans h12)⟩
+  exact ⟨Γ, ContinuousOn.mono h1 <| Iic_subset_Iic.mpr h12, h2, λ s' hs' => h3 s' (hs'.trans h12)⟩
 
 lemma good_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc t₁ t₂) T.baseSet) :
     good f γ A t₁ → good f γ A t₂ := by
@@ -34,7 +50,7 @@ lemma good_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc 
   have l3 : γ ⁻¹' T.baseSet ∈ 𝓝 t₁ := γ.continuous_toFun.continuousAt.preimage_mem_nhds l2
   let δ (s : I) : E := T.invFun (γ s, (T (Γ t₁)).2)
   let Δ (s : I) : E := if s ≤ t₁ then Γ s else δ s
-  refine ⟨Δ, ?_, ?_, ?_⟩
+  refine ⟨Δ, ?_, by simp [show 0 ≤ t₁ from t₁.2.1, h2], ?_⟩
   · apply ContinuousOn.if
     · have k1 : Γ t₁ ∈ T.source := by simpa [T.source_eq, h3 t₁ le_rfl] using mem_of_mem_nhds l3
       have k2 : (T (Γ t₁)).1 = f (Γ t₁) := T.proj_toFun _ k1
@@ -47,15 +63,13 @@ lemma good_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc 
     · have : ContinuousOn δ (γ ⁻¹' T.baseSet) := by
         apply T.continuous_invFun.comp
         · apply Continuous.continuousOn
-          simp only [continuous_prod_mk, continuous_const, and_true]
-          exact γ.continuous_toFun
+          simpa only [continuous_prod_mk, continuous_const, and_true] using γ.continuous_toFun
         · intro u hu ; simpa [T.target_eq] using hu
       apply this.mono
       rintro v ⟨hv1, hv2⟩
       simp only [not_le] at hv2
       have : closure (Ioi t₁) ⊆ Ici t₁ := closure_lt_subset_le continuous_const continuous_id
       refine h ⟨inf_le_left.trans <| this hv2, (show v ≤ t₂ from hv1).trans le_sup_right⟩
-  · simp [show 0 ≤ t₁ from t₁.2.1, h2]
   · intro v hv
     by_cases l6 : v ≤ t₁
     · simp only [LocalEquiv.invFun_as_coe, LocalHomeomorph.coe_coe_symm, l6, ite_true, h3]
@@ -69,14 +83,11 @@ lemma good_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc 
       simp only [LocalEquiv.invFun_as_coe, LocalHomeomorph.coe_coe_symm] at this
       simp [this]
 
-def goods (f : E → X) (γ : C(I, X)) (A : E) : Set I := { t | good f γ A t }
-
 lemma good_nhds_iff (hf : IsCoveringMap f) : ∀ᶠ t' in 𝓝 t, good f γ A t' ↔ good f γ A t := by
   obtain ⟨_, T, h4⟩ := hf (γ t)
   have l1 : T.baseSet ∈ 𝓝 (γ t) := T.open_baseSet.mem_nhds h4
   have l2 : γ ⁻¹' T.baseSet ∈ 𝓝 t := γ.continuous_toFun.continuousAt.preimage_mem_nhds  l1
-  rw [Filter.Eventually]
-  rw [Metric.mem_nhds_iff] at l2 ⊢
+  simp only [Filter.Eventually, Metric.mem_nhds_iff] at l2 ⊢
   obtain ⟨ε, hε, l3⟩ := l2
   refine ⟨ε, hε, ?_⟩
   intro u hu
@@ -87,29 +98,15 @@ lemma good_nhds_iff (hf : IsCoveringMap f) : ∀ᶠ t' in 𝓝 t, good f γ A t'
   have l6 := uIcc_comm t u ▸ l5
   exact ⟨good_extend l6, good_extend l5⟩
 
-lemma good_nhds (hf : IsCoveringMap f) (h : good f γ A t) : goods f γ A ∈ 𝓝 t := by
-  have : ∀ᶠ t' in 𝓝 t, good f γ A t' ↔ good f γ A t := good_nhds_iff hf
-  simpa only [h, iff_true] using this
-
-lemma good_compl_nhds (hf : IsCoveringMap f) (h : ¬ good f γ A t) : (goods f γ A)ᶜ ∈ 𝓝 t := by
-  have : ∀ᶠ t' in 𝓝 t, good f γ A t' ↔ good f γ A t := good_nhds_iff hf
-  simpa only [h, iff_false] using this
-
-lemma goods_open (hf : IsCoveringMap f) : IsOpen (goods f γ A) := by
-  simpa only [isOpen_iff_mem_nhds] using λ a ha => good_nhds hf ha
-
-lemma goods_compl_open (hf : IsCoveringMap f) : IsOpen (goods f γ A)ᶜ := by
-  simpa only [isOpen_iff_mem_nhds] using λ a ha => good_compl_nhds hf ha
-
 end helpers
 
 variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X} {γ : C(I, X)} {A : E}
 
 theorem lift (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃ Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ := by
-  suffices goods f γ A = univ by
+  suffices {t | good f γ A t} = univ by
     obtain ⟨Γ, h1, h2, h3⟩ := this.symm ▸ mem_univ ⊤
     refine ⟨⟨Γ, ?_⟩, h2, funext <| λ s => h3 s s.2.2⟩
     simpa [continuous_iff_continuousOn_univ] using h1
-  have l1 : Set.Nonempty (goods f γ A) := ⟨0, good_zero hγ⟩
-  suffices IsClopen (goods f γ A) from (isClopen_iff.1 this).resolve_left <| Nonempty.ne_empty l1
-  exact ⟨goods_open hf, ⟨goods_compl_open hf⟩⟩
+  have l1 : Set.Nonempty {t | good f γ A t} := ⟨0, good_zero hγ⟩
+  have l2 : IsClopen {t | good f γ A t} := isClopen_iff_nhds.2 <| λ t => good_nhds_iff hf
+  exact (isClopen_iff.1 l2).resolve_left <| Nonempty.ne_empty l1
