@@ -52,6 +52,10 @@ noncomputable def glue_uIcc (F : Icc a b → E) (G : uIcc b c → E) (t : Icc a 
   if h : t ≤ b then F ⟨t, t.2.1, h⟩ else
     G ⟨t, inf_le_left.trans <| not_le.1 h |>.le, t.2.2.trans le_sup_right⟩
 
+@[simp] lemma glue_uIcc_left (hab : a ≤ b) (hac : a ≤ c) :
+    glue_uIcc F G ⟨a, left_mem_Icc.2 hac⟩ = F ⟨a, left_mem_Icc.2 hab⟩ := by
+  simp [glue_uIcc, hab]
+
 lemma glue_uIcc_eq (hab : a ≤ b) : glue_uIcc F G = λ t : Icc a c =>
     if t ≤ b then IccExtend hab F t else IccExtend inf_le_sup G t := by
   ext t ; simp [glue_uIcc] ; split_ifs <;> symm <;> apply IccExtend_of_mem
@@ -68,5 +72,10 @@ noncomputable def ContinuousMap.trans' (hab : a ≤ b) (F : C(Icc a b, E)) (G : 
     (h : F ⟨b, right_mem_Icc.2 hab⟩ = G ⟨b, left_mem_uIcc⟩) : C(Icc a c, E) where
   toFun := glue_uIcc F G
   continuous_toFun := continuous_glue_uIcc F.continuous G.continuous hab h
+
+@[simp] lemma ContinuousMap.trans'_left (hab : a ≤ b) (hac : a ≤ c) {F : C(Icc a b, E)}
+    {G : C(uIcc b c, E)} (h : F ⟨b, right_mem_Icc.2 hab⟩ = G ⟨b, left_mem_uIcc⟩) :
+    F.trans' hab G h ⟨a, left_mem_Icc.2 hac⟩ = F ⟨a, left_mem_Icc.2 hab⟩ := by
+  simp [ContinuousMap.trans', hab, hac]
 
 end uIcc
