@@ -110,7 +110,17 @@ lemma good_nhds_iff (hf : IsCoveringMap f) : ∀ᶠ t' in 𝓝 t, good f γ A t'
   exact ⟨good_extend <| uIcc_comm t u ▸ l5, good_extend l5⟩
 
 lemma good'_nhds_iff (hf : IsCoveringMap f) : ∀ᶠ t' in 𝓝 t, good' f γ A t' ↔ good' f γ A t := by
-  sorry
+  obtain ⟨_, T, h4⟩ := hf (γ t)
+  have l2 : γ ⁻¹' T.baseSet ∈ 𝓝 t :=
+    γ.continuous_toFun.continuousAt.preimage_mem_nhds <| T.open_baseSet.mem_nhds h4
+  simp only [Filter.Eventually, Metric.mem_nhds_iff] at l2 ⊢
+  obtain ⟨ε, hε, l3⟩ := l2
+  refine ⟨ε, hε, λ u hu => ?_⟩
+  have l4 : uIcc t u ⊆ ball t ε := by
+    suffices uIcc t.1 u.1 ⊆ ball t.1 ε by intro v ; apply this
+    simpa only [segment_eq_uIcc] using (convex_ball t.1 ε).segment_subset (mem_ball_self hε) hu
+  have l5 : MapsTo γ (uIcc t u) T.baseSet := λ v hv => l3 (l4 hv)
+  exact ⟨good'_extend <| uIcc_comm t u ▸ l5, good'_extend l5⟩
 
 end helpers
 
