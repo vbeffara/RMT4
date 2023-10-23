@@ -4,7 +4,6 @@ import Mathlib.Order.Interval
 import Mathlib.MeasureTheory.Integral.CircleIntegral
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
 import Mathlib.MeasureTheory.Function.Jacobian
-import Mathlib.Topology.PathConnected
 import RMT4.to_mathlib
 
 open intervalIntegral Real MeasureTheory Filter Topology Set Metric
