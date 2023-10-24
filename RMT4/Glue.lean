@@ -79,3 +79,38 @@ noncomputable def ContinuousMap.trans' (hab : a ≤ b) (F : C(Icc a b, E)) (G : 
   simp [ContinuousMap.trans', hab, hac]
 
 end uIcc
+
+section Iic
+
+variable
+  {T E : Type*} [LinearOrder T] [TopologicalSpace T] [OrderTopology T][OrderClosedTopology T] {a b : T}
+  {E : Type*} [TopologicalSpace E] {f : Iic a → E} {g : uIcc a b → E}
+
+def glue_Iic (f : Iic a → E) (g : uIcc a b → E) (t : Iic b) : E :=
+  if h : t ≤ a then f ⟨t, h⟩ else g ⟨t, inf_le_left.trans (not_le.1 h).le, t.2.trans le_sup_right⟩
+
+lemma glue_Iic_eq : glue_Iic f g = λ t : Iic b =>
+    if t ≤ a then IicExtend f t else IccExtend inf_le_sup g t := by
+  ext t ; simp [glue_Iic] ; split_ifs <;> symm
+  · apply IicExtend_of_mem
+  · apply IccExtend_of_mem
+
+lemma continuous_projIic : Continuous (Set.projIic a) :=
+  (continuous_const.min continuous_id).subtype_mk _
+
+lemma Continuous.Iic_extend' (hf : Continuous f) : Continuous (IicExtend f) :=
+  hf.comp continuous_projIic
+
+lemma continuous_glue_Iic (hf : Continuous f) (hg : Continuous g)
+    (h : f ⟨a, le_rfl⟩ = g ⟨a, ⟨inf_le_left, le_sup_left⟩⟩) : Continuous (glue_Iic f g) := by
+  rw [glue_Iic_eq]
+  suffices : Continuous fun t => if t ≤ a then IicExtend f t else IccExtend inf_le_sup g t
+  · exact this.comp continuous_subtype_val
+  refine hf.Iic_extend'.if_le hg.Icc_extend' continuous_id continuous_const ?_
+  rintro x rfl ; simpa [IccExtend_of_mem] using h
+
+def ContinuousMap.trans_Iic (F : C(Iic a, E)) (G : C(uIcc a b, E))
+    (h : F ⟨a, le_rfl⟩ = G ⟨a, ⟨inf_le_left, le_sup_left⟩⟩) : C(Iic b, E) :=
+  ⟨glue_Iic F G, continuous_glue_Iic F.continuous G.continuous h⟩
+
+end Iic
