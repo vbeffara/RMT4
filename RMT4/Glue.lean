@@ -113,4 +113,9 @@ def ContinuousMap.trans_Iic (F : C(Iic a, E)) (G : C(uIcc a b, E))
     (h : F ⟨a, le_rfl⟩ = G ⟨a, ⟨inf_le_left, le_sup_left⟩⟩) : C(Iic b, E) :=
   ⟨glue_Iic F G, continuous_glue_Iic F.continuous G.continuous h⟩
 
+@[simp] lemma ContinuousMap.trans_Iic_of_le {F : C(Iic a, E)} {G : C(uIcc a b, E)}
+    {h : F ⟨a, le_rfl⟩ = G ⟨a, ⟨inf_le_left, le_sup_left⟩⟩} {u : Iic b} (hu : u ≤ a) :
+    F.trans_Iic G h u = F ⟨u, hu⟩ := by
+  simp [trans_Iic, glue_Iic, hu]
+
 end Iic

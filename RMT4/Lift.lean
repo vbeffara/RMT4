@@ -84,3 +84,51 @@ theorem lift' (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃ Γ : C(I, E), Γ 0
   have l2 : IsClopen {t | reachable f γ A t} := isClopen_iff_nhds.2 <| λ t => reachable_nhds_iff hf
   let ⟨Γ, h1, h2⟩ := ((isClopen_iff.1 l2).resolve_left <| Nonempty.ne_empty l1).symm ▸ mem_univ 1
   exact ⟨Γ, h1, funext h2⟩
+
+--
+
+section Iic
+
+variable {t t₁ t₂ : I}
+
+instance : Zero (Iic t) := ⟨0, t.2.1⟩
+
+def reachable' (f : E → X) (γ : C(I, X)) (A : E) (t : I) : Prop :=
+  ∃ Γ : C(Iic t, E), Γ 0 = A ∧ ∀ s, f (Γ s) = γ s
+
+lemma reachable'_zero (hγ : γ 0 = f A) : reachable' f γ A 0 := by
+  refine ⟨⟨λ _ => A, continuous_const⟩, rfl, ?_⟩
+  intro ⟨s, (hs : s ≤ 0)⟩ ; simp [le_antisymm hs s.2.1, hγ]
+
+lemma reachable'_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc t₁ t₂) T.baseSet) :
+    reachable' f γ A t₁ → reachable' f γ A t₂ := by
+  rintro ⟨Γ, h1, h2⟩
+  let δ : C(uIcc t₁ t₂, E) := ⟨λ s => T.invFun ⟨γ s, (T (Γ ⟨t₁, by simp⟩)).2⟩,
+    T.continuous_invFun.comp_continuous (by continuity) (λ t => by simp [T.target_eq, h t.2])⟩
+  refine ⟨ContinuousMap.trans_Iic Γ δ ?_, ?_, ?_⟩
+  · have l1 : f (Γ _) = γ t₁ := h2 ⟨t₁, by simp⟩
+    have l2 : Γ ⟨t₁, by simp⟩ ∈ T.source := by simpa [T.source_eq, l1] using h left_mem_uIcc
+    simpa [← l1, ← T.proj_toFun _ l2] using (T.left_inv' l2).symm
+  · rwa [ContinuousMap.trans_Iic_of_le]
+  · sorry
+  -- set tt₁ : II t₁ := ⟨t₁, self_mem_II⟩
+  -- let δ : C(uIcc (t₁ : ℝ) (t₂ : ℝ), E) := by
+  --   let ι (u : uIcc (t₁:ℝ) (t₂:ℝ)) : uIcc t₁ t₂ :=
+  --     ⟨⟨u, (le_inf t₁.2.1 t₂.2.1).trans u.2.1, u.2.2.trans (sup_le t₁.2.2 t₂.2.2)⟩, u.2⟩
+  --   refine ⟨λ s => T.invFun ⟨γ (ι s).1, (T (Γ tt₁)).2⟩, ?_⟩
+  --   refine T.continuous_invFun.comp_continuous (by continuity) (λ s => ?_)
+  --   simpa only [T.target_eq, mem_prod, mem_univ, and_true] using h (ι s).2
+  -- refine ⟨Γ.trans' t₁.prop.1 δ ?_, ?_, λ s => ?_⟩
+  -- · have l1 : f (Γ tt₁) = γ t₁ := h2 tt₁
+  --   have k1 : Γ tt₁ ∈ T.source := by simpa [T.source_eq, l1] using h left_mem_uIcc
+  --   simpa [← l1, ← T.proj_toFun _ k1] using (T.left_inv' k1).symm
+  -- · exact h1 ▸ ContinuousMap.trans'_left t₁.2.1 t₂.2.1 _
+  -- · by_cases hh : (s : ℝ) ≤ t₁
+  --   · simp [ContinuousMap.trans', glue_uIcc, hh, h2 ⟨s, s.2.1, hh⟩]
+  --   · simp only [ContinuousMap.trans', glue_uIcc, ContinuousMap.coe_mk, hh, dite_false]
+  --     have : γ s ∈ T.baseSet := h ⟨inf_le_left.trans (not_le.1 hh).le, s.2.2.trans le_sup_right⟩
+  --     refine (T.proj_toFun _ (T.map_target' <| by simpa [T.target_eq] using this)).symm.trans ?_
+  --     exact congr_arg Prod.fst (T.right_inv' <| by simpa [T.target_eq] using this)
+  all_goals sorry
+
+end Iic
