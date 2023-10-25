@@ -7,7 +7,7 @@ import RMT4.Glue
 set_option autoImplicit false
 set_option pp.proofs.withType false
 
-open Set Topology Metric unitInterval
+open Set Topology Metric unitInterval Filter
 
 section helpers
 
@@ -93,7 +93,7 @@ open ContinuousMap
 
 variable {t t₁ t₂ : I}
 
-instance : Zero (Iic t) := ⟨0, t.2.1⟩
+instance : Zero (Iic t) := ⟨0, nonneg'⟩
 instance : ZeroLEOneClass I := ⟨nonneg'⟩
 
 def reachable' (f : E → X) (γ : C(I, X)) (A : E) (t : I) : Prop :=
@@ -105,20 +105,18 @@ lemma reachable'_zero (hγ : γ 0 = f A) : reachable' f γ A 0 := by
 
 lemma reachable'_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (uIcc t₁ t₂) T.baseSet) :
     reachable' f γ A t₁ → reachable' f γ A t₂ := by
-  rintro ⟨Γ, h1, h2⟩
+  rintro ⟨Γ, rfl, h2⟩
   let T₁ : Iic t₁ := ⟨t₁, mem_Iic.2 le_rfl⟩
   let δ : C(uIcc t₁ t₂, E) := ⟨λ s => T.invFun ⟨γ s, (T (Γ T₁)).2⟩,
     T.continuous_invFun.comp_continuous (by continuity) (λ t => by simp [T.target_eq, h t.2])⟩
   have l1 : f (Γ T₁) = γ t₁ := h2 T₁
   have l2 : Γ T₁ ∈ T.source := by simpa only [T.source_eq, mem_preimage, l1] using h left_mem_uIcc
-  have l3 : Γ T₁ = δ ⟨t₁, left_mem_uIcc⟩ := by
-    simpa only [ContinuousMap.coe_mk, ← l1, ← T.proj_toFun _ l2] using (T.left_inv' l2).symm
-  have l4 : trans_Iic Γ δ l3 0 = Γ 0 := trans_Iic_of_le unitInterval.nonneg'
-  refine ⟨trans_Iic Γ δ l3, l4.symm ▸ h1, λ s => ?_⟩
-  by_cases hh : s ≤ t₁ <;> simp only [trans_Iic, glue_Iic, ContinuousMap.coe_mk, hh, dite_true, h2]
-  have l5 : γ s ∈ T.baseSet := h ⟨inf_le_left.trans (not_le.1 hh).le, le_trans s.2 le_sup_right⟩
-  have l6 {z} : (γ s, z) ∈ T.target := by simpa [T.target_eq] using l5
-  exact (T.proj_toFun _ (T.map_target' l6)).symm.trans <| congr_arg Prod.fst (T.right_inv' l6)
+  refine ⟨trans_Iic Γ δ ?_, trans_Iic_of_le nonneg', λ s => ?_⟩
+  · simpa only [ContinuousMap.coe_mk, ← l1, ← T.proj_toFun _ l2] using (T.left_inv' l2).symm
+  · by_cases H : s ≤ t₁ <;> simp only [trans_Iic, glue_Iic, ContinuousMap.coe_mk, H, dite_true, h2]
+    have l5 : γ s ∈ T.baseSet := h ⟨inf_le_left.trans (not_le.1 H).le, le_trans s.2 le_sup_right⟩
+    have l6 {z} : (γ s, z) ∈ T.target := T.mem_target.2 l5
+    exact (T.proj_toFun _ (T.map_target' l6)).symm.trans <| congr_arg Prod.fst (T.right_inv' l6)
 
 lemma reachable'_nhds_iff (hf : IsCoveringMap f) :
     ∀ᶠ t' in 𝓝 t, reachable' f γ A t' ↔ reachable' f γ A t := by
@@ -127,11 +125,10 @@ lemma reachable'_nhds_iff (hf : IsCoveringMap f) :
   simp only [Filter.Eventually, Metric.mem_nhds_iff] at l2 ⊢
   obtain ⟨ε, hε, l3⟩ := l2
   refine ⟨ε, hε, λ u hu => ?_⟩
-  have l4 : uIcc t u ⊆ ball t ε := by
-    suffices uIcc t.1 u.1 ⊆ ball t.1 ε by intro v ; apply this
-    simpa only [segment_eq_uIcc] using (convex_ball t.1 ε).segment_subset (mem_ball_self hε) hu
-  have l5 : MapsTo γ (uIcc t u) T.baseSet := λ v hv => l3 (l4 hv)
-  exact ⟨reachable'_extend <| uIcc_comm t u ▸ l5, reachable'_extend l5⟩
+  have : segment ℝ t.1 u.1 ⊆ ball t.1 ε := (convex_ball t.1 ε).segment_subset (mem_ball_self hε) hu
+  have l5 : uIcc t.1 u.1 ⊆ ball t.1 ε := by rwa [← segment_eq_uIcc]
+  have l6 : MapsTo γ (uIcc t u) T.baseSet := λ v hv => l3 (l5 hv)
+  exact ⟨reachable'_extend <| uIcc_comm t u ▸ l6, reachable'_extend l6⟩
 
 theorem lift' (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃ Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ := by
   have l1 : Set.Nonempty {t | reachable' f γ A t} := ⟨0, reachable'_zero hγ⟩
@@ -139,5 +136,38 @@ theorem lift' (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃ Γ : C(I, E), Γ 0
   let ⟨Γ, h1, h2⟩ := ((isClopen_iff.1 l2).resolve_left <| Nonempty.ne_empty l1).symm ▸ mem_univ 1
   refine ⟨⟨IicExtend Γ, Γ.2.Iic_extend'⟩, by simpa [IicExtend, projIic] using h1, funext (λs => ?_)⟩
   simp [IicExtend, projIic, s.2.2] ; convert h2 ⟨s, s.2.2⟩ ; simpa using s.2.2
+
+variable {Γ₁ Γ₂ : C(I, E)}
+
+lemma locally_eq (hf : IsCoveringMap f) (h1 : Γ₁ t = Γ₂ t) (h2 : f ∘ Γ₁ = f ∘ Γ₂) :
+    Γ₁ =ᶠ[𝓝 t] Γ₂ := by
+  obtain ⟨l1, T, l2⟩ := hf (f (Γ₁ t))
+  have l4 : T.source ∈ 𝓝 (Γ₁ t) := T.open_source.mem_nhds (by simp [T.source_eq, l2])
+  have l17 : Tendsto (T ∘ Γ₁) (𝓝 t) (𝓝 (T (Γ₁ t))) :=
+    ((T.continuous_toFun.continuousAt l4).comp Γ₁.continuous.continuousAt).tendsto
+  have l17' : Tendsto (T ∘ Γ₂) (𝓝 t) (𝓝 (T (Γ₂ t))) :=
+    ((T.continuous_toFun.continuousAt (h1 ▸ l4)).comp Γ₂.continuous.continuousAt).tendsto
+  have l15 : T.baseSet ×ˢ {(T (Γ₁ t)).2} ∈ 𝓝 (T (Γ₁ t)) := by
+    have l3 : T.baseSet ∈ 𝓝 (f (Γ₁ t)) := T.open_baseSet.mem_nhds l2
+    have l9 : (T (Γ₁ t)).1 = f (Γ₁ t) := T.proj_toFun _ (T.mem_source.2 l2)
+    exact prod_mem_nhds (by simpa [l9] using l3) (by simp)
+  have l13 : ∀ᶠ s in 𝓝 t, Γ₁ s ∈ T.source := Γ₁.continuous.continuousAt l4
+  have l13' : ∀ᶠ s in 𝓝 t, Γ₂ s ∈ T.source := Γ₂.continuous.continuousAt (h1 ▸ l4)
+  have l16 : ∀ᶠ s in 𝓝 t, T (Γ₁ s) ∈ T.baseSet ×ˢ {(T (Γ₁ t)).2} := l17 l15
+  have l16' : ∀ᶠ s in 𝓝 t, T (Γ₂ s) ∈ T.baseSet ×ˢ {(T (Γ₂ t)).2} := l17' (h1 ▸ l15)
+  filter_upwards [l13, l13', l16, l16'] with s r13 r13' r16 r16'
+  have r20 : T (Γ₁ s) = T (Γ₂ s) := by
+    apply Prod.ext
+    · exact T.proj_toFun _ r13 |>.trans (congr_fun h2 s |>.trans (T.proj_toFun _ r13').symm)
+    · rw [(mem_prod.1 r16).2, (mem_prod.1 r16').2] ; simp [h1]
+  exact (T.left_inv' r13).symm.trans ((congr_arg T.invFun r20).trans (T.left_inv' r13'))
+
+theorem lift_unique (hf : IsCoveringMap f) {Γ₁ Γ₂ : C(I, E)} (h0 : Γ₁ 0 = Γ₂ 0)
+    (h : f ∘ Γ₁ = f ∘ Γ₂) : Γ₁ = Γ₂ := by
+  let S := {t | Γ₁ t = Γ₂ t}
+  have l4 : IsOpen S := isOpen_iff_mem_nhds.2 <| λ t ht => locally_eq hf ht h
+  have l2 : IsClopen S := sorry
+  have l3 : S = univ := isClopen_iff.1 l2 |>.resolve_left <| Nonempty.ne_empty ⟨0, h0⟩
+  ext t ; change t ∈ S ; simp only [l3, mem_univ]
 
 end Iic

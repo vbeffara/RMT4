@@ -3,8 +3,9 @@ import RMT4.pintegral
 import RMT4.LocallyConstant
 import RMT4.to_mathlib
 import RMT4.Bunch
+import RMT4.Lift
 
-open Topology Filter Metric TopologicalSpace Set Subtype
+open Topology Filter Metric TopologicalSpace Set Subtype unitInterval
 
 variable {U : Set ℂ} {f : ℂ → ℂ} {Λ Λ' : LocalPrimitiveOn U f}
 
@@ -222,3 +223,9 @@ theorem isCoveringMap : IsCoveringMap (Λ.p) :=
 end covering
 
 end LocalPrimitiveOn
+
+noncomputable def ContourIntegral (f : ℂ → ℂ) (Λ : LocalPrimitiveOn U f) (γ : C(I, U)) : ℂ := by
+  have l1 : IsCoveringMap Λ.p := LocalPrimitiveOn.covering.isCoveringMap
+  have l2 : γ 0 = Λ.p ⟨γ 0, 0⟩ := rfl
+  choose Γ _ _ using lift' l1 l2
+  exact (Γ 1).2
