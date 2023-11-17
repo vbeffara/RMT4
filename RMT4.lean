@@ -1,12 +1,23 @@
 import Mathlib.Analysis.Complex.OpenMapping
-import RMT4.defs
-import RMT4.hurwitz
-import RMT4.montel
-import RMT4.etape2
-import RMT4.has_sqrt
-import RMT4.pintegral
-import RMT4.Curvint
+import RMT4.ascoli
+import RMT4.Bunch
+import RMT4.cindex
 import RMT4.Covering
+import RMT4.Curvint
+import RMT4.defs
+import RMT4.deriv_inj
+import RMT4.etape2
+import RMT4.Glue
+import RMT4.has_sqrt
+import RMT4.hurwitz
+import RMT4.Lift
+import RMT4.LocallyConstant
+import RMT4.montel
+import RMT4.pintegral
+import RMT4.Primitive
+import RMT4.Subdivision
+import RMT4.to_mathlib
+import RMT4.uniform
 
 open UniformConvergence Topology Filter Set Metric Function
 
@@ -90,6 +101,7 @@ lemma 𝓘_nonempty [good_domain U] : (𝓘 U).Nonempty := by
       have e3 := e2.differentiableAt.deriv_eq_deriv_pow_div_pow zero_lt_two f_eq_comp (f_noz hz₀)
       simp [e3, deriv_sub_const]
       intro h
+      norm_num at h
       have := g_sqf hz₀
       rw [Pi.pow_apply, h, zero_pow zero_lt_two] at this
       exact f_noz hz₀ this

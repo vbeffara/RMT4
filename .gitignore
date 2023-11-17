@@ -1,4 +1,5 @@
+.DS_Store
+.lake
 /build
 /lake-packages/*
-.DS_Store
 scratch.lean

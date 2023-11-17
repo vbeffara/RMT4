@@ -199,7 +199,7 @@ theorem eventually_eq_of_lift' {γ : Type} [TopologicalSpace γ] {f : γ → α}
     simp [r1, r2, r4, r5]
   · have h2 := h₁.1.tendsto x
     have h3 := h₂.1.tendsto x
-    simp only [Bunch.nhds_eq_pure, h1, hx ▸ h1, tendsto_pure] at h2 h3
+    simp [Bunch.nhds_eq_pure h1, Bunch.nhds_eq_pure (hx ▸ h1), tendsto_pure] at h2 h3
     filter_upwards [h2, h3] with y h4 h5
     simp [hx, h4, h5]
 

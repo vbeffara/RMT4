@@ -1,12 +1,6 @@
-import Mathlib.Tactic
-import Mathlib.Analysis.Calculus.ContDiffDef
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral
-import Mathlib.Topology.LocallyConstant.Basic
-import Mathlib.Analysis.Calculus.MeanValue
-import RMT4.Subdivision
-import RMT4.Primitive
 import RMT4.LocallyConstant
+import RMT4.Primitive
+import RMT4.Subdivision
 
 open BigOperators Metric Set Subdivision Topology Filter Nat
 

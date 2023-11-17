@@ -18,7 +18,8 @@ def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : ℂ) : ℂ := Λ.
 
 @[simp] lemma FF_self' : Λ.FF z w w.1 = w.2 := FF_self
 
-lemma FF_congr (h : Λ.FF z a (b1 : U) = b2) : Λ.FF z a = Λ.FF z (b1, b2) := by simp [FF, ← h]
+lemma FF_congr (h : Λ.FF z a (b1 : U) = b2) : Λ.FF z a = Λ.FF z (b1, b2) := by
+  rw [← h] ; unfold FF ; simp
 
 lemma FF_deriv (hw : w ∈ Λ.S z) : HasDerivAt (Λ.FF z a) (f w) w := Λ.der z w hw |>.add_const _
 
@@ -227,5 +228,5 @@ end LocalPrimitiveOn
 noncomputable def ContourIntegral (f : ℂ → ℂ) (Λ : LocalPrimitiveOn U f) (γ : C(I, U)) : ℂ := by
   have l1 : IsCoveringMap Λ.p := LocalPrimitiveOn.covering.isCoveringMap
   have l2 : γ 0 = Λ.p ⟨γ 0, 0⟩ := rfl
-  choose Γ _ _ using lift' l1 l2
+  choose Γ _ _ using lift l1 l2
   exact (Γ 1).2

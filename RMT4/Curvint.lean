@@ -150,7 +150,7 @@ lemma setup.dfΓ (S : setup f f' Γ Γ') (w : ℂ) : Differentiable ℝ (λ t =>
   exact (S.dΓ w t)
 
 lemma setup.continuous_f2 (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f2 f f' Γ Γ' w) := by
-  simp [f2]
+  unfold f2
   have := S.cf'
   have := S.cdΓ w
   have := S.cdΓ' w
@@ -172,7 +172,7 @@ theorem main_step (hab : a ≤ b) (S : setup f f' Γ Γ') :
     · exact (S.continuous_f2 w₀).continuousOn
 
 lemma identity (S : setup f f' Γ Γ') (w : ℂ) (t : ℝ) : deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
-  simp [f2, f3]
+  unfold f2 f3
   rw [deriv_mul (S.dΓ' _).differentiableAt (S.dfΓ _).differentiableAt]
   simp only [add_right_inj]
   change Γ' w t * deriv (f ∘ Γ w) t = Γ' w t * deriv (Γ w) t * f' (Γ w t)
@@ -185,7 +185,8 @@ theorem holo (hab : a ≤ b) (S : setup f f' Γ Γ') :
   have : HasDerivAt (fun w => ∫ (t : ℝ) in a..b, f1 f Γ w t)
     (∫ (t : ℝ) in a..b, f2 f f' Γ Γ' w₀ t) w₀ := main_step hab S
   convert ← this
-  simp only [← identity S, f3]
+  simp only [← identity S]
+  unfold f3
   apply intervalIntegral.integral_deriv_eq_sub' _ rfl
   · intro t _
     apply (S.dΓ' _).mul
