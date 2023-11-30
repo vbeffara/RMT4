@@ -56,7 +56,7 @@ lemma has_logs.has_sqrt (h : has_logs U) : has_sqrt U := by
 
 lemma has_primitives.has_logs (hp : has_primitives U) (hU : IsOpen U) (hU' : IsPreconnected U) :
     has_logs U := by
-  by_cases U = ∅
+  by_cases h : U = ∅
   case pos => exact λ f => by simp [h, DifferentiableOn]
   case neg =>
     obtain ⟨z₀, hz₀⟩ := nonempty_iff_ne_empty.2 h

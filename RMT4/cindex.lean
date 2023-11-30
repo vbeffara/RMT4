@@ -160,7 +160,7 @@ lemma exists_cindex_eq_order' (hp : HasFPowerSeriesAt f p z₀) (h : p ≠ 0) :
 
 lemma exists_cindex_eq_order (hp : HasFPowerSeriesAt f p z₀) :
     ∃ R > (0 : ℝ), ∀ r ∈ Set.Ioo 0 R, cindex z₀ r f = p.order := by
-  by_cases p = 0
+  by_cases h : p = 0
   case neg => exact exists_cindex_eq_order' hp h
   case pos =>
     subst_vars

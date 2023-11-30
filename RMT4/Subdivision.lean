@@ -206,7 +206,7 @@ noncomputable def _root_.Subdivision.regular (hab : a < b) (n : ℕ) : Subdivisi
   apply Fin.cases (motive := λ i => _ = _) (by simp)
   intro i
   simp only [List.get, add_eq, add_zero, Fin.eta, length_cons, Fin.val_succ]
-  by_cases i < (map Subtype.val (list' hab n)).length
+  by_cases h : i < (map Subtype.val (list' hab n)).length
   · rcases i with ⟨i, hi⟩
     simp only [List.get_append i h, get_map]
     simp [list', List.get_pmap, list]

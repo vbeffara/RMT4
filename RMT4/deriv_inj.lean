@@ -13,7 +13,7 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
     (differentiableOn_dslope (hU.mem_nhds (hcr (ball_subset_closedBall hz₀)))).2 hf
   have h2 : ∀ z ∈ closedBall c r, g z ≠ 0 := by
     rintro z hz
-    by_cases z = z₀
+    by_cases h : z = z₀
     case pos => simp [dslope, h, Function.update, hf'z₀]
     case neg => simp [dslope, h, Function.update, slope, sub_ne_zero.2 h, hfz₀, hfz z hz h]
   have h10 : ∀ z ∈ sphere c r, z - z₀ ≠ 0 :=

@@ -139,7 +139,7 @@ lemma IsCompact_𝓙 [good_domain U] : IsCompact (𝓙 U) := by
   obtain ⟨h1, h2⟩ := tendsto_inf.1 (@tendsto_id _ l)
   rw [tendsto_principal] at h2
   refine ⟨(IsClosed_𝓜 hU).mem_of_tendsto h1 (h2.mono (λ _ h => h.1)), ?_⟩
-  by_cases ∃ᶠ f in l, InjOn f U
+  by_cases h : ∃ᶠ f in l, InjOn f U
   case pos =>
     refine (hurwitz_inj hU good_domain.is_preconnected ?_ ((tendsto_iff hU).1 h1) h).symm
     filter_upwards [h2] with g hg using hg.1.1

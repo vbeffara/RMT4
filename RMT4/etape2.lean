@@ -71,7 +71,7 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
   have g_diff : DifferentiableOn ℂ g 𝔻 := (φ u_in_𝔻).is_diff.comp f_diff f_img
   have g_maps : MapsTo g 𝔻 𝔻 := (φ u_in_𝔻).maps_to.comp f_img
   have g_0_eq_0 : g 0 = 0 := by simp [φ]
-  by_cases ‖deriv g 0‖ = 1
+  by_cases h : ‖deriv g 0‖ = 1
   case pos =>
     have g_lin : EqOn g (λ (z : ℂ) => z • deriv g 0) (ball 0 1) := by
       have h2 : MapsTo g (ball 0 1) (ball (g 0) 1) := by rwa [g_0_eq_0]

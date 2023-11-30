@@ -76,7 +76,7 @@ lemma TendstoUniformlyOn.mul_of_le
     (hF : TendstoUniformlyOn F f p s) (hG : TendstoUniformlyOn G g p s)
     (hf : ∀ᶠ i in p, ∀ x ∈ s, ‖F i x‖ ≤ mf) (hg : ∀ᶠ i in p, ∀ x ∈ s, ‖G i x‖ ≤ mg) :
     TendstoUniformlyOn (F * G) (f * g) p s := by
-  by_cases NeBot p
+  by_cases h : NeBot p
   case neg => simp at h; simp [h, TendstoUniformlyOn]
   case pos =>
     set Mf := |mf| + 1
@@ -96,14 +96,14 @@ lemma TendstoUniformlyOn.mul_of_le
     filter_upwards [hf, hF (ε / (2 * Mg)) (by positivity), hG (ε / (2 * Mf)) (by positivity)] with i hf hF hG x hx
     have h2 : ‖(f x - F i x) * g x‖ < ε / 2 := by
       rw [norm_mul]
-      by_cases g x = 0
+      by_cases h : g x = 0
       case pos => simp [h, half_pos hε]
       case neg =>
         convert mul_lt_mul (hF x hx) (h1 x hx) (norm_pos_iff.mpr h) (by positivity) using 1
         simp only [div_mul, mul_div_cancel, hMg.ne.symm, Ne.def, not_false_iff]
     have h3 : ‖F i x * (g x - G i x)‖ < ε / 2 := by
       rw [norm_mul]
-      by_cases F i x = 0
+      by_cases h : F i x = 0
       case pos => simp [h, half_pos hε]
       case neg =>
         convert mul_lt_mul' (hf x hx) (hG x hx) (norm_nonneg _) hMf using 1
@@ -142,7 +142,7 @@ lemma TendstoUniformlyOn.mul_of_compact
     (hF : TendstoUniformlyOn F f p K) (hG : TendstoUniformlyOn G g p K)
     (hf : ContinuousOn f K) (hg : ContinuousOn g K) (hK : IsCompact K) :
     TendstoUniformlyOn (F * G) (f * g) p K := by
-  by_cases K = ∅
+  by_cases h : K = ∅
   case pos => simpa only [h] using tendstoUniformlyOn_empty
   case neg =>
     replace h : K.Nonempty := Set.nonempty_iff_ne_empty.2 h
@@ -171,7 +171,7 @@ lemma order_eq_zero_iff {p : FormalMultilinearSeries ℂ ℂ ℂ}
     (hp : HasFPowerSeriesAt f p z₀) (hz₀ : f z₀ = 0) :
     p.order = 0 ↔ ∀ᶠ z in 𝓝 z₀, f z = 0 := by
   rw [hp.locally_zero_iff]
-  by_cases p = 0
+  by_cases h : p = 0
   case pos => simp [h]
   case neg =>
     simp [FormalMultilinearSeries.order_eq_zero_iff h, h]
@@ -193,7 +193,7 @@ lemma cindex_pos (h1 : AnalyticAt ℂ f z₀) (h2 : f z₀ = 0) (h3 : ∀ᶠ z i
 lemma hurwitz2_1 {K : Set ℂ} (hK : IsCompact K) (F_conv : TendstoUniformlyOn F f p K)
     (hf1 : ContinuousOn f K) (hf2 : ∀ z ∈ K, f z ≠ 0) :
     ∀ᶠ n in p, ∀ z ∈ K, F n z ≠ 0 := by
-  by_cases K = ∅
+  by_cases h : K = ∅
   case pos => simp [h]
   case neg =>
     obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ K, ∀ z ∈ K, ‖f z₀‖ ≤ ‖f z‖ :=
@@ -210,7 +210,7 @@ lemma TendstoUniformlyOn.tendsto_circle_integral (hr : 0 < r)
     (F_conv : TendstoUniformlyOn F f p (sphere z₀ r)) :
     Filter.Tendsto (λ i => ∮ z in C(z₀, r), F i z) p (𝓝 (∮ z in C(z₀, r), f z))
     := by
-  by_cases NeBot p
+  by_cases h : NeBot p
   case neg => simp at h; simp [h]
   case pos =>
     have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.continuousOn F_cont
@@ -233,7 +233,7 @@ lemma hurwitz2_2 (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n)
     (hf : TendstoLocallyUniformlyOn F f p U) (hr1 : 0 < r) (hr2 : sphere z₀ r ⊆ U)
     (hf1 : ∀ (z : ℂ), z ∈ sphere z₀ r → f z ≠ 0) :
     Tendsto (cindex z₀ r ∘ F) p (𝓝 (cindex z₀ r f)) := by
-  by_cases NeBot p
+  by_cases h : NeBot p
   case neg => simp at h; simp [h]
   case pos =>
     have H1 : IsCompact (sphere z₀ r) := isCompact_sphere z₀ r
@@ -264,7 +264,7 @@ lemma hurwitz2
     :
     ∀ᶠ n in p, ∃ z ∈ ball z₀ r, F n z = 0
     := by
-  by_cases NeBot p
+  by_cases h : NeBot p
   case neg => simp at h; simp [h]
   case pos =>
     have H1 : IsCompact (sphere z₀ r) := isCompact_sphere z₀ r
@@ -290,7 +290,7 @@ lemma hurwitz3
     :
     ∀ᶠ n in p, ∃ z ∈ s, F n z = 0
     := by
-  by_cases NeBot p
+  by_cases h : NeBot p
   case neg => simp at h; simp [h]
   case pos =>
     have H1 := (hf.differentiableOn hF hU).analyticAt (hU.mem_nhds hz₀)
