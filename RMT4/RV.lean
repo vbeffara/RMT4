@@ -1,19 +1,31 @@
 import Mathlib
 
-def Copy (Ω : Type*) := Ω -- to prevent typeclass from mixing up components?
+open Prod Function
 
-structure RV (Ω : Type*) := (toFun : Ω → ℝ)
+variable {Ω Ω' α α₁ α₂ : Type*}
 
-variable {Ω Ω' : Type*}
+@[ext] structure RV (Ω : Type*) := (toFun : Ω → ℝ)
 
 instance : CoeFun (RV Ω) (fun _ => Ω → ℝ) := ⟨RV.toFun⟩
+instance : Add (RV Ω) := ⟨(⟨· + ·⟩)⟩
 
-instance : Coe (RV Ω) (RV (Ω × Ω')) := ⟨λ X => ⟨λ ω => X ω.1⟩⟩
+class compatible (α₁ α₂ : Type*) :=
+  (α : Type*)
+  (proj₁ : α → α₁)
+  (proj₂ : α → α₂)
 
-def add (X Y : RV Ω) : RV Ω := ⟨λ ω => X ω + Y ω⟩
+instance : compatible Ω Ω := ⟨Ω, id, id⟩
+instance : compatible Ω (Ω × Ω') := ⟨Ω × Ω', fst, id⟩
+instance : compatible (Ω × Ω') Ω := ⟨Ω × Ω', id, fst⟩
 
-def copy (X : RV Ω) : RV (Ω × Copy Ω) := ⟨λ ω => X ω.2⟩
+instance [T : compatible α₁ α₂] : Coe (RV α₁) (RV T.α) := ⟨λ X => ⟨X ∘ T.proj₁⟩⟩
+instance [T : compatible α₁ α₂] : Coe (RV α₂) (RV T.α) := ⟨λ X => ⟨X ∘ T.proj₂⟩⟩
 
-def double (X : RV Ω) := add (copy X) X
+instance [T : compatible α₁ α₂] : HAdd (RV α₁) (RV α₂) (RV T.α) := ⟨(· + ·)⟩
 
-def double' (X : RV Ω) := @add (Ω × Copy Ω) X (copy X) -- wrong
+def copy (X : RV Ω) : RV (Ω × Ω) := ⟨X ∘ snd⟩
+
+def double₁ (X : RV Ω) := X + copy X
+def double₂ (X : RV Ω) := copy X + X
+
+example (X : RV Ω) : double₁ X = double₂ X := by ext ω ; apply add_comm
