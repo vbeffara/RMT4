@@ -207,8 +207,8 @@ def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (z : U) :
   toLocalEquiv := T_LocalEquiv Λ z
   open_source := isOpen_source Λ z
   open_target := isOpen_target
-  continuous_toFun := toto8
-  continuous_invFun := toto8'
+  continuousOn_toFun := toto8
+  continuousOn_invFun := toto8'
 
 def T (Λ : LocalPrimitiveOn U f) (z : U) : Trivialization (Λ.p ⁻¹' {z}) (Λ.p) where
   toLocalHomeomorph := T_LocalHomeomorph Λ z

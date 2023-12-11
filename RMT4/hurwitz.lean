@@ -324,7 +324,7 @@ theorem local_hurwitz [NeBot p]
   case inl => assumption
   case inr h =>
     obtain ⟨pf, hp⟩ := H1
-    by_contra' hh
+    by_contra hh
     rw [Filter.not_eventually] at hh
     have h1 := (order_pos_iff hp hfz₀).2 hh
     obtain ⟨r, h1, h2, h3, h4⟩ :

@@ -104,7 +104,7 @@ lemma 𝓘_nonempty [good_domain U] : (𝓘 U).Nonempty := by
       norm_num at h
       have := g_sqf hz₀
       rw [Pi.pow_apply, h, zero_pow zero_lt_two] at this
-      exact f_noz hz₀ this
+      cases f_noz hz₀ this
     refine e2.eventually_constant_or_nhds_le_map_nhds.resolve_left (λ h => ?_) (image_mem_map e1)
     simp [EventuallyEq.deriv_eq h] at dg_nonzero
 

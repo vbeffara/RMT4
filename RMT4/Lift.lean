@@ -38,7 +38,7 @@ lemma reachable_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (
   rintro ⟨Γ, rfl, h2⟩
   let T₁ : Iic t₁ := ⟨t₁, mem_Iic.2 le_rfl⟩
   let δ : C(uIcc t₁ t₂, E) := ⟨λ s => T.invFun ⟨γ s, (T (Γ T₁)).2⟩,
-    T.continuous_invFun.comp_continuous (by continuity) (λ t => by simp only [T.mem_target, h t.2])⟩
+    T.continuousOn_invFun.comp_continuous (by continuity) (λ t => by simp only [T.mem_target, h t.2])⟩
   have l1 : f (Γ T₁) = γ t₁ := h2 T₁
   have l2 : Γ T₁ ∈ T.source := T.mem_source.2 <| l1 ▸ h left_mem_uIcc
   refine ⟨trans_Iic Γ δ ?_, trans_Iic_of_le nonneg', λ s => ?_⟩

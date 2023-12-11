@@ -187,7 +187,7 @@ variable [LinearOrder α] {l l1 l2 : List α} {s : Finset α}
 
 lemma List.Sorted.ext (h1 : l1.Sorted (. ≤ .)) (h2 : l2.Sorted (. ≤ .))
     (h'1 : l1.Nodup) (h'2 : l2.Nodup) (h : ∀ x, x ∈ l1 ↔ x ∈ l2) : l1 = l2 :=
-  List.eq_of_perm_of_sorted ((List.perm_ext h'1 h'2).2 h) h1 h2
+  List.eq_of_perm_of_sorted ((List.perm_ext_iff_of_nodup h'1 h'2).2 h) h1 h2
 
 lemma List.Sorted.ext' (h1 : l1.Sorted (. < .)) (h2 : l2.Sorted (. < .))
     (h4 : ∀ x, x ∈ l1 ↔ x ∈ l2) : l1 = l2 :=

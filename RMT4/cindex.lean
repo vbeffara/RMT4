@@ -107,7 +107,7 @@ lemma cindex_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
   obtain ⟨V, h1, h2, h3, h4⟩ : ∃ V, V ⊆ U ∧ IsOpen V ∧ closedBall c r ⊆ V ∧ ∀ z ∈ V, f z ≠ 0 := by
     set s : Set ℂ := { z ∈ U | f z ≠ 0 }
     have e1 : IsCompact (closedBall c r) := isCompact_closedBall _ _
-    have e2 : IsOpen s := f_hol.continuousOn.preimage_open_of_open hU isOpen_compl_singleton
+    have e2 : IsOpen s := f_hol.continuousOn.isOpen_inter_preimage hU isOpen_compl_singleton
     have e3 : closedBall c r ⊆ s := λ z hz => ⟨hcr hz, hf z hz⟩
     obtain ⟨δ, e4, e5⟩ := e1.exists_thickening_subset_open e2 e3
     refine ⟨thickening δ (closedBall c r), ?_, isOpen_thickening, self_subset_thickening e4 _, ?_⟩
@@ -132,7 +132,7 @@ lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r �
       exact λ z hz => sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm)
     · apply ContinuousOn.circleIntegrable hr.le
       refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
-      exact ((h1.contDiffOn hU).continuousOn_deriv_of_open hU le_top).mono e2
+      exact ((h1.contDiffOn hU).continuousOn_deriv_of_isOpen hU le_top).mono e2
   have e6 : (∮ z in C(z₀, r), deriv g z / g z) = 0 := by
     have := cindex_eq_zero hU hr h0 h1 h2
     simpa [cindex, Real.pi_ne_zero, I_ne_zero] using this
