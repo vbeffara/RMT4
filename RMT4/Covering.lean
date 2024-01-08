@@ -71,13 +71,13 @@ def ψ (Λ : LocalPrimitiveOn U f) (z : U) : U × ℂ ≃ U × Λ.p ⁻¹' {z} :
 def Ψ (Λ : LocalPrimitiveOn U f) (z : U) : covering Λ ≃ U × Λ.p ⁻¹' {z} :=
   (Φ Λ z).trans (ψ Λ z)
 
-def L (Λ : LocalPrimitiveOn U f) (z : U) : LocalEquiv (covering Λ) (U × Λ.p ⁻¹' {z}) :=
-  (Ψ Λ z).toLocalEquiv
+def L (Λ : LocalPrimitiveOn U f) (z : U) : PartialEquiv (covering Λ) (U × Λ.p ⁻¹' {z}) :=
+  (Ψ Λ z).toPartialEquiv
 
 lemma L_image : (L Λ z).IsImage ((val ⁻¹' Λ.S z) ×ˢ univ) ((val ⁻¹' Λ.S z) ×ˢ univ) := by
   intro ⟨z₁, z₂⟩ ; rw [mem_prod, mem_prod] ; simp [L, Ψ, ψ, Φ]
 
-def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) : LocalEquiv (covering Λ) (U × Λ.p ⁻¹' {z}) :=
+def T_LocalEquiv (Λ : LocalPrimitiveOn U f) (z : U) : PartialEquiv (covering Λ) (U × Λ.p ⁻¹' {z}) :=
   L_image.restr
 
 def nhd_from (x : U) (z : covering Λ) : Filter (covering Λ) :=
@@ -198,20 +198,20 @@ theorem toto8 : ContinuousOn (T_LocalEquiv Λ z) (T_LocalEquiv Λ z).source := b
 theorem toto8' : ContinuousOn (T_LocalEquiv Λ z).symm (T_LocalEquiv Λ z).target := by
   rintro w h
   rw [continuousWithinAt_iff_continuousAt <| isOpen_target |>.mem_nhds h]
-  simp only [T_LocalEquiv, L, LocalEquiv.IsImage.restr_target, Equiv.toLocalEquiv_target,
+  simp only [T_LocalEquiv, L, PartialEquiv.IsImage.restr_target, Equiv.toPartialEquiv_target,
     univ_inter, mem_prod, mem_preimage, mem_univ, and_true] at h
   apply toto9' h
 
 def T_LocalHomeomorph (Λ : LocalPrimitiveOn U f) (z : U) :
-    LocalHomeomorph (covering Λ) (U × Λ.p ⁻¹' {z}) where
-  toLocalEquiv := T_LocalEquiv Λ z
+    PartialHomeomorph (covering Λ) (U × Λ.p ⁻¹' {z}) where
+  toPartialEquiv := T_LocalEquiv Λ z
   open_source := isOpen_source Λ z
   open_target := isOpen_target
   continuousOn_toFun := toto8
   continuousOn_invFun := toto8'
 
 def T (Λ : LocalPrimitiveOn U f) (z : U) : Trivialization (Λ.p ⁻¹' {z}) (Λ.p) where
-  toLocalHomeomorph := T_LocalHomeomorph Λ z
+  toPartialHomeomorph := T_LocalHomeomorph Λ z
   baseSet := val ⁻¹' Λ.S z
   open_baseSet := isOpen_induced (Λ.opn z)
   source_eq := by simp [T_LocalHomeomorph, T_LocalEquiv, L] ; ext ; simp

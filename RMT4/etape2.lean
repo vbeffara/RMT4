@@ -43,7 +43,7 @@ noncomputable def φ (hu : u ∈ 𝔻) : embedding 𝔻 𝔻 :=
     simp only [mem_𝔻_iff, map_div₀, norm_div]
     refine (div_lt_iff (norm_pos_iff.mpr (one_sub_mul_conj_ne_zero hu hz))).mpr ?_
     rw [one_mul]
-    apply lt_of_pow_lt_pow 2 (norm_nonneg _)
+    apply lt_of_pow_lt_pow_left 2 (norm_nonneg _)
     simp only [norm_eq_abs]
     rw [← normSq_eq_abs, ← normSq_eq_abs, ← sub_lt_zero, normSq_sub_normSq, normSq_eq_abs, normSq_eq_abs]
     apply mul_neg_of_neg_of_pos
