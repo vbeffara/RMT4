@@ -85,35 +85,47 @@ theorem lift' (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃! Γ : C(I, E), Γ 
 
 end Lift
 
-section ExtCover
-
-def extcov (hf : IsCoveringMap f) (γ : C(I, E)) : C(I, X) :=
-    ⟨f ∘ γ, hf.continuous.comp γ.continuous⟩
-
-theorem extcover (hf : IsCoveringMap f) : IsCoveringMap (extcov hf) := by
-  intro ξ
-  refine ⟨?_, ?_⟩
-  · refine discreteTopology_iff_nhds.mpr ?refine_1.a
-    intro ⟨δ, hδ⟩
-    simp [extcov, ← ContinuousMap.ext] at hδ
-    sorry
-  · sorry
-
-end ExtCover
-
 section HomotopyLift
 
-variable {γ : C(I × I, X)} {e : E} {Y : Type*} [TopologicalSpace Y] {p : E → X}
+variable {γ : C(I × I, X)} {e : E} {Y : Type*} [TopologicalSpace Y] [LocallyConnectedSpace Y]
+  {p : E → X}
 
 theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀ y, F (y, 0) = f₀ y)
     (g₀ : Y → E) (hg₀ : p ∘ g₀ = f₀) : ∃! G : C(Y × I, E), p ∘ G = F ∧ ∀ y, G (y, 0) = g₀ y := by
   let γ (y : Y) : C(I, X) := ⟨λ t => F (y, t),
     Continuous.comp' (ContinuousMapClass.map_continuous _) (Continuous.Prod.mk _)⟩
-  have h1 {y} : γ y 0 = f₀ y := sorry
-  have h3 {y} : γ y 0 = p (g₀ y) := sorry
-  choose G hG1 hG2 using λ y => @lift' _ _ _ _ p (γ y) (g₀ y) hp h3
+  have h1 {y} : γ y 0 = f₀ y := hF y
+  have h3 {y} : γ y 0 = p (g₀ y) := by rw [h1, ← congr_fun hg₀ y] ; rfl
+  choose G hG1 hG2 using λ y => @lift' _ _ _ _ _ (γ y) (g₀ y) hp h3
+
+  -- Consider $y_0 ∈ Y$. For any $t$, $F(y_0, t)$ has an evenly covered neighbourhood $U_t$ in $X$.
+  have h4 (y₀ : Y) (t : I) := (hp (F (y₀, t))).2
+  choose T hT using h4
+  let U y₀ t := (T y₀ t).baseSet
+
+  -- By compactness of $\{y0\} × I$, we may take finitely many intervals {J_i} that cover I and a
+  -- path-connected neighbourhood V of y0 so that, for each i, F(V × J_i) is contained in some
+  -- evenly covered set U_i.
+  have step1 (y₀ : Y) : ∃ V ∈ 𝓝 y₀, ∃ S : Finset I, ∃ J : I → Set I, (IsPreconnected V) ∧
+      (∀ s ∈ S, IsConnected (J s) ∧ F '' (V ×ˢ J s) ⊆ U y₀ s) ∧ (⋃ s ∈ S, J s = univ) := by
+    let W t : Set (Y × I) := F ⁻¹' U y₀ t
+    have h7 {t} : IsOpen (W t) := (T y₀ t).open_baseSet.preimage F.continuous_toFun
+    have h11 : ∀ t, ∃ V ∈ 𝓝 y₀, ∃ J ∈ 𝓝 t, IsConnected J ∧ V ×ˢ J ⊆ W t := sorry
+    choose Vt hV J hJ hJ2 hVJ using h11
+    have h12 : ⋃ t, J t = univ := iUnion_eq_univ_iff.mpr (λ t => ⟨t, mem_of_mem_nhds (hJ t)⟩)
+    choose S hS using CompactSpace.elim_nhds_subcover J hJ
+    have h15 : ⋂ s ∈ S, Vt s ∈ 𝓝 y₀ := (Filter.biInter_finset_mem _).mpr (λ s _ => hV s)
+    have h16 := locallyConnectedSpace_iff_connected_subsets.mp inferInstance y₀ _ h15
+    obtain ⟨V, hV1, hV2, hV3⟩ := h16
+    refine ⟨V, hV1, S, J, hV2, λ s hs => ⟨hJ2 s, ?_⟩, hS⟩
+    refine image_subset_iff.mpr (subset_trans ?_ (hVJ s))
+    exact prod_subset_prod_iff.mpr (Or.inl ⟨hV3.trans (biInter_subset_of_mem hs), by rfl⟩)
+
   refine ⟨⟨λ yt => G yt.1 yt.2, ?_⟩, ⟨?_, ?_⟩, ?_⟩
-  · sorry
+  · rw [continuous_iff_continuousAt]
+    intro yt
+    obtain ⟨T, hT⟩ := (hp (f (g₀ yt.1))).2
+    sorry
   · exact funext (λ yt => congr_fun (hG1 yt.1).2 yt.2)
   · exact λ y => (hG1 y).1
   · intro H ⟨hH1, hH2⟩
