@@ -92,45 +92,28 @@ variable {γ : C(I × I, X)} {e : E} {Y : Type*} [TopologicalSpace Y] [LocallyCo
 
 instance : LocallyConnectedSpace I := sorry
 
-lemma lemma1 (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × ↑I, X)) (hF : ∀ (y : Y), F (y, 0) = f₀ y) (g₀ : Y → E)
-  (hg₀ : p ∘ g₀ = ⇑f₀) :
-  let γ := ContinuousMap.curry F;
-  (∀ {y : Y}, (γ y) 0 = f₀ y) →
-    (∀ {y : Y}, (γ y) 0 = p (g₀ y)) →
-      ∀ (G : Y → C(↑I, E)),
-        (∀ (y : Y), (fun Γ => Γ 0 = g₀ y ∧ p ∘ Γ = ⇑(γ y)) (G y)) →
-          (∀ (y : Y) (y_1 : C(↑I, E)), (fun Γ => Γ 0 = g₀ y ∧ p ∘ Γ = ⇑(γ y)) y_1 → y_1 = G y) →
-            ∀ (T : (y₀ : Y) → (t : ↑I) → Trivialization (↑(p ⁻¹' {F (y₀, t)})) p),
-              (∀ (y₀ : Y) (t : ↑I), F (y₀, t) ∈ (T y₀ t).baseSet) →
-                let U := fun y₀ t => (T y₀ t).baseSet;
-                ∀ (y₀ : Y),
-                  ∃ V ∈ 𝓝 y₀,
-                    ∃ S : Finset I, ∃ J : I → Set I,
-                      IsPreconnected V ∧
-                        (∀ s ∈ S, IsConnected (J s) ∧ ⇑F '' V ×ˢ J s ⊆ U y₀ s) ∧ ⋃ s ∈ S, J s = univ := by
-  intro γ h1 h3 G hG1 hG2 T hT U y₀
-  let W t : Set (Y × I) := F ⁻¹' U y₀ t
-  have h7 {t} : IsOpen (W t) := (T y₀ t).open_baseSet.preimage F.continuous_toFun
-  have h11 t : ∃ V ∈ 𝓝 y₀, ∃ J ∈ 𝓝 t, IsConnected J ∧ V ×ˢ J ⊆ W t := by
-    have l1 : (y₀, t) ∈ W t := hT y₀ t
-    have l2 : W t ∈ 𝓝 (y₀, t) := h7.mem_nhds (hT y₀ t)
-    rw [mem_nhds_prod_iff] at l2
-    obtain ⟨V, hV, J₀, hJ₀, h⟩ := l2
+-- Consider $y_0 ∈ Y$. For any $t$, $F(y_0, t)$ has an evenly covered neighbourhood $U_t$ in $X$.
+-- By compactness of $\{y0\} × I$, we may take finitely many intervals {J_i} that cover I and a
+-- path-connected neighbourhood V of y0 so that, for each i, F(V × J_i) is contained in some
+-- evenly covered set U_i.
+lemma lemma1 {y₀} {F : C(Y × ↑I, X)} {T : (t : I) → Trivialization (p ⁻¹' {F (y₀, t)}) p}
+    (hT : ∀ t, F (y₀, t) ∈ (T t).baseSet) : ∃ V ∈ 𝓝 y₀, ∃ S : Finset I, ∃ J : I → Set I,
+    IsConnected V ∧ (∀ s ∈ S, IsConnected (J s) ∧ ⇑F '' V ×ˢ J s ⊆ (T s).baseSet) ∧
+    ⋃ s ∈ S, J s = univ := by
+  let W t : Set (Y × I) := F ⁻¹' (T t).baseSet
+  have h1 t : ∃ V ∈ 𝓝 y₀, ∃ J ∈ 𝓝 t, IsConnected J ∧ V ×ˢ J ⊆ W t := by
+    have l1 : IsOpen (W t) := (T t).open_baseSet.preimage F.continuous_toFun
+    obtain ⟨V, hV, J₀, hJ₀, h⟩ := mem_nhds_prod_iff.mp <| l1.mem_nhds (hT _)
     obtain ⟨J, hJ1, hJ2, hJ3⟩ := locallyConnectedSpace_iff_connected_subsets.mp inferInstance _ _ hJ₀
-    refine ⟨V, hV, J, hJ1, ⟨⟨t, mem_of_mem_nhds hJ1⟩, hJ2⟩, ?_⟩
-    refine subset_trans ?_ h
-    exact Set.prod_mono_right hJ3
-  choose Vt hV J hJ hJ2 hVJ using h11
-  have h12 : ⋃ t, J t = univ := iUnion_eq_univ_iff.mpr (λ t => ⟨t, mem_of_mem_nhds (hJ t)⟩)
+    exact ⟨V, hV, J, hJ1, ⟨⟨t, mem_of_mem_nhds hJ1⟩, hJ2⟩, subset_trans (Set.prod_mono_right hJ3) h⟩
+  choose Vt hV J hJ hJ2 hVJ using h1
   choose S hS using CompactSpace.elim_nhds_subcover J hJ
-  have h15 : ⋂ s ∈ S, Vt s ∈ 𝓝 y₀ := (Filter.biInter_finset_mem _).mpr (λ s _ => hV s)
-  have h16 := locallyConnectedSpace_iff_connected_subsets.mp inferInstance y₀ _ h15
-  obtain ⟨V, hV1, hV2, hV3⟩ := h16
-  refine ⟨V, hV1, S, J, hV2, λ s hs => ⟨hJ2 s, ?_⟩, hS⟩
+  have h2 : ⋂ s ∈ S, Vt s ∈ 𝓝 y₀ := (Filter.biInter_finset_mem _).mpr (λ s _ => hV s)
+  have h3 := locallyConnectedSpace_iff_connected_subsets.mp inferInstance y₀ _ h2
+  obtain ⟨V, hV1, hV2, hV3⟩ := h3
+  refine ⟨V, hV1, S, J, ⟨⟨y₀, mem_of_mem_nhds hV1⟩, hV2⟩, λ s hs => ⟨hJ2 s, ?_⟩, hS⟩
   refine image_subset_iff.mpr (subset_trans ?_ (hVJ s))
-  apply Set.prod_mono_left
-  apply hV3.trans
-  exact biInter_subset_of_mem hs
+  exact Set.prod_mono_left <| hV3.trans <| biInter_subset_of_mem hs
 
 theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀ y, F (y, 0) = f₀ y)
     (g₀ : Y → E) (hg₀ : p ∘ g₀ = f₀) : ∃! G : C(Y × I, E), p ∘ G = F ∧ ∀ y, G (y, 0) = g₀ y := by
@@ -139,17 +122,13 @@ theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀
   have h3 {y} : γ y 0 = p (g₀ y) := by rw [h1, ← congr_fun hg₀ y] ; rfl
   choose G hG1 hG2 using λ y => @lift' _ _ _ _ _ (γ y) (g₀ y) hp h3
 
-  -- Consider $y_0 ∈ Y$. For any $t$, $F(y_0, t)$ has an evenly covered neighbourhood $U_t$ in $X$.
   have h4 (y₀ : Y) (t : I) := (hp (F (y₀, t))).2
   choose T hT using h4
   let U y₀ t := (T y₀ t).baseSet
 
-  -- By compactness of $\{y0\} × I$, we may take finitely many intervals {J_i} that cover I and a
-  -- path-connected neighbourhood V of y0 so that, for each i, F(V × J_i) is contained in some
-  -- evenly covered set U_i.
-  have step1 (y₀ : Y) : ∃ V ∈ 𝓝 y₀, ∃ S : Finset I, ∃ J : I → Set I, (IsPreconnected V) ∧
-      (∀ s ∈ S, IsConnected (J s) ∧ F '' (V ×ˢ J s) ⊆ U y₀ s) ∧ (⋃ s ∈ S, J s = univ) := by
-    apply lemma1 <;> assumption
+  have step1 y₀ : ∃ V ∈ 𝓝 y₀, ∃ S : Finset I, ∃ J : I → Set I, IsConnected V ∧
+      (∀ s ∈ S, IsConnected (J s) ∧ F '' (V ×ˢ J s) ⊆ U y₀ s) ∧ (⋃ s ∈ S, J s = univ) :=
+    lemma1 (hT y₀)
 
   refine ⟨⟨λ yt => G yt.1 yt.2, ?_⟩, ⟨?_, ?_⟩, ?_⟩
   · rw [continuous_iff_continuousAt]
