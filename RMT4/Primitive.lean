@@ -1,13 +1,5 @@
-import Mathlib.Tactic
-import Mathlib.Analysis.Calculus.FDeriv.Add
-import Mathlib.Analysis.Calculus.FDeriv.Mul
-import Mathlib.Analysis.Convex.Star
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.MeasureTheory.Integral.IntervalIntegral
-import Mathlib.Order.Interval
 import RMT4.to_mathlib
+import Mathlib.Order.Interval
 
 open Set BigOperators Metric Filter MeasureTheory intervalIntegral
 

@@ -1,10 +1,5 @@
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.ParametricIntegral
-import Mathlib.Order.Interval
-import Mathlib.MeasureTheory.Integral.CircleIntegral
-import Mathlib.MeasureTheory.Integral.IntervalIntegral
-import Mathlib.MeasureTheory.Function.Jacobian
 import RMT4.to_mathlib
+import Mathlib.Topology.MetricSpace.Polish
 
 open intervalIntegral Real MeasureTheory Filter Topology Set Metric
 

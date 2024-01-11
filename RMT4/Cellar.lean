@@ -1,4 +1,3 @@
-import Mathlib
 import RMT4.Lift
 
 set_option autoImplicit false

@@ -1,10 +1,3 @@
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.ParametricIntegral
-import Mathlib.Order.Interval
-import Mathlib.MeasureTheory.Integral.CircleIntegral
-import Mathlib.MeasureTheory.Integral.IntervalIntegral
-import Mathlib.MeasureTheory.Function.Jacobian
-import Mathlib.Topology.PathConnected
 import RMT4.to_mathlib
 
 open intervalIntegral Set

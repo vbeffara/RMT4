@@ -1,4 +1,3 @@
-import Mathlib
 import RMT4.pintegral
 import RMT4.LocallyConstant
 import RMT4.to_mathlib

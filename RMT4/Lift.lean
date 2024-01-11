@@ -92,6 +92,8 @@ variable {γ : C(I × I, X)} {e : E} {Y : Type*} [TopologicalSpace Y] [LocallyCo
 
 instance : LocallyConnectedSpace I := sorry
 
+instance : LocPathConnectedSpace I := sorry
+
 -- Consider $y_0 ∈ Y$. For any $t$, $F(y_0, t)$ has an evenly covered neighbourhood $U_t$ in $X$.
 -- By compactness of $\{y0\} × I$, we may take finitely many intervals {J_i} that cover I and a
 -- path-connected neighbourhood V of y0 so that, for each i, F(V × J_i) is contained in some
@@ -129,6 +131,10 @@ theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀
   have step1 y₀ : ∃ V ∈ 𝓝 y₀, ∃ S : Finset I, ∃ J : I → Set I, IsConnected V ∧
       (∀ s ∈ S, IsConnected (J s) ∧ F '' (V ×ˢ J s) ⊆ U y₀ s) ∧ (⋃ s ∈ S, J s = univ) :=
     lemma1 (hT y₀)
+  choose! V hV S J h using step1
+
+  
+  -- Let $U_{δ_i}$ be the unique slice of p^{−1}(U_i) such that $\hat F({y0} × J_i) ⊆ U_{δ_i}$.
 
   refine ⟨⟨λ yt => G yt.1 yt.2, ?_⟩, ⟨?_, ?_⟩, ?_⟩
   · rw [continuous_iff_continuousAt]
