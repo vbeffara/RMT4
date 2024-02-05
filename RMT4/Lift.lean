@@ -19,12 +19,12 @@ lemma isClopen_iff_nhds {E : Type*} [TopologicalSpace E] {s : Set E} :
     IsClopen s ↔ ∀ a, ∀ᶠ b in 𝓝 a, b ∈ s ↔ a ∈ s where
   mp h a := by
     by_cases h3 : a ∈ s
-    · simpa [h3] using h.1.mem_nhds h3
-    · simpa only [h3, iff_false] using h.2.isOpen_compl.mem_nhds h3
+    · simpa [h3] using h.2.mem_nhds h3
+    · simpa only [h3, iff_false] using h.1.isOpen_compl.mem_nhds h3
   mpr h := by
     constructor
-    · simpa [isOpen_iff_mem_nhds] using λ a ha => by simpa [ha] using h a
     · exact ⟨by simpa [isOpen_iff_mem_nhds] using λ a ha => by simpa only [ha, iff_false] using h a⟩
+    · simpa [isOpen_iff_mem_nhds] using λ a ha => by simpa [ha] using h a
 
 instance : Zero (Iic t) := ⟨0, nonneg'⟩
 -- instance : ZeroLEOneClass I := ⟨nonneg'⟩
@@ -133,7 +133,7 @@ theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀
     lemma1 (hT y₀)
   choose! V hV S J h using step1
 
-  
+
   -- Let $U_{δ_i}$ be the unique slice of p^{−1}(U_i) such that $\hat F({y0} × J_i) ⊆ U_{δ_i}$.
 
   refine ⟨⟨λ yt => G yt.1 yt.2, ?_⟩, ⟨?_, ?_⟩, ?_⟩

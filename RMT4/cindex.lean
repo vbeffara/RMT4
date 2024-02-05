@@ -132,7 +132,9 @@ lemma cindex_eq_order_aux (hU : IsOpen U) (hr : 0 < r) (h0 : closedBall z₀ r �
       exact λ z hz => sub_ne_zero.mpr (ne_of_mem_sphere hz hr.ne.symm)
     · apply ContinuousOn.circleIntegrable hr.le
       refine ContinuousOn.div ?_ (h1.continuousOn.mono e2) (λ z hz => h2 _ (sphere_subset_closedBall hz))
-      exact ((h1.contDiffOn hU).continuousOn_deriv_of_isOpen hU le_top).mono e2
+      refine ContinuousOn.mono ?_ e2
+      apply ContDiffOn.continuousOn_deriv_of_isOpen ?_ hU le_rfl
+      exact h1.contDiffOn hU
   have e6 : (∮ z in C(z₀, r), deriv g z / g z) = 0 := by
     have := cindex_eq_zero hU hr h0 h1 h2
     simpa [cindex, Real.pi_ne_zero, I_ne_zero] using this

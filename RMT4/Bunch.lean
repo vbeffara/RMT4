@@ -1,6 +1,7 @@
 import Mathlib.Topology.Basic
 import Mathlib.Data.Set.Image
 import Mathlib.Topology.MetricSpace.Basic
+-- import LeanCopilot
 
 set_option autoImplicit false
 
@@ -213,7 +214,7 @@ lemma lift_congr (f : γ → α) (g₁ g₂ : γ → B.space) (h₁ : IsLiftOf g
     {x₀ : γ} (h₀ : g₁ x₀ = g₂ x₀) : g₁ = g₂ := by
   let s : Set γ := { x | g₁ x = g₂ x }
   have h2 : IsClosed s := by sorry
-  have h3 : IsClopen s := ⟨isOpen_eq_of_lift h₁ h₂, h2⟩
+  have h3 : IsClopen s := ⟨h2, isOpen_eq_of_lift h₁ h₂⟩
   have h4 : s = univ := (isClopen_iff.1 h3).resolve_left <| Nonempty.ne_empty ⟨x₀, h₀⟩
   exact funext (λ x => (h4 ▸ mem_univ x : x ∈ s))
 end lift

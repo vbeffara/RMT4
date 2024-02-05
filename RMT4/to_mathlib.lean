@@ -17,7 +17,7 @@ lemma mem_closed_ball_neg_iff_mem_neg_closed_ball [SeminormedAddCommGroup V] {u 
 lemma DifferentiableAt.deriv_eq_deriv_pow_div_pow {n : ℕ} (n_pos : 0 < n) {f g : ℂ → ℂ}
     (hg : ∀ᶠ z in 𝓝 z, f z = (g z) ^ n) (g_diff : DifferentiableAt ℂ g z) (fz_nonzero : f z ≠ 0) :
     deriv g z = deriv f z / (n * (g z) ^ (n - 1)) := by
-  have h1 : g z ≠ 0 := λ h => fz_nonzero (by simp [Eventually.self_of_nhds hg, h, n_pos])
+  have h1 : g z ≠ 0 := λ h => fz_nonzero (by simp [Eventually.self_of_nhds hg, h, n_pos.ne.symm])
   have h2 : n * (g z) ^ (n - 1) ≠ 0 := by simp [pow_ne_zero, h1, n_pos.ne.symm]
   rw [(EventuallyEq.deriv hg).self_of_nhds, deriv_pow'' _ g_diff, eq_div_iff h2]
   ring
