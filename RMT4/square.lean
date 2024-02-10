@@ -80,13 +80,65 @@ theorem RectangleIntegral_of_LineIntegral {z w : ℂ} (hf : Continuous f) : Rect
   simp_rw [SideIntegral_eq_LineIntegral hf, SideIntegral_eq_LineIntegral' hf]
   simp [zw]; abel
 
-noncomputable abbrev RectangleCurve (z w : ℂ) (t : ℝ) : ℂ :=
+noncomputable abbrev RC (z w : ℂ) (t : ℝ) : ℂ :=
   if t ≤ 1 then Φ z (zw z w) t else
   if t ≤ 2 then Φ (zw z w) w (t - 1) else
   if t ≤ 3 then Φ w (zw w z) (t - 2) else
   Φ (zw w z) z (t - 3)
 
+theorem RC_1 {z w : ℂ} (ht : t ∈ Set.uIcc 0 1) : RC z w t = Φ z (zw z w) t := sorry
+theorem RC_2 {z w : ℂ} (ht : t ∈ Set.uIcc 1 2) : RC z w t = Φ (zw z w) w (t - 1) := sorry
+theorem RC_3 {z w : ℂ} (ht : t ∈ Set.uIcc 2 3) : RC z w t = Φ w (zw w z) (t - 2) := sorry
+theorem RC_4 {z w : ℂ} (ht : t ∈ Set.uIcc 3 4) : RC z w t = Φ (zw w z) z (t - 3) := sorry
+
+noncomputable abbrev RC' (z w : ℂ) (t : ℝ) : ℂ :=
+  if t ≤ 1 then Φ' z (zw z w) t else
+  if t ≤ 2 then Φ' (zw z w) w (t - 1) else
+  if t ≤ 3 then Φ' w (zw w z) (t - 2) else
+  Φ' (zw w z) z (t - 3)
+
+theorem RC'_1 {z w : ℂ} (ht : t ∈ Set.uIcc 0 1) : RC' z w t = Φ' z (zw z w) t := sorry
+theorem RC'_2 {z w : ℂ} (ht : t ∈ Set.uIcc 1 2) : RC' z w t = Φ' (zw z w) w (t - 1) := sorry
+theorem RC'_3 {z w : ℂ} (ht : t ∈ Set.uIcc 2 3) : RC' z w t = Φ' w (zw w z) (t - 2) := sorry
+theorem RC'_4 {z w : ℂ} (ht : t ∈ Set.uIcc 3 4) : RC' z w t = Φ' (zw w z) z (t - 3) := sorry
+
+theorem RC_hasderiv {z w : ℂ} {t : ℝ} : HasDerivAt (RC z w) (RC' z w t) t := by sorry
+@[simp] theorem RC_deriv {z w : ℂ} {t : ℝ} : deriv (RC z w) t = RC' z w t := RC_hasderiv.deriv
+
+theorem side_1 {z w : ℂ} :
+    ∫ x in (0 : ℝ)..1, RC' z w x • f (RC z w x) = LineIntegral f z (zw z w) := by
+  apply intervalIntegral.integral_congr
+  intro t ht
+  simp [RC_1, RC'_1, ht, Φ_deriv]
+
+theorem side_2 {z w : ℂ} :
+    ∫ x in (1 : ℝ)..2, RC' z w x • f (RC z w x) = LineIntegral f (zw z w) w := by
+  have e1 : (1 : ℝ) = 0 + 1 := by norm_num
+  have e2 : (2 : ℝ) = 1 + 1 := by norm_num
+  rw [e1, e2, ← intervalIntegral.integral_comp_add_right]
+  apply intervalIntegral.integral_congr
+  intro t ht
+  have ht' : t + 1 ∈ Set.uIcc 1 2 := sorry
+  simp [RC_2, RC'_2, ht', Φ_deriv]
+
+theorem side_3 {z w : ℂ} :
+    ∫ x in (2 : ℝ)..3, RC' z w x • f (RC z w x) = LineIntegral f w (zw w z) := by
+  have e1 : (2 : ℝ) = 0 + 2 := by norm_num
+  have e2 : (3 : ℝ) = 1 + 2 := by norm_num
+  rw [e1, e2, ← intervalIntegral.integral_comp_add_right]
+  apply intervalIntegral.integral_congr
+  intro t ht
+  have ht' : t + 1 ∈ Set.uIcc 1 2 := sorry
+  simp [RC_2, RC'_2, ht', Φ_deriv]
+
+theorem side_4 {z w : ℂ} :
+  ∫ x in (3 : ℝ)..4, RC' z w x • f (RC z w x) = LineIntegral f (zw w z) z := by sorry
+
 theorem main_result {z w : ℂ} (hf : Continuous f) :
-    RectangleIntegral f z w = cint f (RectangleCurve z w) 0 4 := by
-  rw [RectangleIntegral_of_LineIntegral hf]
+    RectangleIntegral f z w = cint f (RC z w) 0 4 := by
+  rw [RectangleIntegral_of_LineIntegral hf, cint]
+  rw [← intervalIntegral.integral_add_adjacent_intervals (a := 0) (b := 1)]
+  rw [← intervalIntegral.integral_add_adjacent_intervals (a := 1) (b := 2)]
+  rw [← intervalIntegral.integral_add_adjacent_intervals (a := 2) (b := 3)]
+  simp_rw [RC_deriv, side_1, side_2, side_3, side_4] ; abel
   sorry
