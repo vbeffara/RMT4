@@ -5,12 +5,18 @@ set_option autoImplicit false
 
 local notation "𝕀" => unitInterval
 
-variable {f : ℂ → ℂ} {w z : ℂ} {x x₁ x₂ y y₁ y₂ : ℝ}
+variable {f : ℂ → ℂ} {w z z₁ z₂ z₃ : ℂ} {x x₁ x₂ y y₁ y₂ : ℝ}
 
 open Complex Set
 
 noncomputable def SegmentIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ :=
     (w - z) • ∫ t in (0:ℝ)..1, f (z + t • (w - z))
+
+theorem SegmentIntegral.symm : SegmentIntegral f w z = - SegmentIntegral f z w := by
+  simp [SegmentIntegral]
+  have := @intervalIntegral.integral_comp_sub_left ℂ _ _ 0 1 (λ t => f (w + (1 - t) * (z - w))) 1
+  simp at this ; rw [this]
+  ring_nf ; congr <;> ext <;> ring_nf
 
 theorem shim : SegmentIntegral = primitive := by
   ext f z w
@@ -24,6 +30,12 @@ theorem cheat (hf : Differentiable ℂ f) : HasDerivAt (SegmentIntegral f z) (f 
   have h1 : StarConvex ℝ z (univ : Set ℂ) := starConvex_univ z
   rw [shim]
   exact @DifferentiableOn.exists_primitive f z w univ hf.differentiableOn h1 isOpen_univ (mem_univ _)
+
+theorem cheat' (hf : Differentiable ℂ f) : HasDerivAt (λ z => SegmentIntegral f z w) (- f z) z := by
+  have : (λ z => SegmentIntegral f z w) = (λ z => - SegmentIntegral f w z) := by
+    ext ; exact SegmentIntegral.symm
+  rw [this]
+  exact (cheat hf).neg
 
 noncomputable def RectangleIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ :=
     ((∫ x : ℝ in z.re..w.re, f (x + z.im * I)) - (∫ x : ℝ in z.re..w.re, f (x + w.im * I))
@@ -57,3 +69,11 @@ theorem rect_eq_quad : RectangleIntegral f z w = QuadIntegral f z (zw z w) w (zw
   simp_rw [← intervalIntegral.integral_symm]
   simp_rw [SideIntegral_eq_LineIntegral, SideIntegral_eq_LineIntegral']
   simp [zw] ; ring
+
+theorem loc_constant_1 {hf : Differentiable ℂ f} : HasDerivAt (QuadIntegral f z₁ z₂ z₃) 0 z := by
+  have : HasDerivAt (fun _ => SegmentIntegral f z₁ z₂ + SegmentIntegral f z₂ z₃) 0 z :=
+    hasDerivAt_const z _
+  have : HasDerivAt (fun w₄ => SegmentIntegral f z₁ z₂ + SegmentIntegral f z₂ z₃ +
+      SegmentIntegral f z₃ w₄) (f z) z := by
+    simpa using @HasDerivAt.add _ _ _ _ _ _ (SegmentIntegral f z₃) 0 (f z) z this (cheat hf)
+  simpa using HasDerivAt.add (f' := f z) (g' := -f z) (x := z) this (cheat' hf)
