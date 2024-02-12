@@ -2,6 +2,8 @@ import Mathlib
 
 set_option autoImplicit false
 
+local notation "𝕀" => unitInterval
+
 open Complex
 
 variable {V : Type} [NormedAddCommGroup V] [NormedSpace ℝ V] {w z : V}
@@ -11,7 +13,21 @@ noncomputable def RectangleIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ :=
     ((∫ x : ℝ in z.re..w.re, f (x + z.im * I)) - (∫ x : ℝ in z.re..w.re, f (x + w.im * I))
      + I • (∫ y : ℝ in z.im..w.im, f (w.re + y * I)) - I • ∫ y : ℝ in z.im..w.im, f (z.re + y * I))
 
+structure C1Path where
+  toFun : ℝ → ℂ
+  contDiffOn : ContDiffOn ℝ 1 toFun 𝕀
+
+noncomputable def concat (Γ₁ Γ₂ : C1Path) (h0 : Γ₁.toFun 1 = Γ₂.toFun 0)
+    (h1 : derivWithin Γ₁.toFun 𝕀 1 = derivWithin Γ₂.toFun 𝕀 0) : C1Path where
+  toFun t := if t ≤ 0.5 then Γ₁.toFun (2 * t) else Γ₂.toFun (2 * t - 1)
+  contDiffOn := by
+    refine (contDiffOn_succ_iff_derivWithin uniqueDiffOn_Icc_zero_one).mpr ⟨?_, ?_⟩
+    · sorry
+    · sorry
+
 noncomputable def cint (f : ℂ → ℂ) (γ : ℝ → ℂ) (a b : ℝ) : ℂ := ∫ t in a..b, deriv γ t • f (γ t)
+
+noncomputable def C1Int (f : ℂ → ℂ) (Γ : C1Path) : ℂ := cint f Γ.toFun 0 1
 
 abbrev φ : ℝ → ℝ := fun t => 3 * t ^ 2 - 2 * t ^ 3
 abbrev φ' : ℝ → ℝ := fun t => 6 * t - 6 * t ^ 2
@@ -39,7 +55,7 @@ noncomputable abbrev Φ' (w z : V) (t : ℝ) : V := φ' t • (z - w)
 
 theorem Φ_hasderiv : HasDerivAt (Φ w z) (Φ' w z t) t := (φ_hasderiv.smul_const _).const_add _
 
-@[simp] theorem Φ_deriv : deriv (Φ w z) t = Φ' w z t := Φ_hasderiv.deriv
+@[simp] theorem Φ_deriv : deriv (Φ w z) = Φ' w z := by ext1 t; exact Φ_hasderiv.deriv
 @[simp] theorem Φ_zero : Φ w z 0 = w := by simp
 @[simp] theorem Φ_one : Φ w z 1 = z := by simp [Φ]
 @[simp] theorem Φ'_zero : Φ' w z 0 = 0 := by simp
@@ -47,7 +63,16 @@ theorem Φ_hasderiv : HasDerivAt (Φ w z) (Φ' w z t) t := (φ_hasderiv.smul_con
 
 theorem Φ'_continuous : Continuous (Φ' w z) := φ'_continuous.smul continuous_const
 
-noncomputable def LineIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ := cint f (Φ z w) 0 1
+noncomputable def Ψ (w z : ℂ) : C1Path where
+  toFun := Φ w z
+  contDiffOn := by
+    apply ContDiff.contDiffOn
+    apply contDiff_succ_iff_deriv.mpr
+    constructor
+    · exact fun t => Φ_hasderiv.differentiableAt
+    · simpa only [Nat.zero_eq, CharP.cast_eq_zero, contDiff_zero, Φ_deriv] using Φ'_continuous
+
+noncomputable def LineIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ := C1Int f (Ψ z w)
 
 theorem SideIntegral_eq_LineIntegral {f : ℂ → ℂ} (hf : Continuous f) :
     ∫ x : ℝ in x₁..x₂, f (x + y * I) = LineIntegral f (x₁ + y * I) (x₂ + y * I) := by
@@ -57,7 +82,8 @@ theorem SideIntegral_eq_LineIntegral {f : ℂ → ℂ} (hf : Continuous f) :
   rw [← this]
   apply intervalIntegral.integral_congr
   intro t _
-  simp [Φ, Φ_deriv]; left; ring_nf
+  simp only [Ψ, Φ, Φ_deriv, Φ', φ']
+  simp; left; ring_nf
 
 theorem SideIntegral_eq_LineIntegral' {f : ℂ → ℂ} (hf : Continuous f) :
     I * ∫ y : ℝ in y₁..y₂, f (x + y * I) = LineIntegral f (x + y₁ * I) (x + y₂ * I) := by
@@ -68,7 +94,8 @@ theorem SideIntegral_eq_LineIntegral' {f : ℂ → ℂ} (hf : Continuous f) :
   rw [← intervalIntegral.integral_const_mul]
   apply intervalIntegral.integral_congr
   intro t _
-  simp [Φ, Φ_deriv]; ring_nf
+  simp only [Φ, Φ_deriv, Φ', φ', Ψ]
+  simp ; ring_nf
 
 def zw (z w : ℂ) : ℂ := w.re + z.im * I
 
@@ -85,6 +112,11 @@ noncomputable abbrev RC (z w : ℂ) (t : ℝ) : ℂ :=
   if t ≤ 2 then Φ (zw z w) w (t - 1) else
   if t ≤ 3 then Φ w (zw w z) (t - 2) else
   Φ (zw w z) z (t - 3)
+
+noncomputable def RRCC (z w : ℂ) : C1Path := by
+  let p1 := concat (Ψ z (zw z w)) (Ψ (zw z w) w) (by simp [Ψ]) sorry
+  let p2 := concat (Ψ w (zw w z)) (Ψ (zw w z) z) (by simp [Ψ]) sorry
+  exact concat p1 p2 sorry sorry
 
 theorem RC_1 {z w : ℂ} (ht : t ∈ Set.uIcc 0 1) : RC z w t = Φ z (zw z w) t := sorry
 theorem RC_2 {z w : ℂ} (ht : t ∈ Set.uIcc 1 2) : RC z w t = Φ (zw z w) w (t - 1) := sorry
