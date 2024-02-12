@@ -5,7 +5,7 @@ set_option autoImplicit false
 
 local notation "𝕀" => unitInterval
 
-variable {f : ℂ → ℂ} {w z z₁ z₂ z₃ : ℂ} {x x₁ x₂ y y₁ y₂ : ℝ}
+variable {f : ℂ → ℂ} {w z z₁ z₂ z₃ z₄ w₁ w₂ w₃ w₄ : ℂ} {x x₁ x₂ y y₁ y₂ : ℝ}
 
 open Complex Set
 
@@ -44,6 +44,9 @@ noncomputable def RectangleIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ :=
 noncomputable def QuadIntegral (f : ℂ → ℂ) (w₁ w₂ w₃ w₄ : ℂ) : ℂ := SegmentIntegral f w₁ w₂ +
     SegmentIntegral f w₂ w₃ + SegmentIntegral f w₃ w₄ + SegmentIntegral f w₄ w₁
 
+theorem QuadIntegral_rotate : QuadIntegral f w₂ w₃ w₄ w₁ = QuadIntegral f w₁ w₂ w₃ w₄ := by
+  simp [QuadIntegral] ; abel
+
 theorem SideIntegral_eq_LineIntegral {f : ℂ → ℂ} :
     ∫ x : ℝ in x₁..x₂, f (x + y * I) = SegmentIntegral f (x₁ + y * I) (x₂ + y * I) := by
   have := @intervalIntegral.smul_integral_comp_mul_add ℂ _ _ _ 0 1 (fun z => f (z + y * I)) (x₂ - x₁) x₁
@@ -70,7 +73,7 @@ theorem rect_eq_quad : RectangleIntegral f z w = QuadIntegral f z (zw z w) w (zw
   simp_rw [SideIntegral_eq_LineIntegral, SideIntegral_eq_LineIntegral']
   simp [zw] ; ring
 
-theorem loc_constant_1 {hf : Differentiable ℂ f} : HasDerivAt (QuadIntegral f z₁ z₂ z₃) 0 z := by
+theorem loc_constant_4 {hf : Differentiable ℂ f} : HasDerivAt (QuadIntegral f z₁ z₂ z₃) 0 z := by
   have : HasDerivAt (fun _ => SegmentIntegral f z₁ z₂ + SegmentIntegral f z₂ z₃) 0 z :=
     hasDerivAt_const z _
   have : HasDerivAt (fun w₄ => SegmentIntegral f z₁ z₂ + SegmentIntegral f z₂ z₃ +
