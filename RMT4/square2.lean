@@ -3,10 +3,12 @@ import RMT4.Primitive
 
 set_option autoImplicit false
 
-variable {f f' : ℂ → ℂ} {w z z₁ z₂ z₃ z₄ w₁ w₂ w₃ w₄ p : ℂ} {W : Fin 4 -> ℂ} {t x x₁ x₂ y y₁ y₂ : ℝ}
-  {U : Set ℂ} {γ₁ γ₂ : ℝ → ℂ}
+variable {f f' F : ℂ → ℂ} {w z z₁ z₂ z₃ z₄ w₁ w₂ w₃ w₄ p : ℂ} {W : Fin 4 -> ℂ}
+  {t x x₁ x₂ y y₁ y₂ : ℝ} {U : Set ℂ} {γ₁ γ₂ : ℝ → ℂ}
 
 open Complex Set Metric Topology Interval
+
+local notation "𝕀" => Icc (0 : ℝ) 1
 
 noncomputable def SegmentIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ :=
     (w - z) • ∫ t in (0:ℝ)..1, f (z + t • (w - z))
@@ -62,47 +64,45 @@ theorem SegmentIntegral_deriv (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     exact l0 ht
   simpa using intervalIntegral.integral_unitInterval_deriv_eq_sub l1 l2
 
+lemma mapsto_segment (h : segment ℝ z w ⊆ U) : MapsTo (fun t => z + t • (w - z)) 𝕀 U := by
+  intro t ht ; apply h ; convert mem_segment ht using 1 ; simp ; ring
+
+theorem SegmentIntegral_deriv' (hf : ContinuousOn f U) (hzw : segment ℝ z w ⊆ U)
+    (h'2 : ∀ z ∈ U, HasDerivAt F (f z) z) : SegmentIntegral f z w = F w - F z := by
+  have l1 : ContinuousOn (fun t => f (z + t • (w - z))) 𝕀 := by
+    refine hf.comp ?_ <| mapsto_segment hzw
+    apply Continuous.continuousOn ; continuity
+  have l2 (t : ℝ) (ht : t ∈ 𝕀) : HasDerivAt F (f (z + t • (w - z))) (z + t • (w - z)) :=
+    h'2 _ <| mapsto_segment hzw ht
+  simpa using intervalIntegral.integral_unitInterval_deriv_eq_sub l1 l2
+
 theorem LineIntegral_diff (hU : IsOpen U) (hf : DifferentiableOn ℂ f U) (hγ₁ : Differentiable ℝ γ₁)
     (hγ₂ : Differentiable ℝ γ₂) (h : segment ℝ (γ₁ t) (γ₂ t) ⊆ U) :
     HasDerivAt (λ t => SegmentIntegral f (γ₁ t) (γ₂ t))
-    (deriv γ₂ t * f (γ₂ t) - deriv γ₁ t * f (γ₁ t)) t := by
+    (f (γ₂ t) * deriv γ₂ t - f (γ₁ t) * deriv γ₁ t) t := by
   obtain ⟨V, hV1, hV2, hV3, hV4⟩ := convex_neighborhood hU h
-  have (z : ℂ) (hz : z ∈ V) : HasDerivAt (primitive f (γ₁ t)) (f z) z := by
-    exact (hf.mono hV3).exists_primitive (hV4.starConvex <| hV2 (left_mem_segment ℝ (γ₁ t) (γ₂ t)))
-      hV1 hz
+  have e5 : γ₁ t ∈ V := hV2 <| left_mem_segment ℝ (γ₁ t) (γ₂ t)
+  have e4 : γ₂ t ∈ V := hV2 <| right_mem_segment ℝ (γ₁ t) (γ₂ t)
+  have (z : ℂ) (hz : z ∈ V) : HasDerivAt (primitive f (γ₁ t)) (f z) z :=
+    (hf.mono hV3).exists_primitive (hV4.starConvex e5) hV1 hz
+  have e1 : ∀ᶠ s in 𝓝 t, γ₁ s ∈ V := hγ₁.continuous.continuousAt <| hV1.mem_nhds e5
+  have e2 : ∀ᶠ s in 𝓝 t, γ₂ s ∈ V := hγ₂.continuous.continuousAt <| hV1.mem_nhds e4
+  have e3 : DifferentiableOn ℂ (primitive f (γ₁ t)) V := by
+    intro z hz ; exact (this z hz).differentiableAt.differentiableWithinAt
   have l1 : ∀ᶠ s in 𝓝 t, SegmentIntegral f (γ₁ s) (γ₂ s) =
       primitive f (γ₁ t) (γ₂ s) - primitive f (γ₁ t) (γ₁ s) := by
-    have e1 : ∀ᶠ s in 𝓝 t, γ₁ s ∈ V := by
-      have ee3 : γ₁ t ∈ V := hV2 (left_mem_segment ℝ (γ₁ t) (γ₂ t))
-      have ee1 : V ∈ 𝓝 (γ₁ t) := hV1.mem_nhds ee3
-      exact hγ₁.continuous.continuousAt ee1
-    have e2 : ∀ᶠ s in 𝓝 t, γ₂ s ∈ V := by
-      have ee3 : γ₂ t ∈ V := hV2 (right_mem_segment ℝ (γ₁ t) (γ₂ t))
-      have ee1 : V ∈ 𝓝 (γ₂ t) := hV1.mem_nhds ee3
-      exact hγ₂.continuous.continuousAt ee1
     filter_upwards [e1, e2] with s hs1 hs2
-    have e3 : DifferentiableOn ℂ (primitive f (γ₁ t)) V := by
-      intro z hz
-      apply DifferentiableAt.differentiableWithinAt
-      exact (this z hz).differentiableAt
     have e4 : segment ℝ (γ₁ s) (γ₂ s) ⊆ V := hV4.segment_subset hs1 hs2
-    rw [← @SegmentIntegral_deriv (primitive f (γ₁ t)) (γ₂ s) (γ₁ s) V hV1 e3 e4]
+    rw [← SegmentIntegral_deriv hV1 e3 e4]
     simp [SegmentIntegral] ; left
     apply intervalIntegral.integral_congr
     intro t ht
     simp
-    have e5 := @Convex.add_smul_mem ℝ ℂ _ _ _ V hV4 (γ₁ s) (γ₂ s - γ₁ s) hs1 (by simpa using hs2)
-      t (by simpa using ht)
-    exact (this (γ₁ s + ↑t * (γ₂ s - γ₁ s)) (by simpa using e5)).deriv.symm
+    have e5 := hV4.add_smul_mem (y := γ₂ s - γ₁ s) hs1 (by simpa using hs2) (by simpa using ht)
+    exact (this (γ₁ s + t * (γ₂ s - γ₁ s)) (by simpa using e5)).deriv.symm
   refine HasDerivAt.congr_of_eventuallyEq (HasDerivAt.sub ?_ ?_) l1
-  · have e'1 := this (γ₂ t) <| hV2 (right_mem_segment ℝ (γ₁ t) (γ₂ t))
-    have e2 := (hγ₂ t).hasDerivAt
-    have := @HasDerivAt.comp ℝ _ t ℂ _ _ γ₂ (primitive f (γ₁ t)) (deriv γ₂ t) (f (γ₂ t)) e'1 e2
-    convert this using 1 ; ring
-  · have e'1 := this (γ₁ t) <| hV2 (left_mem_segment ℝ (γ₁ t) (γ₂ t))
-    have e2 := (hγ₁ t).hasDerivAt
-    have := @HasDerivAt.comp ℝ _ t ℂ _ _ γ₁ (primitive f (γ₁ t)) (deriv γ₁ t) (f (γ₁ t)) e'1 e2
-    convert this using 1 ; ring
+  · exact this (γ₂ t) e4 |>.comp _ (hγ₂ t).hasDerivAt
+  · exact this (γ₁ t) e5 |>.comp _ (hγ₁ t).hasDerivAt
 
 noncomputable def RectangleIntegral (f : ℂ → ℂ) (z w : ℂ) : ℂ :=
     ((∫ x : ℝ in z.re..w.re, f (x + z.im * I)) - (∫ x : ℝ in z.re..w.re, f (x + w.im * I))
@@ -183,25 +183,65 @@ abbrev HolomorphicOn {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] (f :
 
 def Rectangle (z w : ℂ) : Set ℂ := [[z.re, w.re]] ×ℂ [[z.im, w.im]]
 
-lemma mine (h1 : z.re < p.re) (h2 : p.re < w.re) (h3 : z.im < p.im) (h4 : p.im < w.im)
-    (hU : IsOpen U) (hf : HolomorphicOn f U) (h : Rectangle z w ⊆ U) : ∀ᶠ c : ℝ in 𝓝[>] 0,
-    RectangleIntegral f z w = RectangleIntegral f (p - c - c * I) (p + c + c * I) := by
-  have h1 : ∀ᶠ c : ℝ in 𝓝[>] 0, z.re < p.re - c := sorry
-  have h2 : ∀ᶠ c : ℝ in 𝓝[>] 0, p.re + c < w.re := sorry
-  have h3 : ∀ᶠ c : ℝ in 𝓝[>] 0, z.im < p.im - c := sorry
-  have h4 : ∀ᶠ c : ℝ in 𝓝[>] 0, p.im + c < w.im := sorry
+theorem QuadIntegral_cancel (hf : ContinuousOn f U) (hQ : QuadSupport w₁ w₂ w₃ w₄ ⊆ U)
+    (h' : ∃ F : ℂ → ℂ, ∀ z ∈ U, HasDerivAt F (f z) z) : QuadIntegral f w₁ w₂ w₃ w₄ = 0 := by
+  simp [QuadSupport] at hQ ; obtain ⟨⟨⟨l2, l3⟩, l4⟩, l5⟩ := hQ
+  obtain ⟨F, hF2⟩ := h'
+  simp [QuadIntegral, SegmentIntegral_deriv' hf l2 hF2, SegmentIntegral_deriv' hf l3 hF2,
+    SegmentIntegral_deriv' hf l4 hF2, SegmentIntegral_deriv' hf l5 hF2]
+
+-- example {a b c d : ℝ} (h1 : a = b) (h2 : c = d) : a + c = b + d := by
+--   exact Mathlib.Tactic.LinearCombination.add_pf h1 h2
+
+lemma mine (h1 : z.re < 0) (h2 : 0 < w.re) (h3 : z.im < 0) (h4 : 0 < w.im) (hU : IsOpen U)
+    (hf : HolomorphicOn f (U \ {0})) (h : Rectangle z w ⊆ U) : ∀ᶠ c : ℝ in 𝓝[>] 0,
+    RectangleIntegral f z w = RectangleIntegral f (- c - c * I) (c + c * I) := by
+  have h1 : ∀ᶠ c : ℝ in 𝓝[>] 0, z.re < - c := sorry
+  have h2 : ∀ᶠ c : ℝ in 𝓝[>] 0, c < w.re := sorry
+  have h3 : ∀ᶠ c : ℝ in 𝓝[>] 0, z.im < - c := sorry
+  have h4 : ∀ᶠ c : ℝ in 𝓝[>] 0, c < w.im := sorry
   filter_upwards [h1, h2, h3, h4] with c c1 c2 c3 c4
-  let w₁ (t : ℝ) := p - c - c * I + t * (z - (p - c - c * I))
-  let w₂ (t : ℝ) := p + c - c * I + t * (w.re + I * z.im - (p + c - c * I))
-  let w₃ (t : ℝ) := p + c + c * I + t * (w - (p + c + c * I))
-  let w₄ (t : ℝ) := p - c + c * I + t * (z.re + I * w.im - (p - c + c * I))
-  let φ (t : ℝ) := QuadIntegral f (w₁ t) (w₂ t) (w₃ t) (w₄ t)
-  suffices ∀ t ∈ Icc 0 1, HasDerivAt φ 0 t by
-    have e1 : φ 0 = RectangleIntegral f (p - c - c * I) (p + c + c * I) := by
-      simp [φ, rect_eq_quad, zw] ; sorry
-    have e2 : φ 1 = RectangleIntegral f z w := by
-      simp [φ, rect_eq_quad, zw] ; ring_nf
-  sorry
+  let w₁ := - c - c * I
+  let w₂ := c - c * I
+  let w₃ := c + c * I
+  let w₄ := - c + c * I
+
+  rw [rect_eq_quad, rect_eq_quad, ← sub_eq_zero]
+
+  have la1 : ContinuousOn f (Rectangle z (zw w₁ w)) := sorry
+  have la2 : QuadSupport z (zw z w) w₂ w₁ ⊆ Rectangle z (zw w₁ w) := sorry
+  have la3 : (∃ F, ∀ z_1 ∈ Rectangle z (zw w₁ w), HasDerivAt F (f z_1) z_1) := sorry
+  have la := QuadIntegral_cancel la1 la2 la3 ; clear la1 la2 la3
+
+  have lb1 : ContinuousOn f (Rectangle (zw z w₂) w) := sorry
+  have lb2 : QuadSupport (zw z w) w w₃ w₂ ⊆ Rectangle (zw z w₂) w := sorry
+  have lb3 : (∃ F, ∀ z_1 ∈ Rectangle (zw z w₂) w, HasDerivAt F (f z_1) z_1) := sorry
+  have lb := QuadIntegral_cancel lb1 lb2 lb3 ; clear lb1 lb2 lb3
+
+  have lc1 : ContinuousOn f (Rectangle (zw w₄ z) w) := sorry
+  have lc2 : QuadSupport w (zw w z) w₄ w₃ ⊆ Rectangle (zw w₄ z) w := sorry
+  have lc3 : (∃ F, ∀ z_1 ∈ Rectangle (zw w₄ z) w, HasDerivAt F (f z_1) z_1) := sorry
+  have lc := QuadIntegral_cancel lc1 lc2 lc3 ; clear lc1 lc2 lc3
+
+  have ld1 : ContinuousOn f (Rectangle z (zw w w₄)) := sorry
+  have ld2 : QuadSupport (zw w z) z w₁ w₄ ⊆ Rectangle z (zw w w₄) := sorry
+  have ld3 : (∃ F, ∀ z_1 ∈ Rectangle z (zw w w₄), HasDerivAt F (f z_1) z_1) := sorry
+  have ld := QuadIntegral_cancel ld1 ld2 ld3 ; clear ld1 ld2 ld3
+
+  have le := Mathlib.Tactic.LinearCombination.add_pf la lb
+  have lf := Mathlib.Tactic.LinearCombination.add_pf lc ld
+  have lg := Mathlib.Tactic.LinearCombination.add_pf le lf
+  simp [QuadIntegral] at lg ⊢
+  convert lg using 1 ; clear lg
+  rw [← sub_eq_zero]
+  ring_nf
+  simp only [SegmentIntegral.symm (z := zw z w)] ; ring_nf
+  simp only [SegmentIntegral.symm (z := zw w z)] ; ring_nf
+  simp only [SegmentIntegral.symm (z := z)] ; ring_nf
+  simp only [SegmentIntegral.symm (z := w)] ; ring_nf
+  simp [zw] ; ring_nf
+  simp only [SegmentIntegral.symm (z := ↑c + ↑c * I)] ; ring_nf
+  simp only [SegmentIntegral.symm (z := -↑c - ↑c * I)] ; ring_nf
 
 lemma RectanglePullToNhdOfPole {f : ℂ → ℂ} {z w p : ℂ} (zRe_lt_wRe : z.re < w.re)
     (zIm_lt_wIm : z.im < w.im) (pInRectInterior : Rectangle z w ∈ nhds p)
