@@ -10,14 +10,16 @@ variable {U : Set ℂ} {f : ℂ → ℂ} {Λ Λ' : LocalPrimitiveOn U f}
 
 namespace LocalPrimitiveOn
 
+variable {z w b1 : U} {u b2 w : ℂ} {a : U × ℂ}
+
 /-- The shift of `Λ.F z` going through a -/
 def FF (Λ : LocalPrimitiveOn U f) (z : U) (a : U × ℂ) (w : ℂ) : ℂ := Λ.F z w + (a.2 - Λ.F z a.1)
 
-@[simp] lemma FF_self : Λ.FF z (w, u) w = u := by simp [FF]
+@[simp] lemma FF_self {w : U} : Λ.FF z (w, u) w = u := by simp [FF]
 
-@[simp] lemma FF_self' : Λ.FF z w w.1 = w.2 := FF_self
+@[simp] lemma FF_self' {w : U × ℂ} : Λ.FF z w w.1 = w.2 := FF_self
 
-lemma FF_congr (h : Λ.FF z a (b1 : U) = b2) : Λ.FF z a = Λ.FF z (b1, b2) := by
+lemma FF_congr (h : Λ.FF z a b1 = b2) : Λ.FF z a = Λ.FF z (b1, b2) := by
   rw [← h] ; unfold FF ; simp
 
 lemma FF_deriv (hw : w ∈ Λ.S z) : HasDerivAt (Λ.FF z a) (f w) w := Λ.der z w hw |>.add_const _
@@ -31,7 +33,7 @@ theorem isOpen_FF_eq (Λ Λ' : LocalPrimitiveOn U f) (i j : U × ℂ) (i1 j1 : U
     eventually_of_mem (Λ.opn i1 |>.mem_nhds h1) (λ w => FF_deriv)
   have l2 : ∀ᶠ w in 𝓝 z, HasDerivAt (Λ'.FF j1 j) (f w) w :=
     eventually_of_mem (Λ'.opn j1 |>.mem_nhds h2) (λ w => FF_deriv)
-  have l4 := @eventuallyEq_of_hasDeriv ℂ _ f z (Λ.FF i1 i) (Λ'.FF j1 j) l1 l2 h3
+  have l4 := @eventuallyEq_of_hasDeriv ℂ _ f (Λ.FF i1 i) (Λ'.FF j1 j) z l1 l2 h3
   have l5 := inter_mem (inter_mem l4 (Λ.opn i1 |>.mem_nhds h1)) (Λ'.opn j1 |>.mem_nhds h2)
   exact ⟨_, l5, λ w _ h => ⟨⟨h.1.2, h.2⟩, h.1.1.symm⟩⟩
 
@@ -47,6 +49,8 @@ def map (Λ : LocalPrimitiveOn U f) (z : U) (w : U × ℂ) : covering Λ := (w.1
 abbrev p (Λ : LocalPrimitiveOn U f) (z : covering Λ) : U := z.fst
 
 namespace covering
+
+variable {x a b : U} {s : Set (covering Λ)}
 
 /-- The shear transformation. `Φ z` maps a point `(u, v)` to `(u, w)` where `w` is the value above
   `z` of the translate of `F z` that goes through `(u, v)`, and `(Φ z).symm` maps `(u, w)` to
@@ -87,7 +91,8 @@ def nhd (z : covering Λ) : Filter (covering Λ) := nhd_from z.1 z
 lemma mem_nhd_from {z : covering Λ} : s ∈ nhd_from x z ↔ ∀ᶠ u in 𝓝 z.1, ⟨u, Λ.FF x z u⟩ ∈ s :=
   by rfl
 
-lemma titi1 (ha : z.1 ∈ Λ.S a) (hb : z.1 ∈ Λ'.S b) : ∀ᶠ u in 𝓝 z.1, Λ.FF a z u = Λ'.FF b z u := by
+lemma titi1 {z : U × ℂ} (ha : z.1.1 ∈ Λ.S a) (hb : z.1.1 ∈ Λ'.S b) :
+    ∀ᶠ u in 𝓝 z.1, Λ.FF a z u = Λ'.FF b z u := by
   -- let s := {z_1 : U | z_1 ∈ val ⁻¹' S Λ a ∩ val ⁻¹' S Λ' b ∧ FF Λ a z z_1 = FF Λ' b z z_1}
   -- have e1 : IsOpen s := @isOpen_FF_eq U f Λ Λ' z z a b
   -- have e2 : z.1 ∈ s := ⟨⟨ha, hb⟩, by simp only [FF_self']⟩
@@ -151,10 +156,12 @@ theorem isOpen_target : IsOpen (T_LocalEquiv Λ z).target := by
   simp [T_LocalEquiv, L]
   exact IsOpen.prod (isOpen_induced (Λ.opn z)) isOpen_univ
 
+variable {α β : Type*} {s : Set (α × β)} {t : Set α} {b : β}
+
 lemma toto10 (l : Filter α) (b : β) : s ∈ l ×ˢ pure b ↔ ∃ t ∈ l, t ×ˢ {b} ⊆ s := by
   simpa using exists_mem_subset_iff.symm
 
-lemma toto11 {s : Set (α × β)}: t ×ˢ {b} ⊆ s ↔ ∀ y ∈ t, (y, b) ∈ s where
+lemma toto11 {s : Set (α × β)} : t ×ˢ {b} ⊆ s ↔ ∀ y ∈ t, (y, b) ∈ s where
   mp h y hy := h ⟨hy, rfl⟩
   mpr h := by rintro ⟨y, b'⟩ ⟨hy, rfl⟩ ; exact h y hy
 
@@ -163,11 +170,12 @@ lemma toto12 [TopologicalSpace α] [TopologicalSpace β] [DiscreteTopology β] {
   rw [nhds_prod_eq, nhds_discrete β, toto10, eventually_iff_exists_mem]
   simp only [toto11]
 
-lemma toto13 {w : U × Λ.p ⁻¹' {z}} : s ∈ 𝓝 w ↔ ∀ᶠ x in 𝓝 w.1, (x, w.2) ∈ s := by
+lemma toto13 {s : Set (↑U × ↑(p Λ ⁻¹' {z}))} {w : U × Λ.p ⁻¹' {z}} :
+    s ∈ 𝓝 w ↔ ∀ᶠ x in 𝓝 w.1, (x, w.2) ∈ s := by
   have l1 : DiscreteTopology (Λ.p ⁻¹' {z}) := Bunch.discreteTopology
   exact toto12
 
-theorem toto9 (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z) w := by
+theorem toto9 {w : covering Λ} (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z) w := by
   rw [ContinuousAt, Tendsto]
   intro s hs
   rw [toto13] at hs
@@ -176,7 +184,8 @@ theorem toto9 (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z) w := by
   filter_upwards [hs] with x hx
   simpa [FF] using hx
 
-theorem toto9' (h : ↑w.1 ∈ Λ.S z) : ContinuousAt (T_LocalEquiv Λ z).symm w := by
+theorem toto9' {w : ↑U × ↑(p Λ ⁻¹' {z})} (h : ↑w.1 ∈ Λ.S z) :
+    ContinuousAt (T_LocalEquiv Λ z).symm w := by
   rw [ContinuousAt, Tendsto]
   intro s hs
   simp

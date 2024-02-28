@@ -1,7 +1,5 @@
 import Mathlib
 
-set_option autoImplicit false
-
 local notation "𝕀" => unitInterval
 
 open Complex

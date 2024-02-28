@@ -4,6 +4,8 @@ import RMT4.Subdivision
 
 open BigOperators Metric Set Subdivision Topology Filter Nat
 
+variable {s t U V : Set ℂ} {z z₀ : ℂ} {f F : ℂ → ℂ} {a b : ℝ} {γ : ℝ → ℂ} {n : ℕ}
+
 structure LocalPrimitiveOn (s : Set ℂ) (f : ℂ → ℂ) :=
   F : s → ℂ → ℂ
   S : s → Set ℂ

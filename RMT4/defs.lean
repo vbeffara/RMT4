@@ -3,7 +3,7 @@ import RMT4.deriv_inj
 
 open Complex Metric Set
 
--- variables {U V W : set ℂ}
+variable {u : ℂ} {U V W : Set ℂ}
 
 namespace RMT
 

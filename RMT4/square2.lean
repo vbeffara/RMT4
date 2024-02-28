@@ -1,8 +1,6 @@
 import Mathlib
 import RMT4.Primitive
 
-set_option autoImplicit false
-
 variable {f f' F : ℂ → ℂ} {w z z₁ z₂ z₃ z₄ w₁ w₂ w₃ w₄ p : ℂ} {W : Fin 4 -> ℂ}
   {t x x₁ x₂ y y₁ y₂ : ℝ} {U : Set ℂ} {γ₁ γ₂ : ℝ → ℂ}
 

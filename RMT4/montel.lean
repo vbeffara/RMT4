@@ -7,7 +7,7 @@ open Set Function Metric UniformConvergence Complex
 
 def compacts (U : Set ℂ) : Set (Set ℂ) := {K | K ⊆ U ∧ IsCompact K}
 
-variable {ι : Type u} {F : ι → ℂ →ᵤ[compacts U] ℂ}
+variable {ι : Type*} {U K : Set ℂ} {z : ℂ} {F : ι → ℂ →ᵤ[compacts U] ℂ}
 
 @[simp] lemma union_compacts : ⋃₀ compacts U = U :=
   subset_antisymm (λ _ ⟨_, hK, hz⟩ => hK.1 hz)

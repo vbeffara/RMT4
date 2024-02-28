@@ -8,7 +8,7 @@ open Complex ComplexConjugate Set Metric Topology Filter
 
 namespace RMT
 
-variable (U : Set ℂ) [good_domain U]
+variable {z u z₀ : ℂ} (U : Set ℂ) [good_domain U]
 
 lemma one_sub_mul_conj_ne_zero (hu : u ∈ 𝔻) (hz : z ∈ 𝔻) : 1 - z * conj u ≠ 0 := by
   rw [mem_𝔻_iff] at hu hz

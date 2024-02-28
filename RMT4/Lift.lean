@@ -4,9 +4,6 @@ import Mathlib.Topology.Covering
 import Mathlib.Topology.LocallyConstant.Basic
 import RMT4.Glue
 
-set_option autoImplicit false
-set_option pp.proofs.withType false
-
 open Set Topology Metric unitInterval Filter ContinuousMap
 
 variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X] {f : E → X}

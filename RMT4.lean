@@ -21,6 +21,8 @@ import RMT4.uniform
 
 open UniformConvergence Topology Filter Set Metric Function
 
+variable {ι : Type*} {l : Filter ι} {U : Set ℂ} {z₀ : ℂ}
+
 -- Anatole did this for Lean3 at https://github.com/leanprover-community/mathlib/pull/18017
 -- Lean4 port: https://github.com/leanprover-community/mathlib4/pull/6844
 instance : CompleteSpace (ℂ →ᵤ[compacts U] ℂ) := by sorry

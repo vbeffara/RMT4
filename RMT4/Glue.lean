@@ -2,9 +2,6 @@ import Mathlib.Topology.ContinuousFunction.Basic
 import Mathlib.Topology.MetricSpace.PseudoMetric
 import Mathlib.Topology.Algebra.Order.ProjIcc
 
-set_option autoImplicit false
-set_option pp.proofs.withType false
-
 open Set Interval
 
 variable {a b c t : ℝ} {E : Type*} [TopologicalSpace E]

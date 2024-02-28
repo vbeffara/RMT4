@@ -2,7 +2,7 @@ import RMT4.hurwitz
 
 open Complex Metric circleIntegral Topology Filter Set
 
-variable {U : Set ℂ}
+variable {ι α β : Type*} {U : Set ℂ} {c z₀ : ℂ} {r : ℝ} {f g : ℂ → ℂ}
 
 lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ ball c r) (hf : DifferentiableOn ℂ f U)
     (hfz₀ : f z₀ = 0) (hf'z₀ : deriv f z₀ ≠ 0) (hfz : ∀ z ∈ closedBall c r, z ≠ z₀ → f z ≠ 0) :
