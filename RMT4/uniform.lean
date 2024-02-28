@@ -2,6 +2,8 @@ import Mathlib.Topology.UniformSpace.UniformConvergence
 
 open Set Filter UniformSpace Function Uniformity Topology
 
+variable {ι α β : Type*} {a : α} {s t : Set α} {x u v : Set (α × α)}
+
 lemma symmetricRel_of (h : ∀ {a b : α}, (a, b) ∈ x → (b, a) ∈ x) : SymmetricRel x :=
   ext (λ _ => ⟨h, h⟩)
 
@@ -97,6 +99,8 @@ end UniformSpace
 
 open UniformSpace
 
+variable {p : Filter ι}
+
 lemma lemma0 [UniformSpace α] : Tendsto Prod.snd (𝓤 α ⊓ comap Prod.fst (𝓟 s)) (𝓝ᵘ s) := by
   simp_rw [comap_principal, uniform_nhds_set, tendsto_lift', eventually_inf_principal]
   exact λ U hU => mem_of_superset hU (λ ⟨x, y⟩ hxy hx => mem_biUnion hx hxy)
@@ -110,6 +114,6 @@ lemma lemma1 {F : ι → α → β} {f : α → β} [UniformSpace β] (hF : Tend
   refine tendsto_prod_iff'.mpr ⟨lemma2, ?h⟩
   exact lemma0.comp (tendsto_inf.mpr ⟨hF, tendsto_comap_iff.mpr lemma2⟩)
 
-lemma lemma13 {f : α → β} [UniformSpace β] (hF : TendstoUniformlyOn F f p s) :
+lemma lemma13 {f : α → β} {F : ι → α → β} [UniformSpace β] (hF : TendstoUniformlyOn F f p s) :
     Tendsto (uncurry F) (p ×ˢ 𝓟 s) (𝓝ᵘ (f '' s)) :=
   (tendsto_prod_iff'.mp (lemma1 hF)).2

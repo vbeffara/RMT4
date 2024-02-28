@@ -6,7 +6,7 @@ open Filter Topology Set Metric Uniformity
 
 section filter
 
-variable {P : α → Prop} {p : Filter α} {φ : ℝ → Set α}
+variable {α 𝕜 : Type*} {s : Set α} {z₀ : α} {P : α → Prop} {p : Filter α} {φ : ℝ → Set α}
 
 lemma mem_iff_eventually_subset (hp : p.HasBasis (λ t : ℝ => 0 < t) φ) (hφ : Monotone φ) :
     s ∈ p ↔ (∀ᶠ t in 𝓝[>] 0, φ t ⊆ s) := by
@@ -27,7 +27,8 @@ end filter
 
 section unifops
 
-variable [NormedField 𝕜] {F G : ι → α → 𝕜} {f g : α → 𝕜} {x y : 𝕜} {η η' : ℝ}
+variable {𝕜 ι α : Type*} {s K : Set α} [NormedField 𝕜] {F G : ι → α → 𝕜} {f g : α → 𝕜} {x y : 𝕜}
+  {η η' : ℝ} {p : Filter ι} {mf mg : ℝ}
 
 lemma dist_inv_le_dist_div (hη : 0 < η) (hη' : 0 < η') (hx : x ∉ ball 0 η) (hy : y ∉ ball 0 η') :
     dist x⁻¹ y⁻¹ ≤ dist x y / (η * η') := by
@@ -160,7 +161,7 @@ lemma TendstoUniformlyOn.div_of_compact
 
 end unifops
 
-variable {F : ι → ℂ → ℂ} {f : ℂ → ℂ}
+variable {ι : Type*} {F : ι → ℂ → ℂ} {f : ℂ → ℂ} {z₀ : ℂ} {p : Filter ι} {r : ℝ} {U : Set ℂ}
 --   {U s : set ℂ} {r : ℝ}
 
 lemma Filter.Eventually.exists' {P : ℝ → Prop} {t₀} (h : ∀ᶠ t in 𝓝[>] t₀, P t) :
@@ -279,7 +280,7 @@ lemma hurwitz2
     have : ∀ (z : ℂ), z ∈ ball z₀ r ∪ sphere z₀ r → F n z ≠ 0 := λ z hz => hz.casesOn (h z) (h' z)
     refine cindex_eq_zero hU hr1 hr2 hF (by rwa [← ball_union_sphere])
 
-lemma hurwitz3
+lemma hurwitz3 {s : Set ℂ}
     (hU : IsOpen U)
     (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
     (hf : TendstoLocallyUniformlyOn F f p U)
@@ -374,7 +375,7 @@ lemma hurwitz_1 (hU : IsOpen U) (hU' : IsPreconnected U) (hf : DifferentiableOn 
   obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ U, ∃ᶠ z in 𝓝[≠] z₀, f z = 0 := by simpa [not_forall] using h
   exact (hf.analyticOn hU).eqOn_zero_of_preconnected_of_frequently_eq_zero hU' h1 h2
 
-lemma hurwitz4 [TopologicalSpace α] [UniformSpace β] [UniformSpace γ]
+lemma hurwitz4 {α β γ : Type*} {U : Set α} [TopologicalSpace α] [UniformSpace β] [UniformSpace γ]
     {F : ι → α → β} {f : α → β} {φ : β → γ}
     (hf : TendstoLocallyUniformlyOn F f p U) (hφ : UniformContinuous φ) :
     TendstoLocallyUniformlyOn (λ n => φ ∘ F n) (φ ∘ f) p U :=

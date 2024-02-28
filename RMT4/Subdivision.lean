@@ -7,7 +7,7 @@ abbrev Subdivision (a b : ℝ) := Finset (Ioo a b)
 
 namespace Subdivision
 
-variable {a b : ℝ} {σ : Subdivision a b}
+variable {a b a' b' t c d : ℝ} {σ : Subdivision a b}
 
 section basic
 
@@ -60,7 +60,7 @@ lemma toList_subset (hab : a ≤ b) (ht : t ∈ σ.toList) : t ∈ Icc a b := by
   · exact ⟨h.1.le, h.2.le⟩
   · exact right_mem_Icc.2 hab
 
-lemma subset (hab : a ≤ b) : σ i ∈ Icc a b :=
+lemma subset {i : Fin (σ.size + 2)} (hab : a ≤ b) : σ i ∈ Icc a b :=
   toList_subset hab (by simpa [toFun] using List.get_mem _ _ _)
 
 end basic
@@ -69,7 +69,7 @@ section pieces
 
 def piece (σ : Subdivision a b) (i : Fin (σ.size + 1)) : Set ℝ := Icc (σ.x i) (σ.y i)
 
-lemma piece_subset (hab : a ≤ b) : σ.piece i ⊆ Icc a b :=
+lemma piece_subset {i : Fin (σ.size + 1)} (hab : a ≤ b) : σ.piece i ⊆ Icc a b :=
   Icc_subset_Icc (subset hab).1 (subset hab).2
 
 noncomputable def length (σ : Subdivision a b) (i : Fin (σ.size + 1)) : ℝ := σ.y i - σ.x i
@@ -81,7 +81,7 @@ noncomputable def mesh (σ : Subdivision a b) : ℝ := σ.lengths.max' (Finset.u
 lemma le_mesh {i : Fin (σ.size + 1)} : σ.y i - σ.x i ≤ σ.mesh := by
   apply Finset.le_max' _ _ (Finset.mem_image_of_mem _ (Finset.mem_univ i))
 
-@[simp] lemma union0 {s : Fin 1 → Set α} : ⋃ i : Fin 1, s i = s 0 := ciSup_unique
+@[simp] lemma union0 {α : Type*} {s : Fin 1 → Set α} : ⋃ i : Fin 1, s i = s 0 := ciSup_unique
 
 lemma cover1 (n : ℕ) (f : Fin (n + 2) → ℝ) (hf : Monotone f) :
     ⋃ i : Fin (n + 1), Icc (f i.castSucc) (f i.succ) ⊆ Icc (f 0) (f (Fin.last (n + 1))) := by
@@ -161,6 +161,8 @@ end order
 
 namespace regular
 
+variable {n i : ℕ}
+
 noncomputable def aux (a b : ℝ) (n i : ℕ) : ℝ := a + i * ((b - a) / (n + 1))
 
 @[simp] lemma aux_zero : aux a b n 0 = a := by simp [aux]
@@ -197,7 +199,7 @@ lemma list'_sorted (hab : a < b) : (list' hab n).Sorted (· < ·) :=
 noncomputable def _root_.Subdivision.regular (hab : a < b) (n : ℕ) : Subdivision a b :=
   (list' hab n).toFinset
 
-@[simp] lemma size : (regular hab n).size = n := by
+@[simp] lemma size (hab : a < b) : (regular hab n).size = n := by
   simp [regular, Subdivision.size, toFinset_card_of_nodup, (list'_sorted hab).nodup]
   simp [list', list]
 
@@ -246,7 +248,7 @@ end regular
 
 section adapted
 
-variable {S : ι → Set ℝ}
+variable {ι : Type*} {S : ι → Set ℝ}
 
 structure Adaptation (σ : Subdivision a b) (S : ι → Set ℝ) :=
   I : Fin (σ.size + 1) → ι
@@ -296,8 +298,9 @@ structure RelAdaptedSubdivision (a b : ℝ) (S : ι → Set ℂ) (γ : ℝ → �
   I : Fin (σ.size + 1) → ι
   sub k : γ '' σ.piece k ⊆ S (I k)
 
-noncomputable def exists_reladapted {S : ι → Set ℂ} (hab : a < b) (hγ : ContinuousOn γ (Icc a b))
-    (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) : Nonempty (RelAdaptedSubdivision a b S γ) := by
+noncomputable def exists_reladapted {γ : ℝ → ℂ} {S : ι → Set ℂ} (hab : a < b)
+    (hγ : ContinuousOn γ (Icc a b)) (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝 (γ t.1)) :
+    Nonempty (RelAdaptedSubdivision a b S γ) := by
   choose I hI using h
   obtain ⟨σ, K, hK⟩ := exists_adapted' hab (λ t => ⟨t, hγ _ t.2 (hI t)⟩)
   exact ⟨σ, I ∘ K, λ k => image_subset_iff.2 (hK k)⟩
@@ -315,6 +318,8 @@ noncomputable abbrev sumSub (σ : Subdivision a b) (F : Fin (σ.size + 1) → �
 noncomputable abbrev sumSubAlong (σ : Subdivision a b) (F : Fin (σ.size + 1) → ℂ → ℂ)
     (γ : ℝ → ℂ) : ℂ :=
   sumSub σ (λ i => F i ∘ γ)
+
+variable {F G : Fin (σ.size + 1) → ℝ → ℝ → ℂ}
 
 lemma sum_eq_zero (h : ∀ i, F i (σ.x i) (σ.y i) = 0) : σ.sum F = 0 :=
   Finset.sum_eq_zero (λ i _ => h i)
