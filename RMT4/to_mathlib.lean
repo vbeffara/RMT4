@@ -1,14 +1,13 @@
 import Mathlib.Analysis.Calculus.ParametricIntegral
 import RMT4.cindex
 
-local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
-
 open intervalIntegral Real MeasureTheory Filter Topology Set Metric
 
 variable {𝕜 E V : Type*} {r : ℝ} {z : ℂ} {a b t : ℝ} {n : ℕ}
 
-lemma isCompact_segment [OrderedRing 𝕜] [TopologicalSpace 𝕜] [TopologicalAddGroup 𝕜] [CompactIccSpace 𝕜]
-    [TopologicalSpace E] [AddCommGroup E] [ContinuousAdd E] [Module 𝕜 E] [ContinuousSMul 𝕜 E] {x y : E} :
+lemma isCompact_segment [OrderedRing 𝕜] [TopologicalSpace 𝕜] [TopologicalAddGroup 𝕜]
+    [CompactIccSpace 𝕜] [TopologicalSpace E] [AddCommGroup E] [ContinuousAdd E] [Module 𝕜 E]
+    [ContinuousSMul 𝕜 E] {x y : E} :
     IsCompact (segment 𝕜 x y) := by
   simpa only [segment_eq_image] using isCompact_Icc.image (by continuity)
 
@@ -176,13 +175,9 @@ theorem integral_eq_sub'' (h : ContDiffOn ℝ 1 f (Icc a b)) (hab : a ≤ b) (ht
 
 end ContDiffOn
 
-lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a / (n + 1) < ε := by
-  cases ha.eq_or_lt with
-  | inl h => simp [← h, hε]
-  | inr h =>
-    obtain ⟨n, hn⟩ := exists_nat_one_div_lt (div_pos hε h)
-    use n
-    convert (@strictMono_mul_left_of_pos ℝ _ a h).lt_iff_lt.2 hn using 1 <;> field_simp; ring
+lemma exists_div_lt (a : ℝ) {ε : ℝ} (hε : 0 < ε) : ∃ n : ℕ, a / ↑(n + 1) < ε :=
+  eventually_lt_of_tendsto_lt hε
+    (tendsto_const_div_atTop_nhds_zero_nat a |>.comp (tendsto_add_atTop_nat 1)) |>.exists
 
 section sort_finset
 

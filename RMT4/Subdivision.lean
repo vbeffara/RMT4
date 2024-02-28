@@ -281,8 +281,8 @@ structure AdaptedSubdivision (a b : ℝ) (S : ι → Set ℝ) :=
 noncomputable def exists_adapted (hab : a < b) (h1 : ∀ i, IsOpen (S i)) (h2 : Icc a b ⊆ ⋃ i, S i) :
     Nonempty (AdaptedSubdivision a b S) := by
   choose ε hε h using isAdapted_of_mesh_le hab h1 h2
-  choose n hn using exists_div_lt (sub_nonneg_of_le hab.le) hε
-  have : (regular hab n).mesh = (b - a) / (n + 1) := by simp
+  choose n hn using exists_div_lt (b - a) hε
+  have : (regular hab n).mesh = (b - a) / ↑(n + 1) := by simp
   exact ⟨_, (h (regular hab n) (by linarith)).some⟩
 
 noncomputable def exists_adapted' (hab : a < b) (h : ∀ t : Icc a b, ∃ i, S i ∈ 𝓝[Icc a b] t.1) :
