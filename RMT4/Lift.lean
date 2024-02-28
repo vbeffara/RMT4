@@ -60,13 +60,6 @@ lemma reachable_nhds_iff (hf : IsCoveringMap f) :
   have l6 : MapsTo γ (uIcc t u) T.baseSet := λ v hv => l3 (l5 hv)
   exact ⟨reachable_extend <| uIcc_comm t u ▸ l6, reachable_extend l6⟩
 
-theorem lift (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃ Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ := by
-  have l1 : Set.Nonempty {t | reachable f γ A t} := ⟨0, reachable_zero hγ⟩
-  have l2 : IsClopen {t | reachable f γ A t} := isClopen_iff_nhds.2 (λ t => reachable_nhds_iff hf)
-  let ⟨Γ, h1, h2⟩ := ((isClopen_iff.1 l2).resolve_left <| Nonempty.ne_empty l1).symm ▸ mem_univ 1
-  refine ⟨⟨IicExtend Γ, Γ.2.Iic_extend'⟩, by simpa [IicExtend, projIic] using h1, funext (λs => ?_)⟩
-  simp [IicExtend, projIic, s.2.2] ; convert h2 ⟨s, s.2.2⟩ ; simpa using s.2.2
-
 theorem IsCoveringMap.eq_of_comp_eq' (hf : IsCoveringMap f) {A : Type*} [TopologicalSpace A]
     [PreconnectedSpace A] {g₁ g₂ : C(A, E)} (he : f ∘ g₁ = f ∘ g₂) (a : A) (ha : g₁ a = g₂ a) :
     g₁ = g₂ :=
@@ -76,9 +69,23 @@ theorem lift_unique (hf : IsCoveringMap f) {Γ₁ Γ₂ : C(I, E)} (h0 : Γ₁ 0
     (h : f ∘ Γ₁ = f ∘ Γ₂) : Γ₁ = Γ₂ := by
   exact hf.eq_of_comp_eq' h 0 h0
 
-theorem lift' (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃! Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ := by
-  obtain ⟨Γ, h⟩ := lift hf hγ
-  exact ⟨Γ, h, λ Γ' h' => lift_unique hf (h'.1.trans h.1.symm) (h'.2.trans h.2.symm)⟩
+theorem Lift (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃! Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ := by
+  have l1 : Set.Nonempty {t | reachable f γ A t} := ⟨0, reachable_zero hγ⟩
+  have l2 : IsClopen {t | reachable f γ A t} := isClopen_iff_nhds.2 (λ t => reachable_nhds_iff hf)
+  let ⟨Γ, h1, h2⟩ := ((isClopen_iff.1 l2).resolve_left <| Nonempty.ne_empty l1).symm ▸ mem_univ 1
+  let Γ₁ : C(I, E) := ⟨IicExtend Γ, Γ.2.Iic_extend'⟩
+  have l3 : Γ₁ 0 = A := by simpa [IicExtend, projIic] using h1
+  have l4 : f ∘ Γ₁ = γ := by
+    ext1 s
+    simp only [IicExtend, coe_mk, Function.comp_apply, projIic]
+    convert h2 ⟨s, s.2.2⟩
+    simpa using s.2.2
+  refine ⟨Γ₁, ⟨l3, l4⟩, ?_⟩
+  intro Γ₂ ⟨hh1, hh2⟩
+  exact hf.eq_of_comp_eq' (l4 ▸ hh2) 0 (l3 ▸ hh1)
+
+theorem lift (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃ Γ : C(I, E), Γ 0 = A ∧ f ∘ Γ = γ :=
+  (Lift hf hγ).exists
 
 end Lift
 
@@ -119,7 +126,7 @@ theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀
   let γ : C(Y, C(I, X)) := F.curry
   have h1 {y} : γ y 0 = f₀ y := hF y
   have h3 {y} : γ y 0 = p (g₀ y) := by rw [h1, ← congr_fun hg₀ y] ; rfl
-  choose G hG1 hG2 using λ y => @lift' _ _ _ _ _ (γ y) (g₀ y) hp h3
+  choose G hG1 hG2 using λ y => @Lift _ _ _ _ _ (γ y) (g₀ y) hp h3
 
   have h4 (y₀ : Y) (t : I) := (hp (F (y₀, t))).2
   choose T hT using h4
