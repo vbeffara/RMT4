@@ -8,7 +8,7 @@ import Mathlib.Topology.UniformSpace.Equicontinuity
 
 open Set Filter Uniformity Function UniformConvergence
 
-variable [TopologicalSpace X] [UniformSpace α] {F : ι → X → α}
+variable {X ι α : Type*} [TopologicalSpace X] [UniformSpace α] {F : ι → X → α}
 
 lemma theorem1 [CompactSpace X] (hF : Equicontinuous F) :
     (UniformFun.uniformSpace X α).comap F = (Pi.uniformSpace (λ _ => α)).comap F := by

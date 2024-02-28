@@ -5,7 +5,7 @@ import Mathlib.Topology.LocallyConstant.Basic
 
 open Topology Filter Metric
 
-variable [IsROrC 𝕜] {f f₁ f₂ : 𝕜 → 𝕜} {z z₀ : 𝕜} {s : Set 𝕜}
+variable {𝕜 : Type*} [IsROrC 𝕜] {f f₁ f₂ F1 F2 : 𝕜 → 𝕜} {z z₀ : 𝕜} {s : Set 𝕜} {U : Set 𝕜}
 
 lemma isConst_nhds_of_hasDerivAt (h : ∀ᶠ w in 𝓝 z, HasDerivAt f 0 w) : ∀ᶠ w in 𝓝 z, f w = f z := by
   obtain ⟨r, hr, hf⟩ := eventually_nhds_iff_ball.1 h

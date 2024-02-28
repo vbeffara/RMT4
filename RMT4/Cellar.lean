@@ -1,8 +1,5 @@
 import RMT4.Lift
 
-set_option autoImplicit false
-set_option pp.proofs.withType false
-
 open Set Topology Metric unitInterval Filter ContinuousMap
 
 variable {E X : Type*} [TopologicalSpace E] [TopologicalSpace X]

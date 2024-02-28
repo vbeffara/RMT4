@@ -3,6 +3,8 @@ import Mathlib.Topology.MetricSpace.Polish
 
 open intervalIntegral Real MeasureTheory Filter Topology Set Metric
 
+variable {a b t : ℝ} {γ : ℝ → ℂ} {i₀ w₀ : ℂ} {C : ℝ}
+
 section definitions
 
 /-- We start with a basic definition of the integral of a function along a path, which makes sense
@@ -132,19 +134,21 @@ structure setup (f f' : ℂ → ℂ) (Γ Γ' : ℂ → ℝ → ℂ) where
   dΓ' : ∀ w, Differentiable ℝ (Γ' w)
   cdΓ : ∀ w, Continuous (deriv (Γ w))
   cdΓ' : ∀ w, Continuous (deriv (Γ' w))
-  key : ∀ w, HasDerivAt (fun w => f1 f Γ w t) (f2 f f' Γ Γ' w t) w
-  L : LipschitzOnWith (nnabs 1) (fun x => f1 f Γ x t) (ball w₀ 1)
+  key : ∀ w t, HasDerivAt (fun w => f1 f Γ w t) (f2 f f' Γ Γ' w t) w
+  L : ∀ t, LipschitzOnWith (nnabs 1) (fun x => f1 f Γ x t) (ball w₀ 1)
 
-lemma setup.cfΓ (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f ∘ Γ w) := by
+variable {f f' : ℂ → ℂ} {Γ Γ' : ℂ → ℝ → ℂ}
+
+lemma setup.cfΓ (S : setup (w₀ := w₀) f f' Γ Γ') (w : ℂ) : Continuous (f ∘ Γ w) := by
   simpa [continuous_iff_continuousAt]
     using λ t => (S.df (Γ w t)).continuousAt.comp (S.dΓ w t).continuousAt
 
-lemma setup.dfΓ (S : setup f f' Γ Γ') (w : ℂ) : Differentiable ℝ (λ t => f (Γ w t)) := by
+lemma setup.dfΓ (S : setup (w₀ := w₀) f f' Γ Γ') (w : ℂ) : Differentiable ℝ (λ t => f (Γ w t)) := by
   intro t
   apply ((S.df (Γ w t)).differentiableAt.restrictScalars ℝ).comp
   exact (S.dΓ w t)
 
-lemma setup.continuous_f2 (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f2 f f' Γ Γ' w) := by
+lemma setup.continuous_f2 (S : setup (w₀ := w₀) f f' Γ Γ') (w : ℂ) : Continuous (f2 f f' Γ Γ' w) := by
   unfold f2
   have := S.cf'
   have := S.cdΓ w
@@ -156,17 +160,18 @@ lemma setup.continuous_f2 (S : setup f f' Γ Γ') (w : ℂ) : Continuous (f2 f f
 
 variable {a b : ℝ} {f f' : ℂ → ℂ} {Γ Γ' : ℂ → ℝ → ℂ}
 
-theorem main_step (hab : a ≤ b) (S : setup f f' Γ Γ') :
+theorem main_step (hab : a ≤ b) (S : setup (w₀ := w₀) f f' Γ Γ') :
     HasDerivAt (fun w => ∫ (t : ℝ) in a..b, f1 f Γ w t)
       (∫ (t : ℝ) in a..b, f2 f f' Γ Γ' w₀ t) w₀ := by
     apply has_deriv_at_integral_of_continuous_of_lip (C := 1) hab -- or whatever
     · exact zero_lt_one
     · exact eventually_of_forall (λ z => ((S.cdΓ _).mul (S.cfΓ _)).continuousOn)
-    · exact λ _ _ => S.key w₀
-    · exact λ t _ => S.L
+    · exact λ _ _ => S.key _ _
+    · exact λ _ _ => S.L _
     · exact (S.continuous_f2 w₀).continuousOn
 
-lemma identity (S : setup f f' Γ Γ') (w : ℂ) (t : ℝ) : deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
+lemma identity (S : setup (w₀ := w₀) f f' Γ Γ') (w : ℂ) (t : ℝ) :
+    deriv (f3 f Γ Γ' w) t = f2 f f' Γ Γ' w t := by
   unfold f2 f3
   rw [deriv_mul (S.dΓ' _).differentiableAt (S.dfΓ _).differentiableAt]
   simp only [add_right_inj]
@@ -174,7 +179,7 @@ lemma identity (S : setup f f' Γ Γ') (w : ℂ) (t : ℝ) : deriv (f3 f Γ Γ' 
   rw [← (S.df (Γ w t)).deriv, deriv.comp _ (S.df _).differentiableAt (S.dΓ _).differentiableAt]
   ring
 
-theorem holo (hab : a ≤ b) (S : setup f f' Γ Γ') :
+theorem holo (hab : a ≤ b) (S : setup (w₀ := w₀) f f' Γ Γ') :
     HasDerivAt (fun w => curvint a b f (Γ w))
       (Γ' w₀ b * f (Γ w₀ b) - Γ' w₀ a * f (Γ w₀ a)) w₀ := by
   have : HasDerivAt (fun w => ∫ (t : ℝ) in a..b, f1 f Γ w t)

@@ -5,6 +5,8 @@ local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
 
 open intervalIntegral Real MeasureTheory Filter Topology Set Metric
 
+variable {𝕜 E V : Type*} {r : ℝ} {z : ℂ} {a b t : ℝ} {n : ℕ}
+
 lemma isCompact_segment [OrderedRing 𝕜] [TopologicalSpace 𝕜] [TopologicalAddGroup 𝕜] [CompactIccSpace 𝕜]
     [TopologicalSpace E] [AddCommGroup E] [ContinuousAdd E] [Module 𝕜 E] [ContinuousSMul 𝕜 E] {x y : E} :
     IsCompact (segment 𝕜 x y) := by
@@ -22,7 +24,8 @@ lemma DifferentiableAt.deriv_eq_deriv_pow_div_pow {n : ℕ} (n_pos : 0 < n) {f g
   rw [(EventuallyEq.deriv hg).self_of_nhds, deriv_pow'' _ g_diff, eq_div_iff h2]
   ring
 
-lemma Set.injOn_of_injOn_comp (hfg : InjOn (f ∘ g) s) : InjOn g s :=
+lemma Set.injOn_of_injOn_comp {α β γ : Type*} {f : β → γ} {g : α → β} {s : Set α}
+    (hfg : InjOn (f ∘ g) s) : InjOn g s :=
   λ _ hx _ hy => hfg hx hy ∘ congr_arg f
 
 lemma has_deriv_at_integral_of_continuous_of_lip
@@ -106,7 +109,7 @@ namespace ContDiffOn
 
 variable [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E] {f : ℝ → E} {g : ℝ → ℝ}
 
-theorem continuousOn_derivWithin'' (h : ContDiffOn ℝ n f (uIcc a b)) (hn : 1 ≤ n) :
+theorem continuousOn_derivWithin'' {n : ℕ∞} (h : ContDiffOn ℝ n f (uIcc a b)) (hn : 1 ≤ n) :
     ContinuousOn (derivWithin f (uIcc a b)) (uIcc a b) := by
   by_cases hab : a = b
   · simp [continuousOn_singleton, hab]
@@ -183,7 +186,7 @@ lemma exists_div_lt {a ε : ℝ} (ha : 0 ≤ a) (hε : 0 < ε) : ∃ n : ℕ, a 
 
 section sort_finset
 
-variable [LinearOrder α] {l l1 l2 : List α} {s : Finset α}
+variable {α : Type*} [LinearOrder α] {l l1 l2 : List α} {s : Finset α}
 
 lemma List.Sorted.ext (h1 : l1.Sorted (. ≤ .)) (h2 : l2.Sorted (. ≤ .))
     (h'1 : l1.Nodup) (h'2 : l2.Nodup) (h : ∀ x, x ∈ l1 ↔ x ∈ l2) : l1 = l2 :=

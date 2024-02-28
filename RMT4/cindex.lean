@@ -11,7 +11,8 @@ noncomputable def cindex (z₀ : ℂ) (r : ℝ) (f : ℂ → ℂ) : ℂ :=
 
 section basic
 
-variable [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {p : FormalMultilinearSeries ℂ ℂ E}
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
+  {p : FormalMultilinearSeries ℂ ℂ E} {U : Set ℂ} {f : ℂ → E} {z₀ : ℂ}
 
 lemma DifferentiableOn.deriv {f : ℂ → E} (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) :
     DifferentiableOn ℂ (deriv f) U :=
@@ -26,7 +27,7 @@ end basic
 
 namespace circleIntegral
 
-variable [NormedAddCommGroup E] [NormedSpace ℂ E] {f g : ℂ → E}
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] {f g : ℂ → E} {c : ℂ} {R : ℝ}
 
 -- `circleIntegral.integral_sub` already exists in mathlib
 theorem integral_add (hf : CircleIntegrable f c R) (hg : CircleIntegrable g c R) :
@@ -37,7 +38,8 @@ end circleIntegral
 
 section circle_integral
 
-variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f g : ℂ → E}
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f g : ℂ → E}
+  {r : ℝ} {U : Set ℂ} {c : ℂ}
 
 lemma circle_integral_eq_zero (hU : IsOpen U) (hr : 0 < r) (hcr : closedBall c r ⊆ U)
       (f_hol : DifferentiableOn ℂ f U) :
@@ -54,8 +56,8 @@ end circle_integral
 
 section dslope
 
-variable {E : Type u} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f : ℂ → E}
-  {p : FormalMultilinearSeries ℂ ℂ E}
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E] {f : ℂ → E}
+  {p : FormalMultilinearSeries ℂ ℂ E} {U : Set ℂ} {z₀ c : ℂ} {n : ℕ}
 
 lemma DifferentiableOn.iterate_dslope (hf : DifferentiableOn ℂ f U) (hU : IsOpen U) (hc : c ∈ U) :
     DifferentiableOn ℂ (iterate (swap dslope c) n f) U := by
@@ -75,7 +77,7 @@ lemma HasFPowerSeriesAt.dslope_order_eventually_ne_zero (hp : HasFPowerSeriesAt 
 
 end dslope
 
-variable {f g : ℂ → ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ}
+variable {f g : ℂ → ℂ} {p : FormalMultilinearSeries ℂ ℂ ℂ} {z z₀ c : ℂ} {n : ℕ} {U : Set ℂ} {r : ℝ}
 
 lemma deriv_div_self_eq_div_add_deriv_div_self (hg : DifferentiableAt ℂ g z) (hgz : g z ≠ 0)
     (hfg : f =ᶠ[𝓝 z] λ w => (w - z₀) ^ n * g w) (hz : z ≠ z₀) :

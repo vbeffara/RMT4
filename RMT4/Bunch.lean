@@ -1,9 +1,6 @@
 import Mathlib.Topology.Basic
 import Mathlib.Data.Set.Image
 import Mathlib.Topology.MetricSpace.Basic
--- import LeanCopilot
-
-set_option autoImplicit false
 
 open Topology Filter Metric TopologicalSpace Set Subtype
 

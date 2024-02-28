@@ -2,6 +2,8 @@ import RMT4.cindex
 
 open Set Complex Metric Topology
 
+variable {z z₀ : ℂ} {U : Set ℂ}
+
 def has_sqrt (U : Set ℂ) : Prop :=
   ∀ (f : ℂ → ℂ), (∀ z ∈ U, f z ≠ 0) → DifferentiableOn ℂ f U →
   ∃ g, DifferentiableOn ℂ g U ∧ EqOn f (g ^ 2) U

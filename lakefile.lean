@@ -1,10 +1,12 @@
 import Lake
 open Lake DSL
 
-package «rMT4» {
-  -- add any package configuration options here
-  -- moreLinkArgs := #["-L./.lake/packages/LeanCopilot/.lake/build/lib", "-lctranslate2"]
-}
+package «rMT4» where
+  leanOptions := #[
+    ⟨`pp.proofs.withType, false⟩,
+    ⟨`autoImplicit, false⟩,
+    ⟨`relaxedAutoImplicit, false⟩
+  ]
 
 require mathlib from git "https://github.com/leanprover-community/mathlib4.git"
 
