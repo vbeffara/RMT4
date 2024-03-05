@@ -121,8 +121,8 @@ lemma nhd_from_eq_nhd {z : covering Λ} (h : ↑z.1 ∈ Λ.S x) : nhd_from x z =
 lemma nhd_eq_toBunch_nhd : nhd = Λ.toBunch.nhd := by
   ext ⟨a, b⟩ s
   have : Nonempty (Λ.toBunch.idx (a, b)) := by
-    simp [toBunch, Bunch.idx, FF]
-    refine ⟨a.1, a.prop, Λ.mem a, b, by ring⟩
+    dsimp [toBunch, Bunch.idx, FF]
+    exact ⟨(a, b), Λ.mem a, by ring⟩
   simp only [Bunch.nhd, this, dite_true, IsBasis.mem_filter_iff]
   constructor
   · intro h

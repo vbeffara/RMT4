@@ -3,6 +3,7 @@ import Mathlib.Analysis.Convex.Segment
 import Mathlib.Topology.Covering
 import Mathlib.Topology.LocallyConstant.Basic
 import RMT4.Glue
+import Mathlib
 
 open Set Topology Metric unitInterval Filter ContinuousMap
 
@@ -29,6 +30,25 @@ instance : Zero (Iic t) := ⟨0, nonneg'⟩
 def reachable (f : E → X) (γ : C(I, X)) (A : E) (t : I) : Prop :=
   ∃ Γ : C(Iic t, E), Γ 0 = A ∧ ∀ s, f (Γ s) = γ s
 
+def reachable' (f : E → X) (γ : C(I, X)) (A : E) (t : I) : Prop :=
+  ∃ Γ : C(I, E), Γ 0 = A ∧ ∀ s ≤ t, f (Γ s) = γ s
+
+example : reachable f γ A t ↔ reachable' f γ A t := by
+  constructor
+  · rintro ⟨Γ, h1, h2⟩
+    refine ⟨⟨IicExtend Γ, ?_⟩, ?_, ?_⟩
+    · apply Continuous.comp Γ.2
+      apply Continuous.subtype_mk
+      apply continuous_const.min continuous_id
+    · simp [IicExtend, projIic, min, ← h1]
+      congr
+      simp [inf_eq_right, t.2.1]
+    · intro s hs
+      specialize h2 ⟨s, hs⟩
+      simp at h2
+      simp [← h2, IicExtend, projIic, min_eq_right hs]
+  · sorry
+
 lemma reachable_zero (hγ : γ 0 = f A) : reachable f γ A 0 := by
   refine ⟨⟨λ _ => A, continuous_const⟩, rfl, ?_⟩
   intro ⟨s, (hs : s ≤ 0)⟩ ; simp [le_antisymm hs s.2.1, hγ]
@@ -42,7 +62,7 @@ lemma reachable_extend {T : Trivialization (f ⁻¹' {γ t}) f} (h : MapsTo γ (
   have l1 : f (Γ T₁) = γ t₁ := h2 T₁
   have l2 : Γ T₁ ∈ T.source := T.mem_source.2 <| l1 ▸ h left_mem_uIcc
   refine ⟨trans_Iic Γ δ ?_, trans_Iic_of_le nonneg', λ s => ?_⟩
-  · simpa only [ContinuousMap.coe_mk, ← l1, ← T.proj_toFun _ l2] using (T.left_inv' l2).symm
+  · simpa only [T₁, δ, ContinuousMap.coe_mk, ← l1, ← T.proj_toFun _ l2] using (T.left_inv' l2).symm
   · by_cases H : s ≤ t₁ <;> simp only [trans_Iic, glue_Iic, ContinuousMap.coe_mk, H, dite_true, h2]
     have l5 : γ s ∈ T.baseSet := h ⟨inf_le_left.trans (not_le.1 H).le, le_trans s.2 le_sup_right⟩
     have l6 {z} : (γ s, z) ∈ T.target := T.mem_target.2 l5
@@ -74,11 +94,13 @@ theorem Lift (hf : IsCoveringMap f) (hγ : γ 0 = f A) : ∃! Γ : C(I, E), Γ 0
   have l2 : IsClopen {t | reachable f γ A t} := isClopen_iff_nhds.2 (λ t => reachable_nhds_iff hf)
   let ⟨Γ, h1, h2⟩ := ((isClopen_iff.1 l2).resolve_left <| Nonempty.ne_empty l1).symm ▸ mem_univ 1
   let Γ₁ : C(I, E) := ⟨IicExtend Γ, Γ.2.Iic_extend'⟩
-  have l3 : Γ₁ 0 = A := by simpa [IicExtend, projIic] using h1
+  have l3 : Γ₁ 0 = A := by simpa [Γ₁, IicExtend, projIic] using h1
   have l4 : f ∘ Γ₁ = γ := by
     ext1 s
     simp only [IicExtend, coe_mk, Function.comp_apply, projIic]
     convert h2 ⟨s, s.2.2⟩
+    simp [Γ₁, IicExtend, projIic]
+    congr
     simpa using s.2.2
   refine ⟨Γ₁, ⟨l3, l4⟩, ?_⟩
   intro Γ₂ ⟨hh1, hh2⟩
@@ -151,7 +173,7 @@ theorem HLL (hp : IsCoveringMap p) (f₀ : C(Y, X)) (F : C(Y × I, X)) (hF : ∀
     ext ⟨y, t⟩
     let Hy : C(I, E) := ⟨λ t => H (y, t), sorry⟩
     have h4 : (p ∘ fun t => H (y, t)) = fun t => F (y, t) := sorry
-    simp [← hG2 y Hy ⟨hH2 y, h4⟩]
+    simp [← hG2 y Hy ⟨hH2 y, h4⟩, Hy]
 
 -- theorem HomLift (hf : IsCoveringMap f) (h0 : γ (0, 0) = f e) :
 --     ∃ Γ : C(I × I, E), Γ (0, 0) = e ∧ f ∘ Γ = γ := by

@@ -14,13 +14,13 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
   have h2 : ∀ z ∈ closedBall c r, g z ≠ 0 := by
     rintro z hz
     by_cases h : z = z₀
-    case pos => simp [dslope, h, Function.update, hf'z₀]
-    case neg => simp [dslope, h, Function.update, slope, sub_ne_zero.2 h, hfz₀, hfz z hz h]
+    case pos => simp [g, dslope, h, Function.update, hf'z₀]
+    case neg => simp [g, dslope, h, Function.update, slope, sub_ne_zero.2 h, hfz₀, hfz z hz h]
   have h10 : ∀ z ∈ sphere c r, z - z₀ ≠ 0 :=
     λ z hz => sub_ne_zero.2 (sphere_disjoint_ball.ne_of_mem hz hz₀)
-  suffices : cindex c r f = ((2 * Real.pi * I)⁻¹ * ∮ z in C(c, r), (z - z₀)⁻¹) + cindex c r g
-  · rw [this, integral_sub_inv_of_mem_ball hz₀, cindex_eq_zero hU hr hcr h1 h2]
-    field_simp [two_ne_zero, Real.pi_ne_zero, I_ne_zero]
+  suffices this : cindex c r f = ((2 * Real.pi * I)⁻¹ * ∮ z in C(c, r), (z - z₀)⁻¹) + cindex c r g
+    by rw [this, integral_sub_inv_of_mem_ball hz₀, cindex_eq_zero hU hr hcr h1 h2]
+       field_simp [two_ne_zero, Real.pi_ne_zero, I_ne_zero]
   have h6 : ∀ z ∈ sphere c r, deriv f z / f z = (z - z₀)⁻¹ + deriv g z / g z := by
     rintro z hz
     have h3 : ∀ z ∈ U, f z = (z - z₀) * g z :=

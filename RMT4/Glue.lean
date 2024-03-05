@@ -103,8 +103,8 @@ lemma Continuous.Iic_extend' (hf : Continuous f) : Continuous (IicExtend f) :=
 lemma continuous_glue_Iic (hf : Continuous f) (hg : Continuous g)
     (h : f ⟨a, le_rfl⟩ = g ⟨a, ⟨inf_le_left, le_sup_left⟩⟩) : Continuous (glue_Iic f g) := by
   rw [glue_Iic_eq]
-  suffices : Continuous fun t => if t ≤ a then IicExtend f t else IccExtend inf_le_sup g t
-  · exact this.comp continuous_subtype_val
+  suffices h : Continuous fun t => if t ≤ a then IicExtend f t else IccExtend inf_le_sup g t
+    by exact h.comp continuous_subtype_val
   refine hf.Iic_extend'.if_le hg.Icc_extend' continuous_id continuous_const ?_
   rintro x rfl ; simpa [IccExtend_of_mem] using h
 

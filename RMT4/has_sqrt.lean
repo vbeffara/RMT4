@@ -23,7 +23,7 @@ lemma EqOn_zero_of_deriv_eq_zero (hU : IsOpen U) (hU' : IsPreconnected U) {f : �
   refine eventually_nhds_iff.2 ⟨r, hr, λ z hz => ?_⟩
   rw [Pi.zero_apply, ← hfz₀]
   suffices h : ∀ z ∈ ball z₀ r, fderivWithin ℂ f (ball z₀ r) z = 0
-  { exact (convex_ball z₀ r).is_const_of_fderivWithin_eq_zero (hf.mono hrU) h hz (mem_ball_self hr) }
+    by exact (convex_ball z₀ r).is_const_of_fderivWithin_eq_zero (hf.mono hrU) h hz (mem_ball_self hr)
   rintro w hw
   have : UniqueDiffWithinAt ℂ (ball z₀ r) w := isOpen_ball.uniqueDiffWithinAt hw
   rw [fderivWithin_eq_fderiv this (hf.differentiableAt (hU.mem_nhds (hrU hw)))]
@@ -34,8 +34,8 @@ lemma EqOn_of_deriv_eq_zero (hU : IsOpen U) (hU' : IsPreconnected U) {f : ℂ �
     (hf : DifferentiableOn ℂ f U) (hf' : EqOn (deriv f) 0 U) (hz₀ : z₀ ∈ U) :
     EqOn f (λ _ => f z₀) U := by
   set g := λ z => f z - f z₀
-  have h2 : EqOn (deriv g) 0 U := λ z hz => by simp [deriv_sub_const, hf' hz]
-  have h3 : g z₀ = 0 := by simp
+  have h2 : EqOn (deriv g) 0 U := λ z hz => by rw [deriv_sub_const, hf' hz]
+  have h3 : g z₀ = 0 := by simp [g]
   have := EqOn_zero_of_deriv_eq_zero hU hU' (hf.sub_const _) h2 hz₀ h3
   exact λ z hz => sub_eq_zero.1 (this hz)
 
@@ -70,15 +70,16 @@ lemma has_primitives.has_logs (hp : has_primitives U) (hU : IsOpen U) (hU' : IsP
     have e4 : DifferentiableOn ℂ (exp ∘ g) U := differentiable_exp.comp_differentiableOn h3
     have e1 : DifferentiableOn ℂ h U := hf.div e4 (λ z _ => exp_ne_zero _)
     refine ⟨g, h3, ?_⟩
-    suffices : EqOn h (λ _ => 1) U
-    · exact λ z hz => eq_of_div_eq_one (this hz)
-    have : 1 = h z₀ := by simp [exp_log, hfz z₀ hz₀]
+    suffices h : EqOn h (λ _ => 1) U
+      by exact λ z hz => eq_of_div_eq_one (h hz)
+    have : 1 = h z₀ := by unfold_let ; simp [exp_log, hfz z₀ hz₀]
     rw [this]
     refine EqOn_of_deriv_eq_zero hU hU' e1 (λ z hz => ?_) hz₀
     have f0 : U ∈ 𝓝 z := hU.mem_nhds hz
     dsimp
+    unfold_let
     rw [Pi.div_def, deriv_div (hf.differentiableAt f0) (e4.differentiableAt f0) (exp_ne_zero _)]
     rw [deriv.scomp z differentiableAt_exp (h3.differentiableAt f0)]
-    have e5 : deriv g z = deriv lf z := by simp
+    have e5 : deriv g z = deriv lf z := by unfold_let ; simp
     field_simp [exp_ne_zero, hlf2 hz, hfz z hz, e5]
     ring

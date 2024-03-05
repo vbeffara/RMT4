@@ -180,7 +180,6 @@ lemma exists_cindex_eq_order (hp : HasFPowerSeriesAt f p z₀) :
       exact hr.2
     rw [circleIntegral.integral_congr hr.1.le this]
     simp [circleIntegral]
-    exact intervalIntegral.integral_zero
 
 lemma cindex_eventually_eq_order (hp : HasFPowerSeriesAt f p z₀) :
     ∀ᶠ r in 𝓝[>] 0, cindex z₀ r f = p.order := by

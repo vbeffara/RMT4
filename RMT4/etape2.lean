@@ -70,7 +70,7 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
   let g := φ u_in_𝔻 ∘ f
   have g_diff : DifferentiableOn ℂ g 𝔻 := (φ u_in_𝔻).is_diff.comp f_diff f_img
   have g_maps : MapsTo g 𝔻 𝔻 := (φ u_in_𝔻).maps_to.comp f_img
-  have g_0_eq_0 : g 0 = 0 := by simp [φ]
+  have g_0_eq_0 : g 0 = 0 := by simp [g, φ]
   by_cases h : ‖deriv g 0‖ = 1
   case pos =>
     have g_lin : EqOn g (λ (z : ℂ) => z • deriv g 0) (ball 0 1) := by
@@ -123,22 +123,22 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
   have φᵤf_ne_zero : ∀ z ∈ U, φᵤf z ≠ 0 := λ z z_in_U hz => by
     refine u_not_in_f_U ⟨z, z_in_U, ?_⟩
     apply φᵤ.is_inj (f.maps_to z_in_U) u_in_𝔻
-    dsimp at hz
+    dsimp [φᵤf] at hz
     rw [hz]
-    simp [φ]
+    simp [φᵤ, φ]
   obtain ⟨g, hg⟩ := φᵤf.sqrt' φᵤf_ne_zero
   let v : ℂ := g z₀
   have v_in_𝔻 : v ∈ 𝔻 := g.maps_to hz₀
   let h : embedding U 𝔻 := (φ v_in_𝔻).comp g
-  have h_z₀_eq_0 : h z₀ = 0 := by simp [φ]
+  have h_z₀_eq_0 : h z₀ = 0 := by simp [h, φ]
   let σ : ℂ → ℂ := λ z => z ^ 2
   let ψ : ℂ → ℂ := φ (neg_in_𝔻 u_in_𝔻) ∘ σ ∘ φ (neg_in_𝔻 v_in_𝔻)
   have f_eq_ψ_h : EqOn f (ψ ∘ h) U := λ z hz => by
     have e1 := φ_inv v_in_𝔻 (g.maps_to hz)
     have e2 := hg hz
     have e3 := φ_inv u_in_𝔻 (f.maps_to hz)
-    dsimp at e2
-    simp [e1, ← e2, e3]
+    dsimp [φᵤf] at e2
+    simp [ψ, σ, h, e1, ← e2, e3]
   have ψ_is_diff : DifferentiableOn ℂ ψ 𝔻 := by
     refine (φ (neg_in_𝔻 u_in_𝔻)).is_diff.comp ?_ ?_
     · apply DifferentiableOn.comp
@@ -152,7 +152,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
         exact (φ (neg_in_𝔻 v_in_𝔻)).maps_to
     · refine MapsTo.comp ?_ (φ (neg_in_𝔻 v_in_𝔻)).maps_to
       intros z hz
-      simpa [𝔻] using hz
+      simpa [σ, 𝔻] using hz
   have deriv_eq_mul : deriv f z₀ = deriv ψ 0 * deriv h z₀ := by
     have e1 : U ∈ 𝓝 z₀ := good_domain.is_open.mem_nhds hz₀
     have e2 : 𝔻 ∈ 𝓝 (0 : ℂ) := ball_mem_nhds _ zero_lt_one
@@ -166,12 +166,13 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
   · exact norm_pos_iff.2 (embedding.deriv_ne_zero good_domain.is_open hz₀)
   · apply non_injective_schwarz ψ_is_diff
     · refine λ z hz => (φ (neg_in_𝔻 u_in_𝔻)).maps_to (mem_𝔻_iff.mpr ?_)
-      simpa using mem_𝔻_iff.mp ((φ (neg_in_𝔻 v_in_𝔻)).maps_to hz)
+      simpa [σ] using mem_𝔻_iff.mp ((φ (neg_in_𝔻 v_in_𝔻)).maps_to hz)
     · simp only [InjOn, not_forall, exists_prop]
       have e1 : (2⁻¹ : ℂ) ∈ 𝔻 := by apply mem_𝔻_iff.mpr; norm_num
       have e2 : (-2⁻¹ : ℂ) ∈ 𝔻 := neg_in_𝔻 e1
       refine ⟨φ v_in_𝔻 2⁻¹, (φ v_in_𝔻).maps_to e1, φ v_in_𝔻 (-2⁻¹), (φ v_in_𝔻).maps_to e2, ?_, ?_⟩
-      · simp [φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2]
+      · unfold_let
+        simp [φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2]
       · intro h
         have := (φ v_in_𝔻).is_inj e1 e2 h
         norm_num at this

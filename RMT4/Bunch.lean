@@ -49,8 +49,8 @@ lemma eventuallyEq (hi : a ∈ B.S i) (hj : a ∈ B.S j) (h : B i a = B j a) :
 lemma tile_inter {s₁ s₂ : Set α} (hi₁ : i₁ ∈ B.idx z) (hi₂ : i₂ ∈ B.idx z) (hi : i ∈ B.idx z)
     (h₁ : s₁ ∈ 𝓝 z.1) (h₂ : s₂ ∈ 𝓝 z.1) :
     ∃ s ∈ 𝓝 z.1, B.tile i s ⊆ B.tile i₁ s₁ ∩ B.tile i₂ s₂ := by
-  suffices : ∀ᶠ b in 𝓝 z.1, (b, B i b) ∈ B.tile i₁ s₁ ∩ B.tile i₂ s₂
-  · simpa only [eventually_iff_exists_mem, ← subset_iff_forall] using this
+  suffices h : ∀ᶠ b in 𝓝 z.1, (b, B i b) ∈ B.tile i₁ s₁ ∩ B.tile i₂ s₂
+    by simpa only [eventually_iff_exists_mem, ← subset_iff_forall] using h
   have l1 := eventuallyEq hi₁.1 hi.1 (hi₁.2.trans hi.2.symm)
   have l2 := eventuallyEq hi₂.1 hi.1 (hi₂.2.trans hi.2.symm)
   filter_upwards [h₁, h₂, l1, l2] with b e1 e2 e3 e4
@@ -120,7 +120,11 @@ theorem nhd_is_nhd (a : space B) (s : Set (space B)) (hs : s ∈ nhd a) :
     · simp only [nhd, h, dite_false] ; simp
     · simp [hs]
 
-lemma nhds_eq_nhd : 𝓝 z = nhd z := nhds_mkOfNhds _ _ pure_le nhd_is_nhd
+lemma nhds_eq_nhd : 𝓝 z = nhd z := by
+  refine nhds_mkOfNhds _ _ pure_le ?_
+  intro a s hs
+  obtain ⟨t, h1, _, h3⟩ := nhd_is_nhd a s hs -- TODO simplify `nhd_is_nhd`
+  apply eventually_of_mem h1 h3
 
 lemma mem_nhds_tfae (h : Nonempty (B.idx z)) : List.TFAE [
       s ∈ 𝓝 z,

@@ -64,7 +64,7 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
   have φ_diff {t} (ht : t ∈ I) : DifferentiableOn ℂ (λ w => φ w t) U :=
     f_holo.comp differentiable_bary.differentiableOn (λ z hz => hU.bary hz ht)
   have φ_derz {z} (hz : z ∈ U) {t} (ht : t ∈ I) : HasDerivAt (λ x => φ x t) (ψ z t) z := by
-    convert (f_deri (hU.bary hz ht)).comp z hasDerivAt_bary' ; simp ; ring
+    convert (f_deri (hU.bary hz ht)).comp z hasDerivAt_bary' ; simp [ψ] ; ring
   have φ_dert {t} (ht : t ∈ I) : HasDerivAt (φ z) ((z - z₀) * _root_.deriv f ((1 - t) • z₀ + t • z)) t := by
     convert (f_deri (hU.bary hz ht)).comp t has_deriv_at_bary using 1 ; ring
   have ψ_cont : ContinuousOn (ψ z) I :=
@@ -91,7 +91,7 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
         rw [(φ_derz (K_subs hw) ht).deriv]
         have f_bary := hC _ ((K_conv.starConvex hz₀).bary hw ht)
         have ht' : |t| ≤ 1 := by { rw [abs_le] ; constructor <;> linarith [ht.1, ht.2] }
-        simpa [abs_eq_self.2 C_nonneg] using mul_le_mul ht' f_bary (by simp) (by simp)
+        simpa [ψ, abs_eq_self.2 C_nonneg] using mul_le_mul ht' f_bary (by simp) (by simp)
 
     apply has_deriv_at_integral_of_continuous_of_lip zero_le_one δ_pos
     · exact eventually_of_mem (hU'.mem_nhds hz) (λ _ => φ_cont)
@@ -107,14 +107,14 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
     have g_dert : ∀ t ∈ Ioo (0:ℝ) 1, HasDerivAt g (h t) t := by
       rintro t ht
       convert (hasDerivAt_id t).smul (φ_dert (Ioo_subset_Icc_self ht)) using 1
-      simp [add_comm] ; ring
+      simp [ψ, h, add_comm] ; ring
     have h_intg : IntervalIntegrable h volume (0:ℝ) 1 := by
       apply ContinuousOn.intervalIntegrable
-      simp only [Interval, min_eq_left, zero_le_one, max_eq_right]
+      simp only [h, Interval, min_eq_left, zero_le_one, max_eq_right]
       convert (φ_cont hz).add (continuousOn_const.mul ψ_cont) ; simp
 
     convert ← integral_eq_sub_of_hasDerivAt_of_le zero_le_one g_cont g_dert h_intg using 1
-    · simp only
+    · simp only [ψ, h]
       rw [intervalIntegral.integral_add]
       · simp
       · apply ContinuousOn.intervalIntegrable ; convert φ_cont hz ; simp [Interval]
@@ -122,7 +122,7 @@ lemma DifferentiableOn.exists_primitive (f_holo : DifferentiableOn ℂ f U)
         refine continuousOn_const.mul ?_
         convert ψ_cont
         simp
-    · simp [detail.φ]
+    · simp [g, φ, detail.φ]
 
   have : HasDerivAt (primitive f z₀)
       ((∫ t in (0:ℝ)..1, φ z t) + (z - z₀) * ∫ t in (0:ℝ)..1, ψ z t) z := by

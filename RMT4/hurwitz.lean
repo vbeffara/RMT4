@@ -403,9 +403,9 @@ theorem hurwitz_inj [NeBot p]
   have hg : TendstoLocallyUniformlyOn G g p U :=
     hurwitz4 hf (uniformContinuous_id.sub uniformContinuous_const)
   have hgx : g x = 0 := sub_self _
-  have hgy : g y = 0 := by simp [hfxy]
-  suffices : ∀ z ∈ U, g z = 0
-  · exact ⟨f x, by simpa [sub_eq_zero] using this⟩
+  have hgy : g y = 0 := by simp [g, hfxy]
+  suffices this : ∀ z ∈ U, g z = 0
+    by exact ⟨f x, by simpa [sub_eq_zero, g] using this⟩
   --
   contrapose hi; simp only [not_frequently, InjOn, not_forall]
   have h1 : DifferentiableOn ℂ g U := hg.differentiableOn hG hU
