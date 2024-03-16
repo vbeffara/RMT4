@@ -5,8 +5,6 @@ import RMT4.hurwitz
 
 open Set Function Metric UniformConvergence Complex
 
-def compacts (U : Set ℂ) : Set (Set ℂ) := {K | K ⊆ U ∧ IsCompact K}
-
 variable {ι : Type*} {U K : Set ℂ} {z : ℂ} {F : ι → ℂ →ᵤ[compacts U] ℂ}
 
 @[simp] lemma union_compacts : ⋃₀ compacts U = U :=
@@ -68,21 +66,41 @@ lemma UniformlyBoundedOn.equicontinuous_on
   convert mul_lt_mul' le_rfl this (norm_nonneg _) hMp
   field_simp [hMp.lt.ne.symm, mul_comm]
 
-theorem montel (hU : IsOpen U) (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
+def 𝓕K (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (ℂ →ᵤ[compacts U] ℂ) :=
+  {f | DifferentiableOn ℂ f U ∧ ∀ K ∈ compacts U, ∀ z ∈ K, f z ∈ Q K}
+
+theorem isClosed_𝓕K {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+    IsClosed (𝓕K U Q) := sorry
+
+theorem isCompact_𝓕K {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+    IsCompact (𝓕K U Q) := by
+
+  rw [isCompact_iff_compactSpace]
+  apply @ArzelaAscoli.compactSpace_of_closedEmbedding (𝓕K U Q) ℂ ℂ _ _ Subtype.val _
+    (compacts U) (fun K hK => hK.2)
+  · constructor
+    · constructor
+      · tauto
+      · exact fun f g => Subtype.ext
+    · simpa [range, UniformOnFun.ofFun] using isClosed_𝓕K hQ
+  · sorry
+  · intro K hK z hz
+    refine ⟨Q K, hQ K hK, fun f => f.2.2 K hK z hz⟩
+
+theorem montel (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
     TotallyBounded (range F) := by
 
   choose! M hM using h1
-  let S : Set (ℂ →ᵤ[compacts U] ℂ) := {f | ∀ K ∈ compacts U, ∀ z ∈ K, f z ∈ closedBall 0 (M K)}
+  let Q (K : Set ℂ) : Set ℂ := closedBall 0 (M K)
+  let S := 𝓕K U Q
 
-  have l1 : range F ⊆ S := sorry
+  have l1 : range F ⊆ S := by
+    rintro f ⟨i, rfl⟩
+    refine ⟨h2 i, fun K hK z hz => ?_⟩
+    apply (hM K hK).2 z hz
+    simp
   apply totallyBounded_subset l1
-
   apply IsCompact.totallyBounded
-  rw [isCompact_iff_compactSpace]
-  refine @ArzelaAscoli.compactSpace_of_closedEmbedding S ℂ ℂ _ _ (fun f => f.val) _ (compacts U) ?_ ?_ ?_ ?_
-  · intro K hK ; exact hK.2
-  · refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
-    simp [range, UniformOnFun.ofFun]
-    sorry
-  · sorry
-  · sorry
+  apply isCompact_𝓕K
+  intro K _
+  exact isCompact_closedBall _ _

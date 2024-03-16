@@ -5,6 +5,8 @@ open Complex Metric Set
 
 variable {u : ℂ} {U V W : Set ℂ}
 
+def compacts (U : Set ℂ) : Set (Set ℂ) := {K | K ⊆ U ∧ IsCompact K}
+
 namespace RMT
 
 def 𝔻 : Set ℂ := ball 0 1
