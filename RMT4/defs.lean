@@ -1,11 +1,10 @@
 import RMT4.to_mathlib
 import RMT4.deriv_inj
+import RMT4.Basic
 
 open Complex Metric Set
 
 variable {u : ℂ} {U V W : Set ℂ}
-
-def compacts (U : Set ℂ) : Set (Set ℂ) := {K | K ⊆ U ∧ IsCompact K}
 
 namespace RMT
 

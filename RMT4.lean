@@ -1,4 +1,5 @@
 import Mathlib.Analysis.Complex.OpenMapping
+import RMT4.Basic
 import RMT4.Bunch
 import RMT4.cindex
 import RMT4.Covering
@@ -24,22 +25,7 @@ variable {ι : Type*} {l : Filter ι} {U : Set ℂ} {z₀ : ℂ}
 
 namespace RMT
 
-lemma tendsto_iff (hU : IsOpen U) {F : ι → ℂ →ᵤ[compacts U] ℂ} {f : ℂ →ᵤ[compacts U] ℂ} :
-    Tendsto F l (𝓝 f) ↔ TendstoLocallyUniformlyOn F f l U := by
-  simp [UniformOnFun.tendsto_iff_tendstoUniformlyOn, _root_.compacts]
-  exact (tendstoLocallyUniformlyOn_iff_forall_isCompact hU).symm
-
--- `𝓗 U` : holomorphic functions on U
-
-def 𝓗 (U : Set ℂ) := {f : ℂ →ᵤ[compacts U] ℂ | DifferentiableOn ℂ f U}
-
 noncomputable def uderiv (f : ℂ →ᵤ[compacts U] ℂ) : ℂ →ᵤ[compacts U] ℂ := deriv f
-
-lemma IsClosed_𝓗 (hU : IsOpen U) : IsClosed (𝓗 U) := by
-  refine isClosed_iff_clusterPt.2 (λ f hf => ?_)
-  refine @TendstoLocallyUniformlyOn.differentiableOn _ _ _ _ _ _ _ id f hf ?_ ?_ hU
-  · simp [← tendsto_iff hU, Tendsto]
-  · simp [eventually_inf_principal, 𝓗]; exact eventually_of_forall (λ g => id)
 
 lemma ContinuousOn_uderiv (hU : IsOpen U) : ContinuousOn uderiv (𝓗 U) := by
   rintro f hf
@@ -65,7 +51,7 @@ lemma UniformlyBounded_𝓜 : UniformlyBoundedOn ((↑) : 𝓜 U → ℂ →ᵤ[
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
   suffices : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
-  · exact (IsClosed_𝓗 hU).inter this
+  · exact (isClosed_𝓗 hU).inter this
   simp_rw [MapsTo, setOf_forall]
   refine isClosed_biInter (λ z hz => isClosed_ball.preimage ?_)
   exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)

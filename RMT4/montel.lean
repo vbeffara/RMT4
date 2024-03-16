@@ -1,5 +1,6 @@
 import Mathlib.Analysis.Complex.Liouville
 import Mathlib.Topology.UniformSpace.Ascoli
+import RMT4.Basic
 import RMT4.defs
 import RMT4.hurwitz
 
@@ -43,7 +44,8 @@ lemma UniformlyBoundedOn.equicontinuous_on
     (hU : IsOpen U)
     (h2 : ∀ (i : ι), DifferentiableOn ℂ (F i) U)
     (hK : K ∈ compacts U) :
-    Equicontinuous (λ i => K.restrict (F i)) := by
+    EquicontinuousOn F K := by
+  apply (equicontinuous_restrict_iff _).mp
   have key := h1.deriv hU h2
   rintro ⟨z, hz⟩
   obtain ⟨δ, hδ, h⟩ := nhds_basis_closedBall.mem_iff.1 (hU.mem_nhds (hK.1 hz))
@@ -67,12 +69,19 @@ lemma UniformlyBoundedOn.equicontinuous_on
   field_simp [hMp.lt.ne.symm, mul_comm]
 
 def 𝓕K (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (ℂ →ᵤ[compacts U] ℂ) :=
-  {f | DifferentiableOn ℂ f U ∧ ∀ K ∈ compacts U, ∀ z ∈ K, f z ∈ Q K}
+  {f | DifferentiableOn ℂ f U ∧ ∀ K ∈ compacts U, MapsTo f K (Q K)}
 
-theorem isClosed_𝓕K {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
-    IsClosed (𝓕K U Q) := sorry
+theorem isClosed_𝓕K (hU : IsOpen U) {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+    IsClosed (𝓕K U Q) := by
+  rw [𝓕K, setOf_and] ; apply (isClosed_𝓗 hU).inter
+  simp only [setOf_forall, MapsTo]
+  apply isClosed_biInter ; intro K hK
+  apply isClosed_biInter ; intro z hz
+  apply (hQ K hK).isClosed.preimage
+  exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)
+    (mem_singleton z) ⟨singleton_subset_iff.2 (hK.1 hz), isCompact_singleton⟩).continuous)
 
-theorem isCompact_𝓕K {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+theorem isCompact_𝓕K (hU : IsOpen U) {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
     IsCompact (𝓕K U Q) := by
 
   rw [isCompact_iff_compactSpace]
@@ -82,12 +91,22 @@ theorem isCompact_𝓕K {Q : Set ℂ → Set ℂ} (hQ : ∀ K ∈ compacts U, Is
     · constructor
       · tauto
       · exact fun f g => Subtype.ext
-    · simpa [range, UniformOnFun.ofFun] using isClosed_𝓕K hQ
-  · sorry
+    · simpa [range, UniformOnFun.ofFun] using isClosed_𝓕K hU hQ
+  · intro K hK
+    refine UniformlyBoundedOn.equicontinuous_on ?_ hU (fun f => f.2.1) hK
+    intro K' hK'
+    have := (hQ K' hK').isBounded
+    have := (isBounded_iff_subset_closedBall 0).mp this
+    obtain ⟨M, hM⟩ := this
+    refine ⟨M ⊔ 1, by simp, fun z hz y hy => ?_⟩
+    obtain ⟨f, rfl⟩ := mem_range.mp hy
+    have := hM (f.2.2 K' hK' hz)
+    simp at this
+    simp [this]
   · intro K hK z hz
-    refine ⟨Q K, hQ K hK, fun f => f.2.2 K hK z hz⟩
+    refine ⟨Q K, hQ K hK, fun f => f.2.2 K hK hz⟩
 
-theorem montel (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
+theorem montel (hU : IsOpen U) (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
     TotallyBounded (range F) := by
 
   choose! M hM using h1
@@ -101,6 +120,6 @@ theorem montel (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (
     simp
   apply totallyBounded_subset l1
   apply IsCompact.totallyBounded
-  apply isCompact_𝓕K
+  apply isCompact_𝓕K hU
   intro K _
   exact isCompact_closedBall _ _
