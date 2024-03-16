@@ -1,7 +1,7 @@
 import Mathlib.Analysis.Complex.Liouville
+import Mathlib.Topology.UniformSpace.Ascoli
 import RMT4.defs
 import RMT4.hurwitz
-import RMT4.ascoli
 
 open Set Function Metric UniformConvergence Complex
 
@@ -70,5 +70,19 @@ lemma UniformlyBoundedOn.equicontinuous_on
 
 theorem montel (hU : IsOpen U) (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
     TotallyBounded (range F) := by
-  refine ascoli (λ K hK => hK.2) ?_ (by simpa using λ z => h1.totally_bounded_at)
-  exact λ K hK => h1.equicontinuous_on hU h2 hK
+
+  choose! M hM using h1
+  let S : Set (ℂ →ᵤ[compacts U] ℂ) := {f | ∀ K ∈ compacts U, ∀ z ∈ K, f z ∈ closedBall 0 (M K)}
+
+  have l1 : range F ⊆ S := sorry
+  apply totallyBounded_subset l1
+
+  apply IsCompact.totallyBounded
+  rw [isCompact_iff_compactSpace]
+  refine @ArzelaAscoli.compactSpace_of_closedEmbedding S ℂ ℂ _ _ (fun f => f.val) _ (compacts U) ?_ ?_ ?_ ?_
+  · intro K hK ; exact hK.2
+  · refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
+    simp [range, UniformOnFun.ofFun]
+    sorry
+  · sorry
+  · sorry

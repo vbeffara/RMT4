@@ -1,5 +1,4 @@
 import Mathlib.Analysis.Complex.OpenMapping
-import RMT4.ascoli
 import RMT4.Bunch
 import RMT4.cindex
 import RMT4.Covering
@@ -22,10 +21,6 @@ import RMT4.uniform
 open UniformConvergence Topology Filter Set Metric Function
 
 variable {ι : Type*} {l : Filter ι} {U : Set ℂ} {z₀ : ℂ}
-
--- Anatole did this for Lean3 at https://github.com/leanprover-community/mathlib/pull/18017
--- Lean4 port: https://github.com/leanprover-community/mathlib4/pull/6844
--- instance : CompleteSpace (ℂ →ᵤ[compacts U] ℂ) := by sorry
 
 namespace RMT
 
@@ -67,11 +62,6 @@ lemma UniformlyBounded_𝓜 : UniformlyBoundedOn ((↑) : 𝓜 U → ℂ →ᵤ[
   refine ⟨1, zero_lt_one, ?_⟩
   rintro z hz x ⟨⟨f, hf⟩, rfl⟩
   exact hf.2 (hK1 hz)
-
-lemma TotallyBounded_𝓜 (hU : IsOpen U) : TotallyBounded (𝓜 U) := by
-  suffices : UniformlyBoundedOn ((λ f => f) : 𝓜 U → ℂ →ᵤ[compacts U] ℂ) U
-  · simpa [Subtype.range_coe_subtype] using montel hU this (λ f => f.2.1)
-  exact UniformlyBounded_𝓜
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
   suffices : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
