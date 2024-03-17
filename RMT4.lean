@@ -43,7 +43,7 @@ lemma ContinuousOn_uderiv (hU : IsOpen U) : ContinuousOn uderiv (𝓗 U) := by
 
 def 𝓜 (U : Set ℂ) := {f ∈ 𝓗 U | MapsTo f U (closedBall (0 : ℂ) 1)}
 
-example : 𝓜 U = 𝓕K U (fun _ => closedBall 0 1) := 𝓕K_const.symm
+example : 𝓜 U = 𝓑 U (fun _ => closedBall 0 1) := 𝓑_const.symm
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
   suffices : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
@@ -54,7 +54,7 @@ lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
     (mem_singleton z) ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩).continuous)
 
 lemma IsCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
-  simpa only [𝓕K_const] using isCompact_𝓕K hU (fun _ _ => isCompact_closedBall 0 1)
+  simpa only [𝓑_const] using isCompact_𝓑 hU (fun _ _ => isCompact_closedBall 0 1)
 
 -- `𝓘 U` : holomorphic injections into the unit ball
 

@@ -13,13 +13,13 @@ variable {ι : Type*} {U K : Set ℂ} {z : ℂ} {F : ι → ℂ →ᵤ[compacts 
     (λ z hz => ⟨{z}, ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩, mem_singleton z⟩)
 
 def UniformlyBoundedOn (F : ι → ℂ → ℂ) (U : Set ℂ) : Prop :=
-  ∀ K ∈ compacts U, ∃ M > 0, ∀ z ∈ K, range (eval z ∘ F) ⊆ closedBall 0 M
-
-def UniformlyBoundedOn' (F : ι → ℂ → ℂ) (U : Set ℂ) : Prop :=
   ∀ K ∈ compacts U, ∃ Q, IsCompact Q ∧ ∀ i, MapsTo (F i) K Q
 
-lemma uniformlyBoundedOn_iff_uniformlyBoundedOn' (F : ι → ℂ → ℂ) (U : Set ℂ) :
-    UniformlyBoundedOn F U ↔ UniformlyBoundedOn' F U := by
+@[deprecated] def UniformlyBoundedOn'' (F : ι → ℂ → ℂ) (U : Set ℂ) : Prop :=
+  ∀ K ∈ compacts U, ∃ M > 0, ∀ z ∈ K, range (eval z ∘ F) ⊆ closedBall 0 M
+
+lemma uniformlyBoundedOn''_iff_uniformlyBoundedOn (F : ι → ℂ → ℂ) (U : Set ℂ) :
+    UniformlyBoundedOn'' F U ↔ UniformlyBoundedOn F U := by
   constructor <;> intro h K hK
   · obtain ⟨M, -, hM2⟩ := h K hK
     refine ⟨closedBall 0 M, isCompact_closedBall _ _, fun i z hz => ?_⟩
@@ -32,33 +32,9 @@ lemma uniformlyBoundedOn_iff_uniformlyBoundedOn' (F : ι → ℂ → ℂ) (U : S
     simp at this
     simp [this]
 
-lemma UniformlyBoundedOn.totally_bounded_at (h1 : UniformlyBoundedOn F U) (hz : z ∈ U) :
-    TotallyBounded (range (λ (i : ι) => F i z)) := by
-  obtain ⟨M, _, hM⟩ := h1 {z} ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩
-  have := hM z (mem_singleton z)
-  exact totallyBounded_subset this (isCompact_closedBall 0 M).totallyBounded
-
 lemma UniformlyBoundedOn.deriv (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
     (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
     UniformlyBoundedOn (deriv ∘ F) U := by
-  rintro K ⟨hK1, hK2⟩
-  obtain ⟨δ, hδ, h⟩ := hK2.exists_cthickening_subset_open hU hK1
-  have e1 : cthickening δ K ∈ compacts U :=
-    ⟨h, isCompact_of_isClosed_isBounded isClosed_cthickening hK2.isBounded.cthickening⟩
-  obtain ⟨M, hMp, hM⟩ := h1 _ e1
-  refine ⟨M / δ, div_pos hMp hδ, ?_⟩
-  rintro z₀ hz₀ w ⟨i, rfl⟩
-  simp only [mem_closedBall_zero_iff]
-  refine norm_deriv_le_aux hδ ?_ ?_
-  · exact (h2 i).diffContOnCl_ball ((closedBall_subset_cthickening hz₀ δ).trans h)
-  · rintro z hz
-    have : z ∈ cthickening δ K :=
-      sphere_subset_closedBall.trans (closedBall_subset_cthickening hz₀ δ) hz
-    simpa using hM z this ⟨i, rfl⟩
-
-lemma UniformlyBoundedOn'.deriv (h1 : UniformlyBoundedOn' F U) (hU : IsOpen U)
-    (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
-    UniformlyBoundedOn' (deriv ∘ F) U := by
   rintro K ⟨hK1, hK2⟩
   obtain ⟨δ, hδ, h⟩ := hK2.exists_cthickening_subset_open hU hK1
   have e1 : cthickening δ K ∈ compacts U :=
@@ -75,7 +51,7 @@ lemma UniformlyBoundedOn'.deriv (h1 : UniformlyBoundedOn' F U) (hU : IsOpen U)
       sphere_subset_closedBall.trans (closedBall_subset_cthickening hx δ) hz
     simpa using hM (hQ2 i this)
 
-lemma UniformlyBoundedOn.equicontinuous_on
+lemma UniformlyBoundedOn.equicontinuousOn
     (h1 : UniformlyBoundedOn F U)
     (hU : IsOpen U)
     (h2 : ∀ (i : ι), DifferentiableOn ℂ (F i) U)
@@ -85,7 +61,11 @@ lemma UniformlyBoundedOn.equicontinuous_on
   have key := h1.deriv hU h2
   rintro ⟨z, hz⟩
   obtain ⟨δ, hδ, h⟩ := nhds_basis_closedBall.mem_iff.1 (hU.mem_nhds (hK.1 hz))
-  obtain ⟨M, hMp, hM⟩ := key (closedBall z δ) ⟨h, isCompact_closedBall _ _⟩
+  have : ∃ M > 0, ∀ x ∈ closedBall z δ, ∀ i, _root_.deriv (F i) x ∈ closedBall 0 M := by
+    rw [← uniformlyBoundedOn''_iff_uniformlyBoundedOn] at key
+    obtain ⟨m, hm, h⟩ := key (closedBall z δ) ⟨h, isCompact_closedBall _ _⟩
+    exact ⟨m, hm, fun x hx i => h x hx ⟨i, rfl⟩⟩
+  obtain ⟨M, hMp, hM⟩ := this
   rw [equicontinuousAt_iff]
   rintro ε hε
   refine ⟨δ ⊓ ε / M, gt_iff_lt.2 (lt_inf_iff.2 ⟨hδ, div_pos hε hMp⟩), λ w hw i => ?_⟩
@@ -93,7 +73,7 @@ lemma UniformlyBoundedOn.equicontinuous_on
   have e1 : ∀ x ∈ closedBall z δ, DifferentiableAt ℂ (F i) x :=
     λ x hx => (h2 i).differentiableAt (hU.mem_nhds (h hx))
   have e2 : ∀ x ∈ closedBall z δ, ‖_root_.deriv (F i) x‖ ≤ M :=
-    λ x hx => by simpa using hM x hx ⟨i, rfl⟩
+    λ x hx => by simpa using hM x hx i
   have e3 : z ∈ closedBall z δ := mem_closedBall_self hδ.le
   have e4 : w.1 ∈ closedBall z δ := by simpa using (lt_inf_iff.1 hw).1.le
   rw [dist_eq_norm]
@@ -104,17 +84,15 @@ lemma UniformlyBoundedOn.equicontinuous_on
   convert mul_lt_mul' le_rfl this (norm_nonneg _) hMp
   field_simp [hMp.lt.ne.symm, mul_comm]
 
-def 𝓕K (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (ℂ →ᵤ[compacts U] ℂ) :=
+def 𝓑 (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (ℂ →ᵤ[compacts U] ℂ) :=
     {f ∈ 𝓗 U | ∀ K ∈ compacts U, MapsTo f K (Q K)}
 
-lemma 𝓕K_const {Q : Set ℂ} : 𝓕K U (fun _ => Q) = {f ∈ 𝓗 U | MapsTo f U Q} := by
-  ext f ; simp [𝓕K, 𝓗] ; rintro - ; constructor <;> intro h
-  · exact fun z hz => h {z} ⟨by { rintro w rfl ; exact hz }, isCompact_singleton⟩ (mem_singleton z)
-  · exact fun K ⟨h1, _⟩ => h.mono_left h1
+lemma 𝓑_const {Q : Set ℂ} : 𝓑 U (fun _ => Q) = {f ∈ 𝓗 U | MapsTo f U Q} := by
+  simp [𝓑, ← mapsTo_sUnion]
 
-theorem isClosed_𝓕K (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
-    IsClosed (𝓕K U Q) := by
-  rw [𝓕K, setOf_and] ; apply (isClosed_𝓗 hU).inter
+theorem isClosed_𝓑 (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+    IsClosed (𝓑 U Q) := by
+  rw [𝓑, setOf_and] ; apply (isClosed_𝓗 hU).inter
   simp only [setOf_forall, MapsTo]
   apply isClosed_biInter ; intro K hK
   apply isClosed_biInter ; intro z hz
@@ -122,30 +100,25 @@ theorem isClosed_𝓕K (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q 
   exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)
     (mem_singleton z) ⟨singleton_subset_iff.2 (hK.1 hz), isCompact_singleton⟩).continuous)
 
-theorem uniformlyBoundedOn_𝓕K (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
-    UniformlyBoundedOn (Subtype.val : 𝓕K U Q → _) U := by
-  rw [uniformlyBoundedOn_iff_uniformlyBoundedOn']
+theorem uniformlyBoundedOn_𝓑 (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+    UniformlyBoundedOn ((↑) : 𝓑 U Q → ℂ →ᵤ[compacts U] ℂ) U := by
   exact fun K hK => ⟨Q K, hQ K hK, fun f => f.2.2 K hK⟩
 
-theorem isCompact_𝓕K (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
-    IsCompact (𝓕K U Q) := by
+theorem isCompact_𝓑 (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
+    IsCompact (𝓑 U Q) := by
+  have l1 (K) (hK : K ∈ compacts U) : EquicontinuousOn ((↑) : 𝓑 U Q → ℂ →ᵤ[compacts U] ℂ) K :=
+    (uniformlyBoundedOn_𝓑 hQ).equicontinuousOn hU (fun f => f.2.1) hK
+  have l2 (K) (hK : K ∈ compacts U) (x) (hx : x ∈ K) : ∃ L, IsCompact L ∧ ∀ i : 𝓑 U Q, i.1 x ∈ L :=
+    ⟨Q K, hQ K hK, fun f => f.2.2 K hK hx⟩
   rw [isCompact_iff_compactSpace]
-  apply @ArzelaAscoli.compactSpace_of_closedEmbedding _ _ _ _ _ (Subtype.val : 𝓕K U Q → _) _
-    (compacts U) (fun K hK => hK.2)
-  · refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
-    simpa [range, UniformOnFun.ofFun] using isClosed_𝓕K hU hQ
-  · intro K hK
-    exact UniformlyBoundedOn.equicontinuous_on (uniformlyBoundedOn_𝓕K hQ) hU (fun f => f.2.1) hK
-  · intro K hK z hz
-    refine ⟨Q K, hQ K hK, fun f => f.2.2 K hK hz⟩
+  refine ArzelaAscoli.compactSpace_of_closedEmbedding (fun K hK => hK.2) ?_ l1 l2
+  refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
+  simpa [range, UniformOnFun.ofFun] using isClosed_𝓑 hU hQ
 
 theorem montel (hU : IsOpen U) (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
     TotallyBounded (range F) := by
-  choose! M hM using h1
-  have l1 : range F ⊆ 𝓕K U (fun K => closedBall 0 (M K)) := by
-    rintro f ⟨i, rfl⟩
-    exact ⟨h2 i, fun K hK z hz => (hM K hK).2 z hz <| mem_range.mpr (by simp)⟩
-  apply totallyBounded_subset l1
-  exact IsCompact.totallyBounded <| isCompact_𝓕K hU <| fun K _ => isCompact_closedBall _ _
+  choose! Q hQ1 hQ2 using h1
+  have l1 : range F ⊆ 𝓑 U Q := by rintro f ⟨i, rfl⟩ ; exact ⟨h2 i, fun K hK => hQ2 K hK i⟩
+  exact totallyBounded_subset l1 <| (isCompact_𝓑 hU hQ1).totallyBounded
 
 #print axioms montel
