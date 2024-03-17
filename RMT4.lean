@@ -45,16 +45,16 @@ def 𝓜 (U : Set ℂ) := {f ∈ 𝓗 U | MapsTo f U (closedBall (0 : ℂ) 1)}
 
 example : 𝓜 U = 𝓑 U (fun _ => closedBall 0 1) := 𝓑_const.symm
 
+lemma isCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
+  simpa only [𝓑_const] using isCompact_𝓑 hU (fun _ _ => isCompact_closedBall 0 1)
+
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
-  suffices : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
-  · exact (isClosed_𝓗 hU).inter this
+  suffices h : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
+  · exact (isClosed_𝓗 hU).inter h
   simp_rw [MapsTo, setOf_forall]
   refine isClosed_biInter (λ z hz => isClosed_ball.preimage ?_)
   exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)
     (mem_singleton z) ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩).continuous)
-
-lemma IsCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
-  simpa only [𝓑_const] using isCompact_𝓑 hU (fun _ _ => isCompact_closedBall 0 1)
 
 -- `𝓘 U` : holomorphic injections into the unit ball
 
@@ -108,7 +108,7 @@ lemma 𝓘_subset_𝓙 : 𝓘 U ⊆ 𝓙 U := λ _ hf => ⟨hf.1, Or.inl hf.2⟩
 
 lemma IsCompact_𝓙 [good_domain U] : IsCompact (𝓙 U) := by
   have hU : IsOpen U := good_domain.is_open
-  refine (IsCompact_𝓜 hU).of_isClosed_subset ?_ (λ _ hf => hf.1)
+  refine (isCompact_𝓜 hU).of_isClosed_subset ?_ (λ _ hf => hf.1)
   refine isClosed_iff_clusterPt.2 (λ f hf => ?_)
   set l := 𝓝 f ⊓ 𝓟 (𝓙 U)
   haveI : l.NeBot := hf

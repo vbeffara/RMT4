@@ -15,26 +15,8 @@ variable {ι : Type*} {U K : Set ℂ} {z : ℂ} {F : ι → ℂ →ᵤ[compacts 
 def UniformlyBoundedOn (F : ι → ℂ → ℂ) (U : Set ℂ) : Prop :=
   ∀ K ∈ compacts U, ∃ Q, IsCompact Q ∧ ∀ i, MapsTo (F i) K Q
 
-@[deprecated] def UniformlyBoundedOn'' (F : ι → ℂ → ℂ) (U : Set ℂ) : Prop :=
-  ∀ K ∈ compacts U, ∃ M > 0, ∀ z ∈ K, range (eval z ∘ F) ⊆ closedBall 0 M
-
-lemma uniformlyBoundedOn''_iff_uniformlyBoundedOn (F : ι → ℂ → ℂ) (U : Set ℂ) :
-    UniformlyBoundedOn'' F U ↔ UniformlyBoundedOn F U := by
-  constructor <;> intro h K hK
-  · obtain ⟨M, -, hM2⟩ := h K hK
-    refine ⟨closedBall 0 M, isCompact_closedBall _ _, fun i z hz => ?_⟩
-    exact hM2 z hz <| mem_range.mpr ⟨i, rfl⟩
-  · obtain ⟨Q, hQ1, hQ2⟩ := h K hK
-    obtain ⟨M, hM⟩ := hQ1.isBounded.subset_closedBall 0
-    refine ⟨M ⊔ 1, by simp, fun z hz y => ?_⟩
-    rintro ⟨i, rfl⟩
-    have := hM (hQ2 i hz)
-    simp at this
-    simp [this]
-
 lemma UniformlyBoundedOn.deriv (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
-    (h2 : ∀ i, DifferentiableOn ℂ (F i) U) :
-    UniformlyBoundedOn (deriv ∘ F) U := by
+    (h2 : ∀ i, DifferentiableOn ℂ (F i) U) : UniformlyBoundedOn (deriv ∘ F) U := by
   rintro K ⟨hK1, hK2⟩
   obtain ⟨δ, hδ, h⟩ := hK2.exists_cthickening_subset_open hU hK1
   have e1 : cthickening δ K ∈ compacts U :=
@@ -51,20 +33,16 @@ lemma UniformlyBoundedOn.deriv (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
       sphere_subset_closedBall.trans (closedBall_subset_cthickening hx δ) hz
     simpa using hM (hQ2 i this)
 
-lemma UniformlyBoundedOn.equicontinuousOn
-    (h1 : UniformlyBoundedOn F U)
-    (hU : IsOpen U)
-    (h2 : ∀ (i : ι), DifferentiableOn ℂ (F i) U)
-    (hK : K ∈ compacts U) :
-    EquicontinuousOn F K := by
+lemma UniformlyBoundedOn.equicontinuousOn (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
+    (h2 : ∀ i, DifferentiableOn ℂ (F i) U) (hK : K ∈ compacts U) : EquicontinuousOn F K := by
   apply (equicontinuous_restrict_iff _).mp
-  have key := h1.deriv hU h2
   rintro ⟨z, hz⟩
   obtain ⟨δ, hδ, h⟩ := nhds_basis_closedBall.mem_iff.1 (hU.mem_nhds (hK.1 hz))
-  have : ∃ M > 0, ∀ x ∈ closedBall z δ, ∀ i, _root_.deriv (F i) x ∈ closedBall 0 M := by
-    rw [← uniformlyBoundedOn''_iff_uniformlyBoundedOn] at key
-    obtain ⟨m, hm, h⟩ := key (closedBall z δ) ⟨h, isCompact_closedBall _ _⟩
-    exact ⟨m, hm, fun x hx i => h x hx ⟨i, rfl⟩⟩
+  have : ∃ M > 0, ∀ i, MapsTo (_root_.deriv (F i)) (closedBall z δ) (closedBall 0 M) := by
+    obtain ⟨Q, hQ1, hQ2⟩ := h1.deriv hU h2 (closedBall z δ) ⟨h, isCompact_closedBall _ _⟩
+    obtain ⟨M, hM⟩ := hQ1.isBounded.subset_closedBall 0
+    refine ⟨M ⊔ 1, by simp, fun i => ?_⟩
+    exact ((hQ2 i).mono_right hM).mono_right <| closedBall_subset_closedBall le_sup_left
   obtain ⟨M, hMp, hM⟩ := this
   rw [equicontinuousAt_iff]
   rintro ε hε
@@ -72,8 +50,7 @@ lemma UniformlyBoundedOn.equicontinuousOn
   simp
   have e1 : ∀ x ∈ closedBall z δ, DifferentiableAt ℂ (F i) x :=
     λ x hx => (h2 i).differentiableAt (hU.mem_nhds (h hx))
-  have e2 : ∀ x ∈ closedBall z δ, ‖_root_.deriv (F i) x‖ ≤ M :=
-    λ x hx => by simpa using hM x hx i
+  have e2 : ∀ x ∈ closedBall z δ, ‖_root_.deriv (F i) x‖ ≤ M := by simpa [MapsTo] using hM i
   have e3 : z ∈ closedBall z δ := mem_closedBall_self hδ.le
   have e4 : w.1 ∈ closedBall z δ := by simpa using (lt_inf_iff.1 hw).1.le
   rw [dist_eq_norm]
