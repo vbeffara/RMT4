@@ -43,11 +43,7 @@ lemma ContinuousOn_uderiv (hU : IsOpen U) : ContinuousOn uderiv (𝓗 U) := by
 
 def 𝓜 (U : Set ℂ) := {f ∈ 𝓗 U | MapsTo f U (closedBall (0 : ℂ) 1)}
 
-lemma UniformlyBounded_𝓜 : UniformlyBoundedOn ((↑) : 𝓜 U → ℂ →ᵤ[compacts U] ℂ) U := by
-  rintro K ⟨hK1, _⟩
-  refine ⟨1, zero_lt_one, ?_⟩
-  rintro z hz x ⟨⟨f, hf⟩, rfl⟩
-  exact hf.2 (hK1 hz)
+example : 𝓜 U = 𝓕K U (fun _ => closedBall 0 1) := 𝓕K_const.symm
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
   suffices : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
@@ -58,16 +54,7 @@ lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
     (mem_singleton z) ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩).continuous)
 
 lemma IsCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
-  have l1 (K) (hK : K ∈ compacts U) : EquicontinuousOn ((↑) : 𝓜 U → ℂ →ᵤ[compacts U] ℂ) K :=
-    UniformlyBounded_𝓜.equicontinuous_on hU (·.2.1) hK
-  have l2 : ∀ K ∈ compacts U, ∀ x ∈ K, ∃ Q, IsCompact Q ∧ ∀ (f : 𝓜 U), f.val x ∈ Q := by
-    intro K hK x hx
-    refine ⟨closedBall 0 1, isCompact_of_isClosed_isBounded isClosed_ball isBounded_closedBall, ?_⟩
-    exact fun f => f.prop.2 (hK.1 hx)
-  rw [isCompact_iff_compactSpace]
-  refine ArzelaAscoli.compactSpace_of_closedEmbedding (fun _ hK => hK.2) ?_ l1 l2
-  refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
-  simpa [UniformOnFun.ofFun, range] using IsClosed_𝓜 hU
+  simpa only [𝓕K_const] using isCompact_𝓕K hU (fun _ _ => isCompact_closedBall 0 1)
 
 -- `𝓘 U` : holomorphic injections into the unit ball
 

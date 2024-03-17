@@ -107,6 +107,11 @@ lemma UniformlyBoundedOn.equicontinuous_on
 def 𝓕K (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (ℂ →ᵤ[compacts U] ℂ) :=
     {f ∈ 𝓗 U | ∀ K ∈ compacts U, MapsTo f K (Q K)}
 
+lemma 𝓕K_const {Q : Set ℂ} : 𝓕K U (fun _ => Q) = {f ∈ 𝓗 U | MapsTo f U Q} := by
+  ext f ; simp [𝓕K, 𝓗] ; rintro - ; constructor <;> intro h
+  · exact fun z hz => h {z} ⟨by { rintro w rfl ; exact hz }, isCompact_singleton⟩ (mem_singleton z)
+  · exact fun K ⟨h1, _⟩ => h.mono_left h1
+
 theorem isClosed_𝓕K (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
     IsClosed (𝓕K U Q) := by
   rw [𝓕K, setOf_and] ; apply (isClosed_𝓗 hU).inter
