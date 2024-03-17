@@ -59,7 +59,7 @@ lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
 
 lemma IsCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
   have l1 (K) (hK : K ∈ compacts U) : EquicontinuousOn ((↑) : 𝓜 U → ℂ →ᵤ[compacts U] ℂ) K :=
-    (equicontinuous_restrict_iff _).mp <| UniformlyBounded_𝓜.equicontinuous_on hU (·.2.1) hK
+    UniformlyBounded_𝓜.equicontinuous_on hU (·.2.1) hK
   have l2 : ∀ K ∈ compacts U, ∀ x ∈ K, ∃ Q, IsCompact Q ∧ ∀ (f : 𝓜 U), f.val x ∈ Q := by
     intro K hK x hx
     refine ⟨closedBall 0 1, isCompact_of_isClosed_isBounded isClosed_ball isBounded_closedBall, ?_⟩
