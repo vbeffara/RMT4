@@ -6,7 +6,7 @@ import RMT4.hurwitz
 
 open Set Function Metric UniformConvergence Complex
 
-variable {ι : Type*} {U K : Set ℂ} {z : ℂ} {F : ι → ℂ →ᵤ[compacts U] ℂ} {Q : Set ℂ → Set ℂ}
+variable {ι : Type*} {U K : Set ℂ} {z : ℂ} {F : ι → 𝓒 U} {Q : Set ℂ → Set ℂ}
 
 @[simp] lemma union_compacts : ⋃₀ compacts U = U :=
   subset_antisymm (λ _ ⟨_, hK, hz⟩ => hK.1 hz)
@@ -61,7 +61,7 @@ lemma UniformlyBoundedOn.equicontinuousOn (h1 : UniformlyBoundedOn F U) (hU : Is
   convert mul_lt_mul' le_rfl this (norm_nonneg _) hMp
   field_simp [hMp.lt.ne.symm, mul_comm]
 
-def 𝓑 (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (ℂ →ᵤ[compacts U] ℂ) :=
+def 𝓑 (U : Set ℂ) (Q : Set ℂ → Set ℂ) : Set (𝓒 U) :=
     {f ∈ 𝓗 U | ∀ K ∈ compacts U, MapsTo f K (Q K)}
 
 lemma 𝓑_const {Q : Set ℂ} : 𝓑 U (fun _ => Q) = {f ∈ 𝓗 U | MapsTo f U Q} := by
@@ -78,12 +78,12 @@ theorem isClosed_𝓑 (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K
     (mem_singleton z) ⟨singleton_subset_iff.2 (hK.1 hz), isCompact_singleton⟩).continuous)
 
 theorem uniformlyBoundedOn_𝓑 (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
-    UniformlyBoundedOn ((↑) : 𝓑 U Q → ℂ →ᵤ[compacts U] ℂ) U := by
+    UniformlyBoundedOn ((↑) : 𝓑 U Q → 𝓒 U) U := by
   exact fun K hK => ⟨Q K, hQ K hK, fun f => f.2.2 K hK⟩
 
 theorem isCompact_𝓑 (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q K)) :
     IsCompact (𝓑 U Q) := by
-  have l1 (K) (hK : K ∈ compacts U) : EquicontinuousOn ((↑) : 𝓑 U Q → ℂ →ᵤ[compacts U] ℂ) K :=
+  have l1 (K) (hK : K ∈ compacts U) : EquicontinuousOn ((↑) : 𝓑 U Q → 𝓒 U) K :=
     (uniformlyBoundedOn_𝓑 hQ).equicontinuousOn hU (fun f => f.2.1) hK
   have l2 (K) (hK : K ∈ compacts U) (x) (hx : x ∈ K) : ∃ L, IsCompact L ∧ ∀ i : 𝓑 U Q, i.1 x ∈ L :=
     ⟨Q K, hQ K hK, fun f => f.2.2 K hK hx⟩

@@ -16,8 +16,8 @@ lemma mem_iff_eventually_subset (hp : p.HasBasis (λ t : ℝ => 0 < t) φ) (hφ 
     λ h => h ⟨Eq.le (abs_eq_self.mpr hε.le), hε⟩⟩)
 
 lemma eventually_nhds_iff_eventually_ball [PseudoMetricSpace α] :
-  (∀ᶠ z in 𝓝 z₀, P z) ↔ (∀ᶠ r in 𝓝[>] 0, ∀ z ∈ ball z₀ r, P z) :=
-mem_iff_eventually_subset nhds_basis_ball (λ _ _ => ball_subset_ball)
+    (∀ᶠ z in 𝓝 z₀, P z) ↔ (∀ᶠ r in 𝓝[>] 0, ∀ z ∈ ball z₀ r, P z) :=
+  mem_iff_eventually_subset nhds_basis_ball (λ _ _ => ball_subset_ball)
 
 lemma eventually_nhds_iff_eventually_closed_ball [PseudoMetricSpace α] :
   (∀ᶠ z in 𝓝 z₀, P z) ↔ (∀ᶠ r in 𝓝[>] 0, ∀ z ∈ closedBall z₀ r, P z) :=

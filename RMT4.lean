@@ -25,20 +25,6 @@ variable {ι : Type*} {l : Filter ι} {U : Set ℂ} {z₀ : ℂ}
 
 namespace RMT
 
-noncomputable def uderiv (f : ℂ →ᵤ[compacts U] ℂ) : ℂ →ᵤ[compacts U] ℂ := deriv f
-
-lemma ContinuousOn_uderiv (hU : IsOpen U) : ContinuousOn uderiv (𝓗 U) := by
-  rintro f hf
-  haveI := nhdsWithin_neBot_of_mem hf
-  refine (tendsto_iff hU).2 ?_
-  refine TendstoLocallyUniformlyOn.deriv ?_ ?_ hU
-  · apply (tendsto_iff hU).1
-    exact nhdsWithin_le_nhds
-  · rw [eventually_nhdsWithin_iff]
-    apply eventually_of_forall
-    intro f hf
-    exact hf
-
 -- `𝓜 U` : holomorphic functions to the unit closed ball
 
 def 𝓜 (U : Set ℂ) := {f ∈ 𝓗 U | MapsTo f U (closedBall (0 : ℂ) 1)}
@@ -49,7 +35,7 @@ lemma isCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
   simpa only [𝓑_const] using isCompact_𝓑 hU (fun _ _ => isCompact_closedBall 0 1)
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
-  suffices h : IsClosed {f : ℂ →ᵤ[compacts U] ℂ | MapsTo f U (closedBall 0 1)}
+  suffices h : IsClosed {f : 𝓒 U | MapsTo f U (closedBall 0 1)}
   · exact (isClosed_𝓗 hU).inter h
   simp_rw [MapsTo, setOf_forall]
   refine isClosed_biInter (λ z hz => isClosed_ball.preimage ?_)
@@ -132,7 +118,7 @@ lemma IsCompact_𝓙 [good_domain U] : IsCompact (𝓙 U) := by
 
 -- The proof
 
-noncomputable def obs (z₀ : ℂ) (f : ℂ →ᵤ[compacts U] ℂ) : ℝ := ‖deriv f z₀‖
+noncomputable def obs (z₀ : ℂ) (f : 𝓒 U) : ℝ := ‖deriv f z₀‖
 
 lemma ContinuousOn_obs (hU : IsOpen U) (hz₀ : z₀ ∈ U) : ContinuousOn (obs z₀) (𝓗 U) := by
   have e1 : z₀ ∈ {z₀} := mem_singleton _
