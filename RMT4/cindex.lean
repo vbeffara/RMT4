@@ -2,8 +2,6 @@ import Mathlib.Analysis.Analytic.IsolatedZeros
 import Mathlib.Analysis.Complex.RemovableSingularity
 import Mathlib.MeasureTheory.Integral.CircleIntegral
 
-local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
-
 open Real Complex Function TopologicalSpace Filter Topology Metric MeasureTheory Nat
 
 noncomputable def cindex (z₀ : ℂ) (r : ℝ) (f : ℂ → ℂ) : ℂ :=

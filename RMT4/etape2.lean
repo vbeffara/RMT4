@@ -2,8 +2,6 @@ import Mathlib.Analysis.Complex.Schwarz
 import RMT4.defs
 import RMT4.to_mathlib
 
-local macro_rules | `($x ^ $y) => `(HPow.hPow $x $y)
-
 open Complex ComplexConjugate Set Metric Topology Filter
 
 namespace RMT

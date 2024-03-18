@@ -1,21 +1,12 @@
 import Mathlib.Analysis.Complex.OpenMapping
 import RMT4.Basic
-import RMT4.Bunch
 import RMT4.cindex
-import RMT4.Covering
-import RMT4.Curvint
 import RMT4.defs
 import RMT4.deriv_inj
 import RMT4.etape2
-import RMT4.Glue
 import RMT4.has_sqrt
 import RMT4.hurwitz
-import RMT4.Lift
-import RMT4.LocallyConstant
 import RMT4.montel
-import RMT4.pintegral
-import RMT4.Primitive
-import RMT4.Subdivision
 import RMT4.to_mathlib
 import RMT4.uniform
 
@@ -35,8 +26,8 @@ lemma isCompact_𝓜 (hU : IsOpen U) : IsCompact (𝓜 U) := by
   simpa only [𝓑_const] using isCompact_𝓑 hU (fun _ _ => isCompact_closedBall 0 1)
 
 lemma IsClosed_𝓜 (hU : IsOpen U) : IsClosed (𝓜 U) := by
-  suffices h : IsClosed {f : 𝓒 U | MapsTo f U (closedBall 0 1)}
-  · exact (isClosed_𝓗 hU).inter h
+  suffices h : IsClosed {f : 𝓒 U | MapsTo f U (closedBall 0 1)} by
+    exact (isClosed_𝓗 hU).inter h
   simp_rw [MapsTo, setOf_forall]
   refine isClosed_biInter (λ z hz => isClosed_ball.preimage ?_)
   exact ((UniformOnFun.uniformContinuous_eval_of_mem ℂ (compacts U)
