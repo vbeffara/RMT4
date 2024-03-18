@@ -4,8 +4,6 @@ import RMT4.to_mathlib
 
 open Complex ComplexConjugate Set Metric Topology Filter
 
-namespace RMT
-
 variable {z u z₀ : ℂ} (U : Set ℂ) [good_domain U]
 
 lemma one_sub_mul_conj_ne_zero (hu : u ∈ 𝔻) (hz : z ∈ 𝔻) : 1 - z * conj u ≠ 0 := by
@@ -174,5 +172,3 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
       · intro h
         have := (φ v_in_𝔻).is_inj e1 e2 h
         norm_num at this
-
-end RMT

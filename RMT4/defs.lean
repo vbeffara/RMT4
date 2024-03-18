@@ -1,12 +1,15 @@
 import RMT4.to_mathlib
 import RMT4.deriv_inj
-import RMT4.Basic
 
 open Complex Metric Set
 
 variable {u : ℂ} {U V W : Set ℂ}
 
-namespace RMT
+def compacts (U : Set ℂ) : Set (Set ℂ) := {K ⊆ U | IsCompact K}
+
+@[simp] lemma union_compacts : ⋃₀ compacts U = U :=
+  subset_antisymm (λ _ ⟨_, hK, hz⟩ => hK.1 hz)
+    (λ z hz => ⟨{z}, ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩, mem_singleton z⟩)
 
 def 𝔻 : Set ℂ := ball 0 1
 
@@ -88,5 +91,3 @@ noncomputable def embedding.inv (w : ℂ) {r : ℝ} (hr : 0 < r) : embedding ((c
 lemma embedding.deriv_ne_zero {f : embedding U V} {z : ℂ} (hU : IsOpen U) (hz : z ∈ U) :
   deriv f z ≠ 0 :=
 deriv_ne_zero_of_inj hU f.is_diff f.is_inj hz
-
-end RMT

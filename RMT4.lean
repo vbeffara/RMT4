@@ -1,5 +1,4 @@
 import Mathlib.Analysis.Complex.OpenMapping
-import RMT4.Basic
 import RMT4.cindex
 import RMT4.defs
 import RMT4.deriv_inj
@@ -8,5 +7,6 @@ import RMT4.has_sqrt
 import RMT4.hurwitz
 import RMT4.Main
 import RMT4.Montel
+import RMT4.Spaces
 import RMT4.to_mathlib
 import RMT4.uniform
