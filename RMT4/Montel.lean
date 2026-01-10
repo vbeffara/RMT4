@@ -22,7 +22,7 @@ lemma UniformlyBoundedOn.deriv (h1 : UniformlyBoundedOn F U) (hU : IsOpen U)
   refine ⟨closedBall 0 (M / δ), isCompact_closedBall _ _, ?_⟩
   intro i x hx
   simp only [mem_closedBall_zero_iff]
-  refine norm_deriv_le_aux hδ ?_ ?_
+  refine norm_deriv_le_of_forall_mem_sphere_norm_le hδ ?_ ?_
   · exact (h2 i).diffContOnCl_ball ((closedBall_subset_cthickening hx δ).trans h)
   · rintro z hz
     have : z ∈ cthickening δ K :=
@@ -68,7 +68,7 @@ theorem isCompact_𝓑 (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q 
   have l2 (K) (hK : K ∈ compacts U) (x) (hx : x ∈ K) : ∃ L, IsCompact L ∧ ∀ i : 𝓑 U Q, i.1 x ∈ L :=
     ⟨Q K, hQ K hK, fun f => f.2.2 K hK hx⟩
   rw [isCompact_iff_compactSpace]
-  refine ArzelaAscoli.compactSpace_of_closedEmbedding (fun K hK => hK.2) ?_ l1 l2
+  refine ArzelaAscoli.compactSpace_of_isClosedEmbedding (fun K hK => hK.2) ?_ l1 l2
   refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
   simpa [range, UniformOnFun.ofFun] using isClosed_𝓑 hU hQ
 
@@ -76,7 +76,7 @@ theorem montel (hU : IsOpen U) (h1 : UniformlyBoundedOn F U) (h2 : ∀ i, Differ
     TotallyBounded (range F) := by
   choose! Q hQ1 hQ2 using h1
   have l1 : range F ⊆ 𝓑 U Q := by rintro f ⟨i, rfl⟩ ; exact ⟨h2 i, fun K hK => hQ2 K hK i⟩
-  exact totallyBounded_subset l1 <| (isCompact_𝓑 hU hQ1).totallyBounded
+  exact TotallyBounded.subset l1 <| (isCompact_𝓑 hU hQ1).totallyBounded
 
 #print axioms montel
 

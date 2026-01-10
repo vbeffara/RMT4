@@ -8,7 +8,7 @@ variable {z u z₀ : ℂ} (U : Set ℂ) [good_domain U]
 
 lemma one_sub_mul_conj_ne_zero (hu : u ∈ 𝔻) (hz : z ∈ 𝔻) : 1 - z * conj u ≠ 0 := by
   rw [mem_𝔻_iff] at hu hz
-  refine sub_ne_zero.mpr (mt (congr_arg Complex.abs) (ne_comm.mp (ne_of_lt ?_)))
+  refine sub_ne_zero.mpr (mt (congr_arg (‖·‖ : ℂ → _)) (ne_comm.mp (ne_of_lt ?_)))
   simpa using mul_lt_mul'' hz hu (norm_nonneg z) (norm_nonneg u)
 
 lemma one_sub_mul_conj_add_mul_conj_ne_zero (hu : u ∈ 𝔻) :
@@ -18,13 +18,16 @@ lemma one_sub_mul_conj_add_mul_conj_ne_zero (hu : u ∈ 𝔻) :
   simp [h1, mul_comm]
 
 lemma normSq_sub_normSq : normSq (z - u) - normSq (1 - z * conj u) = (normSq z - 1) * (1 - normSq u) := by
-  field_simp [← ofReal_inj, normSq_eq_conj_mul_self]; ring
+  simp [← ofReal_inj, normSq_eq_conj_mul_self]
+  ring
 
 noncomputable def pre_φ (u z : ℂ) : ℂ := (z - u) / (1 - z * conj u)
 
 lemma pre_φ_inv (hu : u ∈ 𝔻) : LeftInvOn (pre_φ (-u)) (pre_φ u) 𝔻 := by
   rintro z hz
-  field_simp [pre_φ, one_sub_mul_conj_ne_zero hu hz, one_sub_mul_conj_add_mul_conj_ne_zero hu]
+  have := one_sub_mul_conj_ne_zero hu hz
+  have := one_sub_mul_conj_add_mul_conj_ne_zero (z := z) hu
+  simp [field, pre_φ]
   ring
 
 noncomputable def φ (hu : u ∈ 𝔻) : embedding 𝔻 𝔻 :=
@@ -36,25 +39,21 @@ noncomputable def φ (hu : u ∈ 𝔻) : embedding 𝔻 𝔻 :=
   is_inj := (pre_φ_inv hu).injOn,
   maps_to := by
     rintro z hz
-    simp only [mem_𝔻_iff, map_div₀, norm_div]
-    refine (div_lt_iff (norm_pos_iff.mpr (one_sub_mul_conj_ne_zero hu hz))).mpr ?_
+    simp only [mem_𝔻_iff, norm_div]
+    refine (div_lt_iff₀ (norm_pos_iff.mpr (one_sub_mul_conj_ne_zero hu hz))).mpr ?_
     rw [one_mul]
-    apply lt_of_pow_lt_pow_left 2 (norm_nonneg _)
-    simp only [norm_eq_abs]
-    rw [← normSq_eq_abs, ← normSq_eq_abs, ← sub_lt_zero, normSq_sub_normSq, normSq_eq_abs, normSq_eq_abs]
+    apply lt_of_pow_lt_pow_left₀ 2 (norm_nonneg _)
+    rw [← normSq_eq_norm_sq, ← normSq_eq_norm_sq, ← sub_lt_zero, normSq_sub_normSq, normSq_eq_norm_sq, normSq_eq_norm_sq]
     apply mul_neg_of_neg_of_pos
-    · simpa [norm_eq_abs] using mem_𝔻_iff.mp hz
-    · simpa [norm_eq_abs] using mem_𝔻_iff.mp hu
+    · simpa using mem_𝔻_iff.mp hz
+    · simpa using mem_𝔻_iff.mp hu
 }
 
 lemma φ_deriv (hu : u ∈ 𝔻) (hz : z ∈ 𝔻) : deriv (φ hu) z = (1 - u * conj u) / ((1 - z * conj u) ^ 2) := by
-  have h1 : DifferentiableAt ℂ (fun z => z - u) z := by simp
-  have h2 : DifferentiableAt ℂ (fun z => 1 - z * conj u) z := by simp [DifferentiableAt.mul_const]
   have h3 : 1 - z * conj u ≠ 0 := one_sub_mul_conj_ne_zero hu hz
-  have h4 : deriv (fun z => z - u) z = 1 := by simp [deriv_sub_const]
-  have h5 : deriv (fun z => 1 - z * conj u) z = - conj u := by simp [deriv_const_sub]
-  simp [φ, deriv_div h1 h2 h3, h4, h5]
-  field_simp [h3]; ring
+  simp [φ, h3]
+  field_simp
+  ring
 
 lemma φ_inv (hu : u ∈ 𝔻) (hz : z ∈ 𝔻) : φ (neg_in_𝔻 hu) (φ hu z) = z :=
   pre_φ_inv hu hz
@@ -66,7 +65,7 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
   let g := φ u_in_𝔻 ∘ f
   have g_diff : DifferentiableOn ℂ g 𝔻 := (φ u_in_𝔻).is_diff.comp f_diff f_img
   have g_maps : MapsTo g 𝔻 𝔻 := (φ u_in_𝔻).maps_to.comp f_img
-  have g_0_eq_0 : g 0 = 0 := by simp [g, φ]
+  have g_0_eq_0 : g 0 = 0 := by simp [g, φ, u]
   by_cases h : ‖deriv g 0‖ = 1
   case pos =>
     have g_lin : EqOn g (λ (z : ℂ) => z • deriv g 0) (ball 0 1) := by
@@ -81,13 +80,12 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
     have g_inj : InjOn g 𝔻 := λ x hx y hy => by
       rw [g_lin hx, g_lin hy]
       simp [g'0_ne_0]
-    cases f_noninj (injOn_of_injOn_comp g_inj)
+    cases f_noninj g_inj.of_comp
   case neg =>
-    rw [norm_eq_abs] at h
-    have g'0_le_1 := abs_deriv_le_one_of_mapsTo_ball g_diff g_maps g_0_eq_0 zero_lt_one
-    have g'0_lt_1 : abs (deriv g 0) < 1 := Ne.lt_of_le h g'0_le_1
+    have g'0_le_1 := norm_deriv_le_one_of_mapsTo_ball g_diff g_maps g_0_eq_0 zero_lt_one
+    have g'0_lt_1 : ‖deriv g 0‖ < 1 := Ne.lt_of_le h g'0_le_1
     have g'0_eq_mul : deriv g 0 = deriv (φ u_in_𝔻) u * deriv f 0 :=
-      deriv.comp 0 ((φ u_in_𝔻).is_diff.differentiableAt (isOpen_ball.mem_nhds u_in_𝔻))
+      deriv_comp 0 ((φ u_in_𝔻).is_diff.differentiableAt (isOpen_ball.mem_nhds u_in_𝔻))
         (f_diff.differentiableAt (ball_mem_nhds _ zero_lt_one))
     have e1 : 1 - (normSq u : ℂ) ≠ 0 := by
       simpa [normSq_eq_conj_mul_self, mul_comm] using one_sub_mul_conj_ne_zero u_in_𝔻 u_in_𝔻
@@ -95,20 +93,19 @@ lemma non_injective_schwarz {f : ℂ → ℂ} (f_diff : DifferentiableOn ℂ f �
       set w := 1 - conj u * u with hw
       have : w ≠ 0 := by simpa [normSq_eq_conj_mul_self, mul_comm u] using e1
       rw [φ_deriv u_in_𝔻 u_in_𝔻, normSq_eq_conj_mul_self, mul_comm u, ← hw]
-      field_simp; ring
+      field_simp
     have e2 : 0 ≤ normSq u := normSq_nonneg _
     have e3 : normSq u < 1 := by
-      rw [normSq_eq_abs]
-      have : abs u < 1 := mem_𝔻_iff.mp u_in_𝔻
-      simp only [sq_lt_one_iff_abs_lt_one, Complex.abs_abs, this]
-    simp [normSq_eq_abs, ← mem_𝔻_iff]
+      rw [normSq_eq_norm_sq]
+      have : ‖u‖ < 1 := mem_𝔻_iff.mp u_in_𝔻
+      simp only [sq_lt_one_iff_abs_lt_one, abs_norm, this]
     simp only [φ'u_u, one_div] at g'0_eq_mul
     rw [eq_comm, inv_mul_eq_iff_eq_mul₀ e1] at g'0_eq_mul
-    rw [← norm_eq_abs, g'0_eq_mul, norm_mul, mul_comm, ← one_mul (1 : ℝ)]
+    rw [g'0_eq_mul, norm_mul, mul_comm, ← one_mul (1 : ℝ)]
     refine mul_lt_mul g'0_lt_1 ?_ (norm_pos_iff.mpr e1) zero_le_one
     simp at e2 e3 ⊢
     norm_cast
-    rw [abs_sub_le_iff]
+    rw [Real.norm_eq_abs, abs_sub_le_iff]
     refine ⟨?_, ?_⟩; repeat linarith
 
 lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) :
@@ -126,7 +123,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
   let v : ℂ := g z₀
   have v_in_𝔻 : v ∈ 𝔻 := g.maps_to hz₀
   let h : embedding U 𝔻 := (φ v_in_𝔻).comp g
-  have h_z₀_eq_0 : h z₀ = 0 := by simp [h, φ]
+  have h_z₀_eq_0 : h z₀ = 0 := by simp [h, φ, v]
   let σ : ℂ → ℂ := λ z => z ^ 2
   let ψ : ℂ → ℂ := φ (neg_in_𝔻 u_in_𝔻) ∘ σ ∘ φ (neg_in_𝔻 v_in_𝔻)
   have f_eq_ψ_h : EqOn f (ψ ∘ h) U := λ z hz => by
@@ -134,7 +131,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
     have e2 := hg hz
     have e3 := φ_inv u_in_𝔻 (f.maps_to hz)
     dsimp [φᵤf] at e2
-    simp [ψ, σ, h, e1, ← e2, e3]
+    simp [ψ, σ, h, e1, ← e2, e3, φᵤ]
   have ψ_is_diff : DifferentiableOn ℂ ψ 𝔻 := by
     refine (φ (neg_in_𝔻 u_in_𝔻)).is_diff.comp ?_ ?_
     · apply DifferentiableOn.comp
@@ -154,7 +151,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
     have e2 : 𝔻 ∈ 𝓝 (0 : ℂ) := ball_mem_nhds _ zero_lt_one
     have e3 : deriv f z₀ = deriv (ψ ∘ h) z₀ := (eventuallyEq_of_mem e1 f_eq_ψ_h).deriv_eq
     rw [e3, ← h_z₀_eq_0]
-    refine deriv.comp z₀ ?_ (h.is_diff.differentiableAt e1)
+    refine deriv_comp z₀ ?_ (h.is_diff.differentiableAt e1)
     rw [h_z₀_eq_0]
     exact ψ_is_diff.differentiableAt e2
   rw [deriv_eq_mul, norm_mul]
@@ -167,8 +164,7 @@ lemma step_2 (hz₀ : z₀ ∈ U) (f : embedding U 𝔻) (hf : f '' U ⊂ 𝔻) 
       have e1 : (2⁻¹ : ℂ) ∈ 𝔻 := by apply mem_𝔻_iff.mpr; norm_num
       have e2 : (-2⁻¹ : ℂ) ∈ 𝔻 := neg_in_𝔻 e1
       refine ⟨φ v_in_𝔻 2⁻¹, (φ v_in_𝔻).maps_to e1, φ v_in_𝔻 (-2⁻¹), (φ v_in_𝔻).maps_to e2, ?_, ?_⟩
-      · unfold_let
-        simp [φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2]
+      · simp [ψ, σ, φ_inv v_in_𝔻 e1, φ_inv v_in_𝔻 e2]
       · intro h
         have := (φ v_in_𝔻).is_inj e1 e2 h
         norm_num at this

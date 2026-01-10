@@ -14,13 +14,14 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
   have h2 : ∀ z ∈ closedBall c r, g z ≠ 0 := by
     rintro z hz
     by_cases h : z = z₀
-    case pos => simp [g, dslope, h, Function.update, hf'z₀]
-    case neg => simp [g, dslope, h, Function.update, slope, sub_ne_zero.2 h, hfz₀, hfz z hz h]
+    case pos => simp [g, dslope, h, hf'z₀]
+    case neg => simp [g, dslope, h, slope, sub_ne_zero.2 h, hfz₀, hfz z hz h]
   have h10 : ∀ z ∈ sphere c r, z - z₀ ≠ 0 :=
     λ z hz => sub_ne_zero.2 (sphere_disjoint_ball.ne_of_mem hz hz₀)
-  suffices this : cindex c r f = ((2 * Real.pi * I)⁻¹ * ∮ z in C(c, r), (z - z₀)⁻¹) + cindex c r g
-    by rw [this, integral_sub_inv_of_mem_ball hz₀, cindex_eq_zero hU hr hcr h1 h2]
-       field_simp [two_ne_zero, Real.pi_ne_zero, I_ne_zero]
+  suffices this : cindex c r f = ((2 * Real.pi * I)⁻¹ * ∮ z in C(c, r), (z - z₀)⁻¹) + cindex c r g by
+    rw [this, integral_sub_inv_of_mem_ball hz₀, cindex_eq_zero hU hr hcr h1 h2]
+    field_simp
+    ring
   have h6 : ∀ z ∈ sphere c r, deriv f z / f z = (z - z₀)⁻¹ + deriv g z / g z := by
     rintro z hz
     have h3 : ∀ z ∈ U, f z = (z - z₀) * g z :=
@@ -32,12 +33,14 @@ lemma crucial (hU : IsOpen U) (hcr : closedBall c r ⊆ U) (hz₀ : z₀ ∈ bal
     have e1 : DifferentiableAt ℂ (λ y => y - z₀) z := differentiableAt_id.sub_const z₀
     have e2 : DifferentiableAt ℂ g z := h1.differentiableAt e0
     have h5 : deriv f z = g z + (z - z₀) * deriv g z := by
-      have : deriv (fun y => y - z₀) z = 1 := by
-        change deriv (fun y => id y - z₀) z = 1
-        simp [deriv_sub_const]
-      simp [h4, deriv_mul e1 e2, this]
+      simp [h4]
+      rw [deriv_fun_mul e1 e2]
+      simp
     have e3 : g z ≠ 0 := h2 z (sphere_subset_closedBall hz)
-    field_simp [h3 z hz', h5, mul_comm, h10 z hz]
+    have := h10 z hz
+    field_simp
+    simp [h3 z hz', h5, mul_comm]
+    field_simp
   simp only [cindex, integral_congr hr.le h6, ← mul_add]
   congr
   apply circleIntegral.integral_add
@@ -71,7 +74,7 @@ lemma two_le_order_of_deriv_eq_zero {g : ℂ →ℂ} {p : FormalMultilinearSerie
     2 ≤ p.order := by
   classical
   have h1 : p.coeff 1 = 0 := by simpa only [hg'] using hgp.deriv.symm
-  have h2 : p 0 = 0 := by ext1 x; simpa only [hg] using hgp.coeff_zero x
+  have h2 : p 0 = 0 := by ext1; simpa only [hg] using hgp.coeff_zero _
   have h3 : p 1 = 0 := by ext1; simp [h1]
   rw [FormalMultilinearSeries.order_eq_find' hp, Nat.le_find_iff]
   intro n hn
@@ -104,8 +107,8 @@ lemma deriv_ne_zero_of_inj_aux {g : ℂ → ℂ} (hU : IsOpen U) (hg : Different
       cindex z₀ r g = p.order ∧
       (∀ z ∈ closedBall z₀ r, z ≠ z₀ → deriv g z ≠ 0) ∧
       (∀ z ∈ closedBall z₀ r, z ≠ z₀ → g z ≠ 0) ∧
-      closedBall z₀ r ⊆ U
-  · obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).analyticAt (hU.mem_nhds hz₀)
+      closedBall z₀ r ⊆ U := by
+    obtain ⟨q, hq⟩ : AnalyticAt ℂ (deriv g) z₀ := (hg.deriv hU).analyticAt (hU.mem_nhds hz₀)
     have h26 : q ≠ 0 := by
       rintro rfl
       simpa [hgz₀] using (((bla ⟨p, hp⟩ hq).filter_mono nhdsWithin_le_nhds).and h25).exists
@@ -123,7 +126,7 @@ lemma deriv_ne_zero_of_inj_aux {g : ℂ → ℂ} (hU : IsOpen U) (hg : Different
     tendsto_uniformly_on_add_const.tendstoLocallyUniformlyOn
   have h9 : ∀ᶠ ε in 𝓝[≠] 0, cindex z₀ r (λ z => g z + ε) = 1 := by
     have h24 : p.order ≠ 0 := by linarith
-    have := hurwitz2 hU (eventually_of_forall h18) h19 h7 h20 h22 (by simp [h8, h24])
+    have := hurwitz2 hU (Eventually.of_forall h18) h19 h7 h20 h22 (by simp [h8, h24])
     simp only [eventually_nhdsWithin_iff] at this ⊢
     filter_upwards [this] with ε h hε
     obtain ⟨z, hz, hgz⟩ := h hε
@@ -133,7 +136,7 @@ lemma deriv_ne_zero_of_inj_aux {g : ℂ → ℂ} (hU : IsOpen U) (hg : Different
     contrapose! hwz
     exact hi (h20 hw) ((ball_subset_closedBall.trans h20) hz) (add_right_cancel (hwz.trans hgz.symm))
   have h10 : Tendsto (λ ε => cindex z₀ r (λ z => g z + ε)) (𝓝[≠] 0) (𝓝 (cindex z₀ r g)) :=
-    hurwitz2_2 hU (eventually_of_forall h18) h19 h7 (sphere_subset_closedBall.trans h20) h22
+    hurwitz2_2 hU (Eventually.of_forall h18) h19 h7 (sphere_subset_closedBall.trans h20) h22
   rw [tendsto_nhds_unique (Tendsto.congr' h9 h10) tendsto_const_nhds] at h8
   norm_cast at h8; linarith
 

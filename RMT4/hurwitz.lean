@@ -55,7 +55,7 @@ lemma titi {p q : Filter 𝕜} (hp : p ⊓ 𝓝 0 = ⊥) (hq : q ⊓ 𝓝 0 = �
   have hx'2 : x.2 ∉ ball (0 : 𝕜) η' :=
     λ h => (Set.nonempty_of_mem (mem_inter hx2.2 (hV' h))).ne_empty hUV'
   refine hu ((dist_inv_le_dist_div hη hη' hx'1 hx'2).trans_lt ?_)
-  convert (div_lt_div_right hηη').mpr hx1
+  convert (div_lt_div_iff_of_pos_right hηη').mpr hx1
   field_simp [hη.lt.ne.symm, hη'.lt.ne.symm]
 
 lemma uniform_ContinuousOn_inv {s : Set 𝕜} (hs : 𝓟 s ⊓ 𝓝 0 = ⊥) :
@@ -101,16 +101,17 @@ lemma TendstoUniformlyOn.mul_of_le
       case pos => simp [h, half_pos hε]
       case neg =>
         convert mul_lt_mul (hF x hx) (h1 x hx) (norm_pos_iff.mpr h) (by positivity) using 1
-        simp only [div_mul, mul_div_cancel, hMg.ne.symm, Ne.def, not_false_iff]
+        simp only [div_mul, isUnit_iff_ne_zero, Ne, hMg.ne', not_false_eq_true,
+          IsUnit.mul_div_cancel_right]
     have h3 : ‖F i x * (g x - G i x)‖ < ε / 2 := by
       rw [norm_mul]
       by_cases h : F i x = 0
       case pos => simp [h, half_pos hε]
       case neg =>
         convert mul_lt_mul' (hf x hx) (hG x hx) (norm_nonneg _) hMf using 1
-        field_simp [hMf.ne.symm]; ring
+        field_simp
     simp_rw [Pi.mul_apply, lxyab]
-    exact (norm_add_le _ _).trans_lt (add_halves' ε ▸ add_lt_add h2 h3)
+    exact (norm_add_le _ _).trans_lt (add_halves ε ▸ add_lt_add h2 h3)
 
 lemma TendstoUniformlyOn.mul_of_bound
     (hF : TendstoUniformlyOn F f p s) (hG : TendstoUniformlyOn G g p s)
@@ -149,8 +150,8 @@ lemma TendstoUniformlyOn.mul_of_compact
     replace h : K.Nonempty := Set.nonempty_iff_ne_empty.2 h
     have h2 : ContinuousOn (norm ∘ f) K := continuous_norm.comp_continuousOn hf
     have h3 : ContinuousOn (norm ∘ g) K := continuous_norm.comp_continuousOn hg
-    obtain ⟨xf, _, h4⟩ : ∃ x ∈ K, ∀ y ∈ K, ‖f y‖ ≤ ‖f x‖ := hK.exists_forall_ge h h2
-    obtain ⟨xg, _, h5⟩ : ∃ x ∈ K, ∀ y ∈ K, ‖g y‖ ≤ ‖g x‖ := hK.exists_forall_ge h h3
+    obtain ⟨xf, _, h4⟩ : ∃ x ∈ K, ∀ y ∈ K, ‖f y‖ ≤ ‖f x‖ := hK.exists_isMaxOn h h2
+    obtain ⟨xg, _, h5⟩ : ∃ x ∈ K, ∀ y ∈ K, ‖g y‖ ≤ ‖g x‖ := hK.exists_isMaxOn h h3
     exact hF.mul_of_bound hG h4 h5
 
 lemma TendstoUniformlyOn.div_of_compact
@@ -198,7 +199,7 @@ lemma hurwitz2_1 {K : Set ℂ} (hK : IsCompact K) (F_conv : TendstoUniformlyOn F
   case pos => simp [h]
   case neg =>
     obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ K, ∀ z ∈ K, ‖f z₀‖ ≤ ‖f z‖ :=
-      hK.exists_forall_le (nonempty_iff_ne_empty.2 h) (continuous_norm.comp_continuousOn hf1)
+      hK.exists_isMinOn (nonempty_iff_ne_empty.2 h) (continuous_norm.comp_continuousOn hf1)
     have h3 := tendstoUniformlyOn_iff.1 F_conv (‖f z₀‖) (norm_pos_iff.2 (hf2 _ h1))
     filter_upwards [h3] with n hn z hz h
     specialize hn z hz
@@ -214,21 +215,20 @@ lemma TendstoUniformlyOn.tendsto_circle_integral (hr : 0 < r)
   by_cases h : NeBot p
   case neg => simp at h; simp [h]
   case pos =>
-    have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.continuousOn F_cont
+    have f_cont : ContinuousOn f (sphere z₀ r) := F_conv.continuousOn F_cont.frequently
     rw [Metric.tendsto_nhds]
     intro ε hε
     have twopir_ne_zero : 2 * Real.pi * r ≠ 0 := by simp [Real.pi_ne_zero, hr.ne.symm]
     have : (2 * Real.pi * r)⁻¹ * ε > 0 :=
       mul_pos (inv_pos.mpr (mul_pos (mul_pos two_pos Real.pi_pos) hr)) hε.lt
     filter_upwards [tendstoUniformlyOn_iff.mp F_conv ((2 * Real.pi * r)⁻¹ * ε) this, F_cont] with n h h'
-    simp_rw [dist_comm (f _) _, Complex.dist_eq, ← Complex.norm_eq_abs] at h
-    rw [Complex.dist_eq, ← circleIntegral.integral_sub (h'.circleIntegrable hr.le) (f_cont.circleIntegrable hr.le),
-      ← Complex.norm_eq_abs]
+    simp_rw [dist_comm (f _) _, Complex.dist_eq] at h
+    rw [Complex.dist_eq, ← circleIntegral.integral_sub (h'.circleIntegrable hr.le) (f_cont.circleIntegrable hr.le)]
     have : ∃ x ∈ sphere z₀ r, ‖F n x - f x‖ < (2 * Real.pi * r)⁻¹ * ε := by
       have : z₀ + r ∈ sphere z₀ r := by simp [hr.le, Real.norm_eq_abs]
       exact ⟨z₀ + r, this, h _ this⟩
     convert circleIntegral.norm_integral_lt_of_norm_le_const_of_lt hr (h'.sub f_cont) (λ z hz => (h z hz).le) this
-    field_simp [hr.ne, Real.pi_ne_zero, two_ne_zero]; ring
+    field_simp [hr.ne, Real.pi_ne_zero, two_ne_zero]
 
 lemma hurwitz2_2 (hU : IsOpen U) (hF : ∀ᶠ n in p, DifferentiableOn ℂ (F n) U)
     (hf : TendstoLocallyUniformlyOn F f p U) (hr1 : 0 < r) (hr2 : sphere z₀ r ⊆ U)
@@ -353,7 +353,7 @@ theorem hurwitz [NeBot p]
     ∀ z ∈ U, f z = 0 := by
   have := local_hurwitz hU F_holo F_noz F_conv hz₀ hfz₀
   have h1 : DifferentiableOn ℂ f U := F_conv.differentiableOn F_holo hU
-  have h2 := h1.analyticOn hU
+  have h2 := h1.analyticOnNhd hU
   exact h2.eqOn_zero_of_preconnected_of_eventuallyEq_zero hU' hz₀ this
 
 theorem hurwitz' [NeBot p]
@@ -373,7 +373,7 @@ lemma hurwitz_1 (hU : IsOpen U) (hU' : IsPreconnected U) (hf : DifferentiableOn 
     (EqOn f 0 U) ∨ (∀ z₀ ∈ U, ∀ᶠ z in 𝓝[≠] z₀, f z ≠ 0) := by
   refine or_iff_not_imp_right.2 (λ h => ?_)
   obtain ⟨z₀, h1, h2⟩ : ∃ z₀ ∈ U, ∃ᶠ z in 𝓝[≠] z₀, f z = 0 := by simpa [not_forall] using h
-  exact (hf.analyticOn hU).eqOn_zero_of_preconnected_of_frequently_eq_zero hU' h1 h2
+  exact (hf.analyticOnNhd hU).eqOn_zero_of_preconnected_of_frequently_eq_zero hU' h1 h2
 
 lemma hurwitz4 {α β γ : Type*} {U : Set α} [TopologicalSpace α] [UniformSpace β] [UniformSpace γ]
     {F : ι → α → β} {f : α → β} {φ : β → γ}
@@ -394,7 +394,7 @@ theorem hurwitz_inj [NeBot p]
   obtain ⟨x, hx, y, hy, hfxy, hxy⟩ : ∃ x ∈ U, ∃ y ∈ U, f x = f y ∧ x ≠ y := by
     simp [InjOn] at h
     obtain ⟨x, h1, y, h2, h3, h4⟩ := h
-    refine ⟨x, h1, y, h3, h2, h4⟩
+    refine ⟨x, h1, y, h2, h3, h4⟩
   --
   set g : ℂ → ℂ := λ z => f z - f x
   set G : ι → ℂ → ℂ := λ n z => F n z - f x

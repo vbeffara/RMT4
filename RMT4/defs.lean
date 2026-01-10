@@ -22,7 +22,7 @@ lemma neg_in_𝔻 : u ∈ 𝔻 → -u ∈ 𝔻 := by
 lemma sqrt_𝔻_eq_𝔻 : {z : ℂ | z ^ 2 ∈ 𝔻} = 𝔻 := by
   simp [𝔻, ball]
 
-class good_domain (U : Set ℂ) : Prop :=
+class good_domain (U : Set ℂ) : Prop where
   (is_open : IsOpen U)
   (is_nonempty : U.Nonempty)
   (is_preconnected : IsPreconnected U)
@@ -30,7 +30,7 @@ class good_domain (U : Set ℂ) : Prop :=
   (has_sqrt : ∀ f : ℂ → ℂ, (∀ z ∈ U, f z ≠ 0) → (DifferentiableOn ℂ f U) →
     ∃ (g : ℂ → ℂ), (DifferentiableOn ℂ g U) ∧ (U.EqOn f (g ^ 2)))
 
-structure embedding (U V : Set ℂ) :=
+structure embedding (U V : Set ℂ) where
   (to_fun : ℂ → ℂ)
   (is_diff : DifferentiableOn ℂ to_fun U)
   (is_inj : InjOn to_fun U) -- TODO: rename to `inj_on`
@@ -82,11 +82,9 @@ noncomputable def embedding.inv (w : ℂ) {r : ℝ} (hr : 0 < r) : embedding ((c
     · simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le hx
     · simpa only [sub_ne_zero] using ne_center_of_not_mem_closed_ball hr.le hy
   maps_to := λ x hx => by
-    replace hx : r < abs (x - w) := by simpa [𝔻] using hx
-    simp only [𝔻, mem_ball_zero_iff, norm_eq_abs, norm_div]
-    refine (@div_lt_one _ _ _ _ (hr.trans hx)).mpr ?_
-    convert hx
-    simp [hr.le]
+    replace hx : r < ‖x - w‖ := by simpa [𝔻] using hx
+    simpa only [𝔻, mem_ball_zero_iff, norm_div, div_lt_one (hr.trans hx), norm_real,
+      Real.norm_eq_abs, abs_of_nonneg hr.le]
 
 lemma embedding.deriv_ne_zero {f : embedding U V} {z : ℂ} (hU : IsOpen U) (hz : z ∈ U) :
   deriv f z ≠ 0 :=
